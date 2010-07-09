@@ -1,0 +1,1214 @@
+
+
+    * bugs
+    * support
+    * news
+    * documentation
+    * download
+    * about
+    * themes
+    * scripts
+
+What's this?
+
+You are visiting the official website for the IRC client Irssi, for more information see the about section.
+Search this site
+
+Search function coming soon!
+
+ 
+What's new?
+
+Irssi 0.8.15 has been released and the new website will be released in a few weeks!
+Perl Scripting Reference
+
+ Installation problems
+ ---------------------
+
+You'll need to have perl support compiled with irssi. If "/LOAD"
+doesn't show perl in list of loaded modules, you have a problem. See
+INSTALL file for information about perl problems.
+
+
+ Running scripts
+ ---------------
+
+Scripts are run with /SCRIPT LOAD command, or the default /RUN alias.
+"/SCRIPT" shows list of running script, and /SCRIPT UNLOAD can unload
+scripts.
+
+Scripts should be placed to ~/.irssi/scripts/ or
+/usr/local/lib/irssi/scripts/ (or depending on where irssi was
+installed) directories. After that /RUN script_name should work, you
+don't need to add the .pl suffix.
+
+
+ Irssi's signals
+ ---------------
+
+Irssi is pretty much based on sending and handling different signals.
+Like when you receive a message from server, say
+
+  :nick!user@there.org PRIVMSG you :blahblah
+
+Irssi will first send a signal:
+
+  "server incoming", SERVER_REC, "nick!user@there PRIVMSG ..."
+
+You probably don't want to use this signal. Default handler for this
+signal interprets the header and sends a signal:
+
+  "server event", SERVER_REC, "PRIVMSG ...", "nick", "user@there.org"
+
+You probably don't want to use this either, since this signal's default
+handler parses the event string and sends a signal:
+
+  "event privmsg", SERVER_REC, "you :blahblah", "nick", "user@there.org"
+
+You can at any point grab the signal, do whatever you want to do with
+it and optionally stop it from going any further by calling
+Irssi::signal_stop();
+
+For example:
+
+  sub event_privmsg {
+    # $data = "nick/#channel :text"
+    my ($server, $data, $nick, $address) = @_;
+    my ($target, $text) = split(/ :/, $data, 2);
+
+    Irssi::signal_stop() if ($text =~ /free.*porn/ || $nick =~ /idiot/);
+  }
+
+Irssi::signal_add("event privmsg", "event_privmsg")
+
+This will hide all public or private messages that match the regexp
+"free.*porn" or the sender's nick contain the word "idiot". Yes, you
+could use /IGNORE instead for both of these :)
+
+You can also use signal_add_last() if you wish to let the Irssi's internal
+functions be run before yours.
+
+A list of signals that irssi sends can be found from signals.txt file.
+
+
+ Creating/replacing /COMMANDS
+ ----------------------------
+
+You can create your own commands, or replace existing ones with
+Irssi::command_bind(). The command handling work internally pretty much
+the same as signal handlers, so if you replace existing command and don't
+wish to let it run, call Irssi::signal_stop().
+
+Here's an example:
+
+  # Usage: /HELLO [<nick>]
+  sub cmd_hello {
+    # data - contains the parameters for /HELLO
+    # server - the active server in window
+    # witem - the active window item (eg. channel, query)
+    #         or undef if the window is empty
+    my ($data, $server, $witem) = @_;
+
+    if (!$server || !$server->{connected}) {
+      Irssi::print("Not connected to server");
+      return;
+    }
+
+    if ($data) {
+      $server->command("MSG $data Hello!");
+    } elsif ($witem && ($witem->{type} eq "CHANNEL" ||
+                        $witem->{type} eq "QUERY")) {
+      # there's query/channel active in window
+      $witem->command("MSG ".$witem->{name}." Hello!");
+    } else {
+      Irssi::print("Nick not given, and no active channel/query in window");
+    }
+  }
+
+  Irssi::command_bind('hello', 'cmd_hello');
+
+
+ Message levels
+ --------------
+
+Several functions expect message levels. They're used to roughly
+classify messages. They're used by a lot of things including logging,
+ignoring, highlighting, etc. so you should use as good level as
+possible. It's possible to have several levels in one message, like
+ACTIONS+PUBLIC or ACTIONS+MSGS.
+
+Here's all the levels that irssi supports currently:
+
+  CRAP, MSGS, PUBLIC, NOTICES, SNOTES, CTCPS, ACTIONS, JOINS, PARTS
+  QUITS, KICKS, MODES, TOPICS, WALLOPS, INVITES, NICKS, DCC, DCCMSGS,
+  CLIENTNOTICE, CLIENTCRAP, CLIENTERROR
+
+And a few special ones that could be included with the levels above:
+
+  HILIGHT - text is highlighted
+  NOHILIGHT - don't check highlighting for this message
+  NO_ACT - don't trigger channel activity when printing this message
+  NEVER - never ignore or log this message (not a good idea usually)
+
+You can use them with a MSGLEVEL_ prefix, for example:
+
+  $server->print("#channel", 'Hello, world', MSGLEVEL_CLIENTCRAP);
+
+Writes text to #channel window with CLIENTCRAP level.
+
+
+ Window items
+ ------------
+
+Meaning of "window" should be pretty clear, but "window item" is
+something I couldn't really figure out a better name for :) They're
+simply something that's inside a window, a channel or a query usually.
+Windows can have multiple items inside them. It's possible to create
+non-channel/query window items too, currently the third possible window
+item is created by /EXEC -interactive.
+
+In scripts, I think you can quite safely assume that the window item is
+query or channel if the script is intended to be run in one of them.
+Stupid users won't probably have other window items, and smart users
+know where to run the script, or at least later figure out why it
+didn't work :)
+
+
+ Functions that you can use in Irssi's Perl scripts
+ --------------------------------------------------
+
+If there's a "Xxxx::" text before the command, it means that it belongs to
+that package. Like "Server::command" means that you should either call it as
+  Irssi::Server::command($server, $cmd);
+or more easily:
+  $server->command($cmd);
+
+Commands that don't have the Xxxx prefix are called as Irssi::command();
+
+Information from most objects can be fetched with $object->{data}, for
+example current nick in server could be read with $server->{nick}. List
+of all the information that are in objects are in "Object->{}" sections
+below.
+
+Commands are split in two groups, generic ones that could be used with
+any chat protocol, and IRC specific commands. If you want to use IRC
+specific commands, or use IRC specific ->{data} in your scripts, you'll
+need to add "use Irssi::Irc" to your scripts. IRC specific commands are
+listed after the generic ones.
+
+
+ *** General
+
+Window active_win() - return active window
+Server active_server() - return server in active window
+
+windows() - return list of all windows
+servers() - return list of all servers
+reconnects() - return list of all server reconnections
+channels() - return list of all channels
+queries() - return list of all queries
+commands() - return list of all commands
+logs() - return list of all log files
+ignores() - returns list of all ignores
+
+Server::channels() - return list of channels in server
+Server::queries() - return list of queries in server
+
+print(str[, level])
+Server::print(channel, str[, level])
+Window::print(str[, level])
+Windowitem::print(str[, level])
+  Print `str'. Default level is MSGLEVEL_CLIENTNOTICE.
+
+command(cmd)
+Server::command(cmd)
+Window::command(cmd)
+Windowitem::command(cmd)
+  Send a command `cmd' (in current channel). The '/' char isn't needed.
+
+
+ *** Themes
+
+You can have user configurable texts in scripts that work just like
+irssi's internal texts that can be changed in themes.
+
+First you'll have to register the formats:
+
+Irssi::theme_register([
+  'format_name', '{hilight my perl format!}',
+  'format2', 'testing.. nick = $0, channel = $1'
+]);
+
+Printing happens with one of the functions:
+
+printformat(level, format, ...)
+Window::printformat(level, format, ...)
+Server::printformat(target, level, format, ...)
+Windowitem::printformat(level, format, ...)
+
+For example:
+
+  $channel->printformat(MSGLEVEL_CRAP, 'format2',
+		        'nick', $channel->{name});
+
+
+ *** Settings
+
+settings_get_str(key)
+settings_get_int(key)
+settings_get_bool(key)
+settings_get_time(key)
+settings_get_level(key)
+settings_get_size(key)
+  Return value for setting.
+
+settings_set_str(key, value)
+settings_set_int(key, value)
+settings_set_bool(key, value)
+settings_set_time(key, value)
+settings_set_level(key, value)
+settings_set_size(key, value)
+  Set value for setting.
+  If you change the settings of another module/script with one of these, you
+  must emit a "setup changed" signal afterwards.
+
+settings_add_str(section, key, def)
+settings_add_int(section, key, def)
+settings_add_bool(section, key, def)
+settings_add_time(section, key, def)
+settings_add_level(section, key, def)
+settings_add_size(section, key, def)
+  Create new setting.
+
+settings_remove(key)
+  Remove a setting.
+
+
+ *** Signals
+
+signal_emit(signal, ...)
+  Send signal `signal'. You can give 6 parameters at maximum.
+
+signal_continue(...)
+  Continue currently emitted signal with different parameters.
+
+signal_add(signal, func)
+  Bind `signal' to function `func'.
+
+signal_add_first(signal, func)
+  Bind `signal' to function `func'. Call `func' as soon as possible.
+
+signal_add_last(signal, func)
+  Bind `signal' to function `func'. Call `func' as late as possible.
+
+signal_remove(signal, func)
+  Unbind `signal' from function `func'.
+
+signal_stop()
+  Stop the signal that's currently being emitted.
+
+signal_stop_by_name(signal)
+  Stop the signal with name `signal' that's currently being emitted.
+
+signal_register(hash)
+  Register parameter types for one or more signals.
+  `hash' must map one or more signal names to references to arrays
+  containing 0 to 6 type names. Some recognized type names include
+  int for integers, intptr for references to integers and string for
+  strings. For all standard signals see src/perl/perl-signals-list.h
+  in the source code (this is generated by src/perl/get-signals.pl).
+
+  Any signals that were already registered are unaffected.
+
+  Registration is required to get any parameters to signals written in
+  Perl and to emit and continue signals from Perl.
+
+  *** timeouts / IO listener / pidwait
+
+timeout_add(msecs, func, data)
+  Call `func' every `msecs' milliseconds (1000 = 1 second) with
+  parameter `data'. Returns tag which can be used to stop the timeout.
+
+timeout_add_once(msecs, func, data);
+  Call `func' once after `msecs' milliseconds (1000 = 1 second)
+  with parameter `data'. Returns tag which can be used to stop the timeout.
+
+timeout_remove(tag)
+  Remove timeout with tag.
+
+input_add(source, condition, func, data)
+  Call `func' with parameter `data' when specified IO happens.
+  `source' is the file handle that is being listened. `condition' can
+  be INPUT_READ, INPUT_WRITE or both. Returns tag which can be used to
+  remove the listener.
+
+input_remove(tag)
+  Remove listener with tag.
+
+pidwait_add(pid)
+  Adds `pid' to the list of processes to wait for. The pid must identify
+  a child process of the irssi process. When the process terminates, a
+  "pidwait" signal will be sent with the pid and the status from
+  waitpid(). This is useful to avoid zombies if your script forks.
+
+pidwait_remove(pid)
+  Removes `pid' from the list of processes to wait for. Terminated
+  processes are removed automatically, so it is usually not necessary
+  to call this function.
+
+ *** Message levels
+
+level2bits(level)
+  Level string -> number
+
+bits2level(bits)
+  Level number -> string
+
+combine_level(level, str)
+  Combine level number to level string ("+level -level").
+  Return new level number.
+
+
+ *** Commands
+
+Command->{}
+  cmd - Command name
+  category - Category
+
+command_bind(cmd, func[, category])
+  Bind command `cmd' to call function `func'. `category' is the
+  category where the command is displayed in /HELP.
+
+command_runsub(cmd, data, server, item)
+  Run subcommands for `cmd'. First word in `data' is parsed as
+  subcommand. `server' is Irssi::Server rec for current
+  Irssi::Windowitem `item'.
+  
+  Call command_runsub in handler function for `cmd' and bind
+  with command_bind("`cmd' `subcmd'", subcmdfunc[, category]);
+
+command_unbind(cmd, func)
+  Unbind command `cmd' from function `func'.
+
+command_set_options(cmd, data)
+  Set options for command `cmd' to `data'. `data' is a string of
+  space separated words which specify the options. Each word can be
+  optionally prefixed with one of the following character:
+
+  '-': optional argument
+  '+': argument required
+  '@': optional numeric argument
+
+command_parse_options(cmd, data)
+  Parse options for command `cmd' in `data'. It returns a reference to
+  an hash table with the options and a string with the remaining part
+  of `data'. On error it returns the undefined value.
+
+
+ *** Windows
+
+UI::Window->{}
+  refnum - Reference number
+  name - Name
+
+  width - Width
+  height - Height
+
+  history_name - Name of named historylist for this window
+
+  active - Active window item
+  active_server - Active server
+
+  servertag - active_server must be either undef or have this same tag
+              (unless there's items in this window). This is used by
+	      /WINDOW SERVER -sticky
+  level - Current window level
+
+  sticky_refnum - 1 if reference number is sticky
+
+  data_level - Current data level
+  hilight_color - Current activity hilight color
+
+  last_timestamp - Last time timestamp was written in window
+  last_line - Last time text was written in window
+
+  theme_name - Active theme in window, undef = default
+
+UI::TextDest->{}
+  window - Window where the text will be written
+  server - Target server
+  target - Target channel/query/etc name
+  level - Text level
+
+  hilight_priority - Priority for the hilighted text
+  hilight_color - Color for the hilighted text
+
+
+Window::items()
+  Return a list of items in window.
+
+Window
+window_create(automatic)
+Windowitem::window_create(automatic)
+  Create a new window.
+
+Window::destroy()
+  Destroy the window.
+
+Irssi::Window
+Windowitem::window()
+  Returns parent window for window item.
+
+Window
+window_find_name(name)
+  Find window with name.
+
+Window
+window_find_refnum(refnum)
+  Find window with reference number.
+
+Window
+window_find_level(level)
+Server::window_find_level(level)
+  Find window with level.
+
+Window
+window_find_closest(name, level)
+Server::window_find_closest(name, level)
+  Find window that matches best to given arguments. `name' can be either
+  window name or name of one of the window items.
+
+Window
+window_find_item(name)
+Server::window_find_item(name)
+  Find window which contains window item with specified name/server.
+
+Windowitem
+window_item_find(name)
+Server::window_item_find(name)
+Window::item_find(server, name)
+  Find window item that matches best to given arguments.
+
+window_refnum_prev(refnum, wrap)
+window_refnum_next(refnum, wrap)
+  Return refnum for window that's previous/next in windows list.
+
+windows_refnum_last()
+  Return refnum for last window.
+
+Window::item_add(item, automatic)
+Window::item_remove(item)
+Window::item_destroy(item)
+  Add/remove/destroy window item
+
+Window::set_active()
+  Set window active.
+
+Window::change_server(server)
+Window::set_refnum(refnum)
+Window::set_name(name)
+Window::set_history(name)
+Window::set_level(level)
+  Change server/refnum/name/history/level in window.
+
+Windowitem::set_active()
+  Change window item active in parent window.
+
+Window::item_prev()
+Window::item_next()
+  Change to previous/next window item.
+
+Windowitem::change_server(server)
+  Change server in window item.
+
+Windowitem::is_active()
+  Returns 1 if window item is the active item in parent window.
+
+Window::get_active_name()
+  Return active item's name, or if none is active, window's name
+
+
+ *** Server Connects
+
+Connect->{}
+  type - "SERVER CONNECT" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  address - Address where we connected (irc.blah.org)
+  port - Port where we connected
+  chatnet - Chat network
+
+  password - Password we used in connection.
+  wanted_nick - Nick which we would prefer to use
+  username - User name
+  realname - Real name
+
+Connect
+server_create_conn(address[, port=6667[, password=''[, nick=''[, channels='']]]])
+  Create new server connection.
+
+
+ *** Server functions
+
+Server->{}
+  type - "SERVER" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  (..contains all the same data as Connect above..)
+
+  connect_time - Time when connect() to server finished
+  real_connect_time - Time when server sent "connected" message
+
+  tag - Unique server tag
+  nick - Current nick
+
+  connected - Is connection finished? 1|0
+  connection_lost - Did we lose the connection (1) or was
+                    the connection just /DISCONNECTed (0)
+
+  rawlog - Rawlog object for the server
+
+  version - Server version
+  last_invite - Last channel we were invited to
+  server_operator - Are we server operator (IRC op) 1|0
+  usermode_away - Are we marked as away? 1|0
+  away_reason - Away reason message
+  banned - Were we banned from this server? 1|0
+  lag - Current lag to server in milliseconds
+
+Server
+Connect::connect()
+  Connect to server.
+
+Server::disconnect()
+  Disconnect from server.
+
+Server
+server_find_tag(tag)
+  Find server with tag
+
+Server
+server_find_chatnet(chatnet)
+  Find first server that is in `chatnet'
+
+Server::isnickflag(flag)
+  Returns 1 if flag is a nick mode flag (@, + or % in IRC)
+
+Server::ischannel(data)
+  Returns 1 if start of `data' seems to mean channel.
+
+Server::get_nick_flags()
+  Returns nick flag characters in order: op, voice, halfop ("@+%" in IRC).
+
+Server::send_message(target, msg, target_type)
+  Sends a message to nick/channel. target_type 0 = channel, 1 = nick
+
+
+ *** Server reconnections
+
+Reconnect->{}
+  type - "RECONNECT" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  (..contains all the same data as Connect above..)
+
+  tag - Unique numeric tag
+  next_connect - Unix time stamp when the next connection occurs
+
+
+ *** Chat networks
+
+Chatnet->{}
+  type - "CHATNET" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  name - name of chat network
+
+  nick - if not empty, nick preferred in this network
+  username - if not empty, username preferred in this network
+  realname - if not empty, realname preferred in this network
+
+  own_host - address to use when connecting this network
+  autosendcmd - command to send after connecting to this network
+
+chatnet_find(name)
+  Find chat network with name.
+
+
+ *** Server redirections
+
+This is a powerful feature of Irssi that I haven't seen in other IRC
+clients. You can EASILY grab the server's reply for a command you send
+to server without any horrible kludges.
+
+redirect_register(command, remote, timeout, start, stop, opt)
+   Register new redirection command. By default irssi has already
+   registered at least: whois, whowas, who, list, ison, userhost, ping,
+   "mode channel" (/MODE #channel), "mode b" (/MODE #channel b), "mode e"
+   and "mode I".
+
+   `command' specifies the name of the command to register, it doesn't
+   have to be a real command name, but something you just specify to
+   redirect_event() when using this redirection.
+
+   `remote' specifies if the command is by default a remote command
+   (eg. sent to another server). redirect_event() may override this.
+
+   `timeout' - If remote is TRUE, specifies how many seconds to wait for
+   reply before aborting.
+
+   `start', `stop', `opt' - hash references with "event" => argpos entries.
+   List of events that start and stop this redirection.
+   Start event list may be empty, but there must be at least one
+   stop event. Optional events are checked only if they are received
+   immediately after one of the stop-events. `argpos' specifies the
+   word number in event string which is compared to wanted argument,
+   -1 = don't compare, TRUE always.
+
+  Example (already done by irssi):
+
+  Irssi::redirect_register('mode channel', 0, 0,
+  	undef, # no start events
+	{ # stop events
+	  "event 324" => 1, # MODE-reply
+	  "event 403" => 1, # no such channel
+	  "event 442" => 1, # "you're not on that channel"
+	  "event 479" => 1  # "Cannot join channel (illegal name)"
+	}, { # optional events
+	  "event 329", 1 # Channel create time
+	} );
+
+Server::redirect_event(command, count, arg, remote, failure_signal, signals)
+   Specify that the next command sent to server will be redirected.
+   NOTE: This command MUST be called before sending the command to server.
+
+   `command' - Name of the registered redirection that we're using.
+
+   `count' - How many times to execute the redirection. Some commands may
+   send multiple stop events, like MODE #a,#b.
+
+   `arg' - The argument to be compared in event strings. You can give multiple
+   arguments separated with space.
+
+   `remote' - Specifies if the command is a remote command, -1 = use default.
+
+   `failure_signal' - If irssi can't find the stop signal for the redirection,
+   this signal is called.
+
+   `signals' - hash reference with "event" => "redir signal" entries.
+   If the event is "", all the events belonging to the redirection but not
+   specified here, will be sent there.
+
+  Example:
+
+  # ignore all events generated by whois query, except 311.
+  $server->redirect_event("whois", 1, "cras", 0, undef, {
+			  "event 311" => "redir whois",
+			  "" => "event empty" });
+  $server->send_raw("WHOIS :cras");
+
+
+ *** Window items
+
+Windowitem->{}
+  type - Type of the window item, for example "CHANNEL" or "QUERY"
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  server - Active server for item
+  name - Name of the item
+
+  createtime - Time the window item was created
+  data_level - 0=no new data, 1=text, 2=msg, 3=highlighted text
+  hilight_color - Color of the last highlighted text
+
+
+ *** Channels
+
+Channel->{}
+  type - "CHANNEL" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  (..contains all the same data as Windowitem above..)
+
+  topic - Channel topic
+  topic_by - Nick who set the topic
+  topic_time - Timestamp when the topic was set
+
+  no_modes - Channel is modeless
+  mode - Channel mode
+  limit - Max. users in channel (+l mode)
+  key - Channel key (password)
+
+  chanop - You are channel operator
+  names_got - /NAMES list has been received
+  wholist - /WHO list has been received
+  synced - Channel is fully synchronized
+
+  joined - JOIN event for this channel has been received
+  left - You just left the channel (for "channel destroyed" event)
+  kicked - You was just kicked out of the channel (for
+           "channel destroyed" event)
+
+Server::channels_join(channels, automatic)
+  Join to channels in server. `channels' may also contain keys for
+  channels just like with /JOIN command. `automatic' specifies if this
+  channel was joined "automatically" or if it was joined because join
+  was requested by user. If channel join is "automatic", irssi doesn't
+  jump to the window where the channel was joined.
+
+
+Channel::destroy()
+  Destroy channel.
+
+Channel
+channel_find(channel)
+  Find channel from any server.
+
+Channel
+Server::channel_find(channel)
+  Find channel from specified server.
+
+
+ *** Nick list
+
+Nick->{}
+  type - "NICK" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  nick - Plain nick
+  host - Host address
+  realname - Real name
+  hops - Hop count to the server the nick is using
+
+  gone, serverop - User status, 1 or 0
+  op, voice, halfop - Channel status, 1 or 0
+
+  last_check - timestamp when last checked gone/ircop status.
+  send_massjoin - Waiting to be sent in a "massjoin" signal, 1 or 0
+
+Nick
+Channel::nick_insert(nick, op, voice, send_massjoin)
+  Add nick to nicklist.
+
+Channel::nick_remove(nick)
+  Remove nick from nicklist.
+
+Nick
+Channel::nick_find(nick)
+  Find nick from nicklist.
+
+Nick
+Channel::nick_find_mask(mask)
+  Find nick mask from nicklist, wildcards allowed.
+
+Channel::nicks()
+  Return a list of all nicks in channel.
+
+Server::nicks_get_same(nick)
+  Return all nick objects in all channels in server. List is in format:
+  Channel, Nick, Channel, ...
+
+
+ *** Queries
+
+Query->{}
+  type - "QUERY" text
+  chat_type - String ID of chat protocol, for example "IRC"
+
+  (..contains all the same data as Windowitem above..)
+
+  address - Host address of the queries nick
+  server_tag - Server tag used for this nick (doesn't get erased if
+               server gets disconnected)
+  unwanted - 1 if the other side closed or some error occured (DCC chats)
+
+Query
+query_create(chat_type, server_tag, nick, automatic)
+  Create a new query.
+
+Query::destroy()
+  Destroy the query.
+
+Query::query_change_server(server)
+  Change the active server of the query.
+
+Query
+query_find(nick)
+  Find query from any server.
+
+Query
+Server::query_find(nick)
+  Find query from specified server.
+
+
+ *** Masks
+
+You should use the Server version of the function if possible, since
+with different chat protocols the mask matching could be different.
+
+mask_match(mask, nick, user, host)
+Server::mask_match(mask, nick, user, host)
+  Return 1 if `mask' matches nick!user@host.
+
+mask_match_address(mask, nick, address)
+Server::mask_match_address(mask, nick, address)
+  Return 1 if `mask' matches nick!address.
+
+masks_match(masks, nick, address)
+Server::masks_match(masks, nick, address)
+  Return 1 if any mask in the `masks' (string separated with spaces)
+  matches nick!address.
+
+
+ *** Rawlog
+
+Rawlog->{}
+  logging - The rawlog is being written to file currently
+  nlines - Number of lines in rawlog
+
+Rawlog
+rawlog_create()
+  Create a new rawlog.
+
+Rawlog::destroy()
+  Destroy the rawlog.
+
+Rawlog::get_lines()
+  Returns all lines in rawlog.
+
+rawlog_set_size(lines)
+  Set the default rawlog size for new rawlogs.
+
+Rawlog::open(filename)
+  Start logging new messages in rawlog to specified file.
+
+Rawlog::close()
+  Stop logging to file.
+
+Rawlog::save(filename)
+  Save the current rawlog history to specified file.
+
+Rawlog::input(str)
+  Send `str' to raw log as input text.
+
+Rawlog::output(str)
+  Send `str' to raw log as output text.
+
+Rawlog::redirect(str)
+  Send `str' to raw log as redirection text.
+
+
+ *** Logging
+
+Log->{}
+  fname - Log file name
+  real_fname - The actual opened log file (after %d.%m.Y etc. are expanded)
+  opened - Log file is open
+  level - Log only these levels
+  last - Timestamp when last message was written
+  autoopen - Automatically open log at startup
+  failed - Opening log failed last time
+  temp - Log isn't saved to config file
+  items - List of log items
+
+Logitem->{}
+  type - 0=target, 1=window refnum
+  name - Name
+  servertag - Server tag
+
+Log
+log_create_rec(fname, level)
+  Create log file.
+
+Log::update()
+  Add log to list of logs / save changes to config file.
+
+Log
+log_find(fname)
+  Find log with file name.
+
+Log::close()
+  Destroy log file.
+
+Log::start_logging()
+  Open log file and start logging.
+
+Log::stop_logging()
+  Close log file.
+
+Log::item_add(type, name, server)
+  Add log item to log.
+
+Log::item_destroy(item)
+  Remove log item from log.
+
+Logitem
+Log::item_find(type, item, server)
+  Find item from log.
+
+
+ *** Ignores
+
+Ignore->{}
+  mask - Ignore mask
+  servertag - Ignore only in server
+  channels - Ignore only in channels (list of names)
+  pattern - Ignore text pattern
+
+  level - Ignore level
+
+  exception - This is an exception ignore
+  regexp - Regexp pattern matching
+  fullword - Pattern matches only full words
+
+ignore_add_rec(ignore)
+  Add ignore record.
+
+ignore_update_rec(ignore)
+  Update ignore record in configuration
+
+ignore_check(nick, host, channel, text, level)
+Server::ignore_check(nick, host, channel, text, level)
+  Return 1 if ignoring matched.
+
+
+ *** /EXEC processes
+
+Process->{}
+  id - ID for the process
+  name - Name for the process (if given)
+  args - The command that is being executed
+
+  pid - PID for the executed command
+  target - send text with /msg <target> ...
+  target_win - print text to this window
+
+  shell - start the program via /bin/sh
+  notice - send text with /notice, not /msg if target is set
+  silent - don't print "process exited with level xx"
+
+
+ ***
+ *** IRC specific functions. All objects below this are prefixed with Irc::
+ ***
+
+ *** IRC servers
+
+Irc::Server->{}
+  (..contains all the same data as core Server object..)
+  real_address - Address the IRC server gives
+  usermode - User mode in server
+  userhost - Your user host in server
+
+Irc::Connect->{}
+  (..contains all the same data as core Connect object..)
+  alternate_nick - Alternate nick to use if default nick is taken.
+
+Connect::connect()
+  Connect to IRC server.
+
+Server::get_channels(server)
+  Return a string of all channels (and keys, if any have them) in server,
+  like "#a,#b,#c,#d x,b_chan_key,x,x" or just "#e,#f,#g"
+
+Server::send_raw(cmd)
+  Send raw message to server, it will be flood protected so you
+  don't need to worry about it.
+
+Server::send_raw_now(cmd)
+  Send raw message to server immediately without flood protection.
+
+Server::send_raw_split(cmd, nickarg, max_nicks)
+  Split the `cmd' into several commands so `nickarg' argument has only
+  `max_nicks' number of nicks.
+
+  Example:
+    $server->send_raw_split("KICK #channel nick1,nick2,nick3 :byebye", 3, 2);
+
+  Irssi will send commands "KICK #channel nick1,nick2 :byebye" and
+  "KICK #channel nick3 :byebye" to server.
+
+Server::ctcp_send_reply(data)
+  Send CTCP reply. This will be "CTCP flood protected" so if there's too
+  many CTCP requests in buffer, this reply might not get sent. The data
+  is the full raw command to be sent to server, like
+    "NOTICE nick :\001VERSION irssi\001"
+
+Server::isupport(name)
+  Returns the value of the named item in the ISUPPORT (005) numeric to the
+  script. If the item is not present returns undef, if the item has no value
+  then "" is returned use defined $server->isupport("name") if you need to
+  check whether a property is present.
+  See http://tools.ietf.org/id/draft-brocklesby-irc-isupport-03.txt
+  for more information on the ISUPPORT numeric.
+
+ *** IRC channels
+
+Ban->{}
+  ban - The ban
+  setby - Nick of who set the ban
+  time - Timestamp when ban was set
+
+Channel::bans()
+  Return a list of bans in channel.
+
+Channel::ban_get_mask(nick)
+  Get ban mask for `nick'.
+
+Channel::banlist_add(ban, nick, time)
+   Add a new ban to channel.
+
+Channel::banlist_remove(ban)
+   Remove a ban from channel.
+
+
+ *** DCC
+
+Dcc->{}
+  type - Type of the DCC: chat, send, get
+  orig_type - Original DCC type that was sent to us - same as type except
+              GET and SEND are swapped
+  created - Time stamp when the DCC record was created
+
+  server - Server record where the DCC was initiated.
+  servertag - Tag of the server where the DCC was initiated.
+  mynick - Our nick to use in DCC chat.
+  nick - Other side's nick name.
+
+  chat - Dcc chat record if the request came through DCC chat
+  target - Who the request was sent to - your nick, channel or empty
+           if you sent the request
+  arg - Given argument .. file name usually
+
+  addr - Other side's IP address.
+  port - Port we're connecting in.
+
+  starttime - Unix time stamp when the DCC transfer was started
+  transfd - Bytes transferred
+
+Dcc::Chat->{}
+  id - Unique identifier - usually same as nick
+  mirc_ctcp - Send CTCPs without the CTCP_MESSAGE prefix
+  connection_lost - Other side closed connection
+
+Dcc::Get->{}
+  (..contains all the same data as core Dcc object..)
+  size - File size
+  skipped - Bytes skipped from start (resuming file)
+
+  get_type - What to do if file exists? 0=default, 1=rename, 2=overwrite,
+             3=resume
+  file - The real file name which we use.
+  file_quoted - 1 if file name was received quoted ("file name")
+
+Dcc::Send->{}
+  (..contains all the same data as core Dcc object..)
+  size - File size
+  skipped - Bytes skipped from start (resuming file)
+
+  file_quoted - 1 if file name was received quoted ("file name")
+  waitforend - File is sent, just wait for the replies from the other side
+  gotalldata - Got all acks from the other end
+
+
+dccs() - return list of all dcc connections
+
+Dcc::destroy()
+  Destroy DCC connection.
+
+Dcc
+dcc_find_item(type, nick, arg)
+  Find DCC connection.
+
+Dcc
+dcc_find_by_port(nick, port)
+  Find DCC connection by port.
+
+Dcc
+Windowitem::get_dcc(item)
+  If `item' is a query of a =nick, return DCC chat record of nick.
+
+Dcc::chat_send(data)
+  Send `data' to dcc chat.
+
+Server::dcc_ctcp_message(target, notice, msg)
+Dcc::ctcp_message(target, notice, msg)
+  Send a CTCP message/notify to target.
+
+
+ *** Netsplits
+
+Netsplit->{}
+  nick - Nick
+  address - Nick's host
+  destroy - Timestamp when this record should be destroyed
+  server - Netsplitserver object
+  channels - list of channels (Netsplitchannel objects) the nick was in
+
+Netsplitserver->{}
+  server - The server nick was in
+  destserver - The other server where split occured.
+  count - Number of splits in server
+
+Netsplitchannel->{}
+  name - Channel name
+  nick - Nick object
+
+Netsplit
+Server::netsplit_find(nick, address)
+  Check if nick!address is on the other side of netsplit. Netsplit records
+  are automatically removed after 30 minutes (current default)..
+
+Nick
+Server::netsplit_find_channel(nick, address, channel)
+  Find nick record for nick!address in channel `channel'.
+
+
+ *** Notify list
+
+Notifylist->{}
+  mask - Notify nick mask
+  away_check - Notify away status changes
+  idle_check_time - Notify when idle time is reset and idle was bigger
+                    than this (seconds)
+  ircnets - List of ircnets (strings) the notify is checked
+
+notifies() - Return list of all notifies
+
+Notifylist
+notifylist_add(mask, ircnets, away_check, idle_check_time)
+  Add new item to notify list.
+
+notifylist_remove(mask)
+  Remove item from notify list.
+
+Notifylist
+notifylist_find(mask, ircnet)
+  Find notify.
+
+Server
+notifylist_ison(nick, serverlist)
+  Check if `nick' is in IRC. `serverlist' is a space separated
+  list of server tags. If it's empty string, all servers will be checked.
+
+Server::notifylist_ison_server(nick)
+  Check if `nick' is on IRC server.
+
+Notifylist::ircnets_match(ircnet)
+  Returns 1 if notify is checked in `ircnet'.
+
+ *** Proxy clients
+
+Client->{}
+  nick - nick of the client
+  host - host of the client
+  proxy_address - address of the proxy server
+  server - Irc::Server for which we proxy to this client
+  pass_sent - whether the client already send a PASS command
+  user_sent - whether the client already send a USER command
+  connected - whether the client is connected and ready
+  want_ctcp - whether the client wants to receive CTCPs
+  ircnet - network tag of the network we proxy
+
+ 
+All the content of this site is copyright © 2000-2010 The Irssi project.
