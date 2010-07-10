@@ -1,0 +1,161 @@
+Index: src/fe-common/core/fe-messages.c
+===================================================================
+--- src/fe-common/core/fe-messages.c	(revision 5174)
++++ src/fe-common/core/fe-messages.c	(working copy)
+@@ -190,6 +190,9 @@
+ 	if (for_me)
+ 		level |= MSGLEVEL_HILIGHT;
+ 
++	if(ignore_check(server, nick, address, target, msg, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
+ 	if (settings_get_bool("emphasis"))
+ 		msg = freemsg = expand_emphasis((WI_ITEM_REC *) chanrec, msg);
+ 
+@@ -325,7 +328,12 @@
+ static void sig_message_join(SERVER_REC *server, const char *channel,
+ 			     const char *nick, const char *address)
+ {
+-	printformat(server, channel, MSGLEVEL_JOINS,
++	int level = MSGLEVEL_JOINS;
++
++	if(ignore_check(server, nick, address, channel, NULL, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
++	printformat(server, channel, level,
+ 		    TXT_JOIN, nick, address, channel);
+ }
+ 
+@@ -333,7 +341,12 @@
+ 			     const char *nick, const char *address,
+ 			     const char *reason)
+ {
+-	printformat(server, channel, MSGLEVEL_PARTS,
++	int level = MSGLEVEL_PARTS;
++
++	if(ignore_check(server, nick, address, channel, NULL, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
++	printformat(server, channel, level,
+ 		    TXT_PART, nick, address, channel, reason);
+ }
+ 
+@@ -344,17 +357,21 @@
+ 	GString *chans;
+ 	GSList *tmp, *windows;
+ 	char *print_channel;
+-	int once, count;
++	int once, count, level = MSGLEVEL_QUITS;
+ 
+ 	if (ignore_check(server, nick, address, NULL, reason, MSGLEVEL_QUITS))
+ 		return;
+ 
++	if(ignore_check(server, nick, address, NULL, reason, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
+ 	print_channel = NULL;
+ 	once = settings_get_bool("show_quit_once");
+ 
+ 	count = 0; windows = NULL;
+ 	chans = g_string_new(NULL);
+ 	for (tmp = server->channels; tmp != NULL; tmp = tmp->next) {
++        level = MSGLEVEL_QUITS;
+ 		CHANNEL_REC *rec = tmp->data;
+ 
+ 		if (!nicklist_find(rec, nick))
+@@ -366,6 +383,9 @@
+ 			continue;
+ 		}
+ 
++        if(ignore_check(server, nick, address, rec->visible_name, reason, MSGLEVEL_NO_ACT))
++            level |= MSGLEVEL_NO_ACT;
++
+ 		if (print_channel == NULL ||
+ 		    active_win->active == (WI_ITEM_REC *) rec)
+ 			print_channel = rec->visible_name;
+@@ -377,7 +397,7 @@
+ 			if (g_slist_find(windows, window) == NULL) {
+ 				windows = g_slist_append(windows, window);
+ 				printformat(server, rec->visible_name,
+-					    MSGLEVEL_QUITS,
++					    level,
+ 					    TXT_QUIT, nick, address, reason,
+ 					    rec->visible_name);
+ 			}
+@@ -391,7 +411,7 @@
+ 		   display the quit there too */
+ 		QUERY_REC *query = query_find(server, nick);
+ 		if (query != NULL) {
+-			printformat(server, nick, MSGLEVEL_QUITS,
++			printformat(server, nick, level,
+ 				    TXT_QUIT, nick, address, reason, "");
+ 		}
+ 	}
+@@ -410,7 +430,12 @@
+ 			     const char *nick, const char *kicker,
+ 			     const char *address, const char *reason)
+ {
+-	printformat(server, channel, MSGLEVEL_KICKS,
++	int level = MSGLEVEL_KICKS;
++
++	if(ignore_check(server, kicker, address, channel, reason, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
++	printformat(server, channel, level,
+ 		    TXT_KICK, nick, channel, kicker, reason, address);
+ }
+ 
+@@ -428,6 +453,9 @@
+ 	level = MSGLEVEL_NICKS;
+         if (ownnick) level |= MSGLEVEL_NO_ACT;
+ 
++	if(!(level & MSGLEVEL_NO_ACT) && ignore_check(server, oldnick, address, channel, newnick, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
+ 	printformat(server, channel, level,
+ 		    ownnick ? TXT_YOUR_NICK_CHANGED : TXT_NICK_CHANGED,
+ 		    oldnick, newnick, channel, address);
+@@ -502,6 +530,11 @@
+ 			      const char *topic,
+ 			      const char *nick, const char *address)
+ {
++	int level = MSGLEVEL_TOPICS;
++
++	if(ignore_check(server, nick, address, channel, topic, MSGLEVEL_NO_ACT))
++		level |= MSGLEVEL_NO_ACT;
++
+ 	printformat(server, channel, MSGLEVEL_TOPICS,
+ 		    *topic != '\0' ? TXT_NEW_TOPIC : TXT_TOPIC_UNSET,
+ 		    nick, channel, topic, address);
+Index: src/core/levels.c
+===================================================================
+--- src/core/levels.c	(revision 5174)
++++ src/core/levels.c	(working copy)
+@@ -46,6 +46,7 @@
+ 	"HILIGHTS",
+ 
+ 	"NOHILIGHT",
++    "NO_ACT",
+ 	NULL
+ };
+ 
+@@ -59,6 +60,9 @@
+ 	if (g_ascii_strcasecmp(level, "NEVER") == 0)
+ 		return MSGLEVEL_NEVER;
+ 
++    if (g_strcasecmp(level, "NO_ACT") == 0)
++        return MSGLEVEL_NO_ACT;
++
+ 	len = strlen(level);
+ 	if (len == 0) return 0;
+ 
+@@ -139,6 +143,9 @@
+ 	if (bits & MSGLEVEL_NEVER)
+ 		g_string_append(str, "NEVER ");
+ 
++    if (bits & MSGLEVEL_NO_ACT)
++        g_string_append(str, "NO_ACT ");
++
+ 	for (n = 0; levels[n] != NULL; n++) {
+ 		if (bits & (1L << n))
+ 			g_string_append_printf(str, "%s ", levels[n]);
