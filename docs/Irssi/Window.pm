@@ -94,7 +94,6 @@ Window::item_remove(item)
 Window::item_destroy(item)
   Add/remove/destroy window item
 
-
 Window::set_active()
   Set window active.
 
@@ -108,3 +107,10 @@ Window::set_level(level)
 Window::item_prev()
 Window::item_next()
   Change to previous/next window item.
+
+
+Window::get_active_name()
+  Return active item's name, or if none is active, window's name
+
+Window::item_find(server, name)
+  Find window item that matches best to given arguments.

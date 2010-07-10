@@ -6,38 +6,126 @@ Irssi.pm
 
 =head1 DESCRIPTION
 
+L<Irssi|http://irssi.org> is a console based fullscreen IRC client.  It is
+written in the C programming language, and can be modified through both
+I<Modules> -- dynamically loadable compiled libraries -- and I<Scripts>, written
+in L<Perl|http://perl.org>.
+
+Modules are not covered in this documentation, other than to note that Perl
+scripting support itself may be compiled as a module rather than built directly
+into Irssi.  The C</LOAD> command can be used from within Irssi to check if Perl
+support is available. If not, refer to the F<INSTALL> file for how to recompile
+irssi.
+
+The C<Irssi> package is the basis of Perl scripting in Irssi. It does not export any
+functions, and requires that all function-calls be fully qualified with the
+C<Irssi::I<cmd>> prefix.
+
 =head1 CLASSES
+
+This documentation has been split into a number of pages, each documenting a
+particular class or pseudo-class.  The following list contains all of these
+additional pages.
+
+=over 4
+
+=item L<Irssi::Ban>
+
+=item L<Irssi::Chatnet>
+
+=item L<Irssi::Chatnet>
+
+=item L<Irssi::Client>
+
+=item L<Irssi::Command>
+
+=item L<Irssi::Dcc>
+
+=item L<Irssi::Ignore>
+
+=item L<Irssi::Log>
+
+=item L<Irssi::Logitem>
+
+=item L<Irssi::Nick>
+
+=item L<Irssi::Notifylist>
+
+=item L<Irssi::Process>
+
+=item L<Irssi::Query>
+
+=item L<Irssi::Rawlog>
+
+=item L<Irssi::Reconnect>
+
+=item L<Irssi::Script>
+
+=item L<Irssi::Server>
+
+=item L<Irssi::Theme>
+
+=item L<Irssi::Window>
+
+=item L<Irssi::Windowitem>
+
+=back
 
 =head1 METHODS
 
 =head2 Accessors
 
-=over
+=head3 active_win
 
-=item C<Irssi::active_win> -- returns the currently active L<Irssi::Window> object.
+C<my $win = Irssi::active_win();>
 
-=item Window active_win() - return active window
+returns the currently active L<Irssi::Window>
 
-=item Server active_server() - return server in active window
+=head3 active_server
 
-=item windows() - return list of all windows
-=item servers() - return list of all servers
-=item reconnects() - return list of all server reconnections
-=item channels() - return list of all channels
+C<my $server = Irssi::active_server();>
 
-=item queries() - return list of all queries
+returns the currently active L<Irssi::Server> in active window.
 
-=item commands() - return list of all commands
+=head3 windows
 
-=item logs() - return list of all log files
+returns a list of all L<windows|Irssi::Window>.
 
-=item ignores() - returns list of all ignores
+=head3 servers
 
-=back
+returns a list of all L<servers|Irssi::Server>.
 
+=head3 reconnects
 
+returns a list of all L<server reconnections|Irssi::Reconnect>.
+
+=head3 channels
+
+returns a list of all L<channels|Irssi::Channel>.
+
+=head3 queries
+
+returns a list of all L<queries|Irssi::Query>.
+
+=head3 commands
+
+returns a list of all L<commands|Irssi::Command>.
+
+=head3 logs
+
+returns a list of all L<log files|Irssi::Log>.
+
+=head3 ignores
+
+returns a list of all L<ignores|Irssi::Ignore>.
+
+=head3 dccs
+
+returns a list of all L<DCC connections|Irssi::Dcc>
 
 =head2 Signals
+
+See also L<Signals>
 
 Irssi is pretty much based on sending and handling different signals.
 Like when you receive a message from server, say:
@@ -51,16 +139,16 @@ C<"server incoming", SERVER_REC, "nick!user@there PRIVMSG ...">
 You probably don't want to use this signal. Default handler for this
 signal interprets the header and sends a signal:
 
-C<"server event", SERVER_REC, "PRIVMSG ...", "nick", "user@there.org">
+C<"server event", Irssi::Server, "PRIVMSG ...", "nick", "user@there.org">
 
 You probably don't want to use this either, since this signal's default
 handler parses the event string and sends a signal:
 
-C<"event privmsg", SERVER_REC, "you :blahblah", "nick", "user@there.org">
+C<"event privmsg", Irssi::Server, "you :blahblah", "nick", "user@there.org">
 
 You can at any point grab the signal, do whatever you want to do with
 it and optionally stop it from going any further by calling
-L<Irssi::signal_stop()|Irssi/signal_stop>
+L<Irssi::signal_stop|Irssi/signal_stop>
 
 For example:
 
@@ -78,7 +166,7 @@ This will hide all public or private messages that match the regexp
 C<"free.*porn"> or the sender's nick contain the word "idiot". Yes, you
 could use /IGNORE instead for both of these C<:)>
 
-You can also use L<C<signal_add_last()>|/signal_add_last> if you wish to let the
+You can also use L<Irssi::signal_add_last|/signal_add_last> if you wish to let the
 Irssi's internal functions be run before yours.
 
 A list of signals that irssi sends can be found in the L<Signals> documentation.
@@ -88,9 +176,9 @@ A list of signals that irssi sends can be found in the L<Signals> documentation.
 
 =head3 Handling Signals
 
-=head4 C<signal_add($sig_name, $func)>
+=head4 C<signal_add $sig_name, $func>
 
-Bind C<$sig_name>' to function C<$func>. The C<$func> argument may be either
+Bind C<$sig_name> to function C<$func>. The C<$func> argument may be either
 a string containing the name of a function to call, or a coderef.
 
 For example:
@@ -104,46 +192,55 @@ For example:
 In all cases, the specified function will be passed arguments in C<@_> as specified
 in L<Signals>.
 
-=head4 C<signal_add_first($sig_name, $func)>
+=head4 C<signal_add_first $sig_name, $func>
 
-Bind `signal' to function `func'. Call `func' as soon as possible.
+Bind C<$sig_name> to function C<$func>. Call C<$func> as soon as possible when
+the signal is raised.
 
-=head4 C<signal_add_last(signal, func)>
+=head4 C<signal_add_last $sig_name, $func>
 
-Bind `signal' to function `func'. Call `func' as late as possible.
+Bind C<$sig_name> to function C<$func>. Call C<$func> as late as possible (after
+all other signal handlers).
 
-=head4 C<signal_remove(signal, func)>
+=head4 C<signal_remove $sig_name, $func>
 
-Unbind `signal' from function `func'.
+Unbind C<$sig_name> from function C<$func>.
+B<TODO: Can you unbind a signal from a C<sub { ...}> coderef? What happens?>
+
 
 =head3 Controlling Signal Propagation
 
-=head4 C<signal_emit(signal, ...)>
+=head4 C<signal_emit $sig_name, @params>
 
-Send signal `signal'. You can give 6 parameters at maximum.
+Send a signal of type C<$sig_name>. Up to 6 parameters can be passed in C<@params>.
 
-=head4 C<signal_continue(...)>
+=head4 C<signal_continue @params>
 
-Continue currently emitted signal with different parameters.
+Propagate a currently emitted signal, but with different parameters.  This only
+needs to be called if you wish to change them, otherwise all subsequent handlers
+will be invoked as normal.
 
-=head4 C<signal_stop()>
+B<Should only be called from within a signal handler>
 
-Stop the signal that's currently being emitted.
+=head4 C<signal_stop>
 
-=head4 C<signal_stop_by_name(signal)>
+Stop the signal that's currently being emitted, no other handlers after this one will
+be called.
 
-Stop the signal with name `signal' that's currently being emitted.
+=head4 C<signal_stop_by_name $sig_name>
+
+Stop the signal with name C<$sig_name> that is currently being emitted.
 
 =head3 Registering New Signals
 
-=head4 C<signal_register(%hashref)>
+=head4 C<signal_register $hashref>
 
-Register parameter types for one or more signals.
-C<%hash> must map one or more signal names to references to arrays
-containing 0 to 6 type names. Some recognized type names include
-int for integers, intptr for references to integers and string for
-strings. For all standard signals see src/perl/perl-signals-list.h
-in the source code (this is generated by src/perl/get-signals.pl).
+Register parameter types for one or more signals.  C<$hashref> must map one or
+more signal names to references to arrays containing 0 to 6 type names. Some
+recognized type names include int for integers, intptr for references to
+integers and string for strings. For all standard signals see
+F<src/perl/perl-signals-list.h> in the source code (this is generated by
+F<src/perl/get-signals.pl>).
 
 For example:
 
@@ -158,45 +255,71 @@ restarting Irssi. B<TODO: True?>, including modifying the type signature.
 Registration is required to get any parameters to signals written in
 Perl and to emit and continue signals from Perl.
 
+B<TODO: What are the complete list of recognised types?>
+
+
+
 
 =head2 Commands
 
 See also L<Irssi::Command>
 
-command_bind(cmd, func[, category])
-  Bind command `cmd' to call function `func'. `category' is the
-  category where the command is displayed in /HELP.
-
-command_runsub(cmd, data, server, item)
-  Run subcommands for `cmd'. First word in `data' is parsed as
-  subcommand. `server' is Irssi::Server rec for current
-  Irssi::Windowitem `item'.
-  
-  Call command_runsub in handler function for `cmd' and bind
-  with command_bind("`cmd' `subcmd'", subcmdfunc[, category]);
-
-command_unbind(cmd, func)
-  Unbind command `cmd' from function `func'.
-
-command_set_options(cmd, data)
-  Set options for command `cmd' to `data'. `data' is a string of
-  space separated words which specify the options. Each word can be
-  optionally prefixed with one of the following character:
-
-  '-': optional argument
-  '+': argument required
-  '@': optional numeric argument
-
-command_parse_options(cmd, data)
-  Parse options for command `cmd' in `data'. It returns a reference to
-  an hash table with the options and a string with the remaining part
-  of `data'. On error it returns the undefined value.
-
 =head3 Registering Commands
+
+=head4 C<command_bind $cmd, $func, $category
+
+Bind a command string C<$cmd> to call function C<$func>. C<$func> can be
+either a string or coderef. C<$category> is an optional string specifying
+the category to display the command in when C</HELP> is used.
+
+=head4 C<command_runsub $cmd, $data, $server, $item>
+
+Run subcommands for `cmd'. First word in `data' is parsed as
+subcommand. `server' is L<Irssi::Server> record for current
+L<Irssi::Windowitem> `item'.
+
+Call command_runsub in handler function for `cmd' and bind
+with command_bind("`cmd' `subcmd'", subcmdfunc[, category]);
+
+B<TODO: example here>
+
+=head4 C<command_unbind $cmd, $func>
+
+Unbind command C<$cmd> from function C<$func>.
 
 =head3 Invoking Commands
 
+=head4 C<command $string>
+
+Run the command specified in C<$string> in the currently active context.
+
+B<TODO: passing args in C<@_> vs concatenating into the command string?>
+
+See also L<Irssi::Server/command $string>
+
 =head3 Parsing Command Arguments
+
+=head4 C<command_set_options(cmd, data)>
+
+Set options for command `cmd' to `data'. `data' is a string of
+space separated words which specify the options. Each word can be
+optionally prefixed with one of the following character:
+
+=over
+
+=item  '-': optional argument
+
+=item   '+': argument required
+
+=item   '@': optional numeric argument
+
+=back
+
+=head4 C<command_parse_options(cmd, data)>
+
+Parse options for command `cmd' in `data'. It returns a reference to
+an hash table with the options and a string with the remaining part
+of `data'. On error it returns the undefined value.
 
 
 
@@ -306,10 +429,13 @@ combine_level(level, str)
 
 =head2 Themes
 
+See also L<Irssi::Theme>
+
 You can have user configurable texts in scripts that work just like
 irssi's internal texts that can be changed in themes.
 
 First you'll have to register the formats:
+
 
 Irssi::theme_register([
   'format_name', '{hilight my perl format!}',
@@ -327,6 +453,63 @@ For example:
 
   $channel->printformat(MSGLEVEL_CRAP, 'format2',
 		        'nick', $channel->{name});
+
+
+=head2 DCC
+
+See also L<Irssi::Dcc>
+
+Dcc
+dcc_find_item(type, nick, arg)
+  Find DCC connection.
+
+Dcc
+dcc_find_by_port(nick, port)
+  Find DCC connection by port.
+
+
+=head2 Channels
+
+Channel
+channel_find(channel)
+  Find channel from any server.
+
+=head2 Ignores
+
+
+ignore_add_rec(ignore)
+  Add ignore record.
+
+ignore_update_rec(ignore)
+  Update ignore record in configuration
+
+ignore_check(nick, host, channel, text, level)
+
+=head2 Logging
+
+
+Log
+log_create_rec(fname, level)
+  Create log file.
+
+
+Log
+log_find(fname)
+  Find log with file name.
+
+=head2 Raw Logging
+
+Rawlog rawlog_create()
+  Create a new rawlog.
+
+rawlog_set_size(lines)
+  Set the default rawlog size for new rawlogs.
+
+=head2 Chat-Nets
+
+chatnet_find(name)
+  Find chat network with name.
+
 
 =head1 COPYRIGHT
 

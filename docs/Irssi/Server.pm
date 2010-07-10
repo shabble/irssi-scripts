@@ -37,7 +37,10 @@ Server->{}
 Server::channels() - return list of channels in server
 Server::queries() - return list of queries in server
 Server::print(channel, str[, level])
-Server::command(cmd)
+
+=head2 C<command $string>
+
+Run the specified command on this server instance.
 
 
 Server
@@ -66,4 +69,81 @@ Server::get_nick_flags()
 
 Server::send_message(target, msg, target_type)
   Sends a message to nick/channel. target_type 0 = channel, 1 = nick
+
+
+
+Netsplit
+Server::netsplit_find(nick, address)
+  Check if nick!address is on the other side of netsplit. Netsplit records
+  are automatically removed after 30 minutes (current default)..
+
+Nick
+Server::netsplit_find_channel(nick, address, channel)
+  Find nick record for nick!address in channel `channel'.
+
+
+Server::dcc_ctcp_message(target, notice, msg)
+
+Channel
+Server::channel_find(channel)
+  Find channel from specified server.
+
+Server::ignore_check(nick, host, channel, text, level)
+  Return 1 if ignoring matched.
+
+
+
+
+Server::nicks_get_same(nick)
+  Return all nick objects in all channels in server. List is in format:
+  Channel, Nick, Channel, ...
+
+blah
+
+blah 
+
+blah
+
+
+
+blah
+
+blah 
+
+blah
+
+
+blah
+
+blah 
+
+blah
+
+
+blah
+
+blah 
+
+blah
+
+
+blah
+
+blah 
+
+blah
+
+
+blah
+
+blah 
+
+blah
+
+
+blah
+
+blah 
+
+blah
 

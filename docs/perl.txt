@@ -147,11 +147,8 @@ command(cmd)
 
 
 
-Windowitem
-window_item_find(name)
+Windowitem window_item_find(name)
 Server::window_item_find(name)
-Window::item_find(server, name)
-  Find window item that matches best to given arguments.
 
 window_refnum_prev(refnum, wrap)
 window_refnum_next(refnum, wrap)
@@ -159,19 +156,6 @@ window_refnum_next(refnum, wrap)
 
 windows_refnum_last()
   Return refnum for last window.
-
-Windowitem::set_active()
-  Change window item active in parent window.
-
-
-Windowitem::change_server(server)
-  Change server in window item.
-
-Windowitem::is_active()
-  Returns 1 if window item is the active item in parent window.
-
-Window::get_active_name()
-  Return active item's name, or if none is active, window's name
 
 
  *** Server Connects
@@ -204,21 +188,6 @@ server_create_conn(address[, port=6667[, password=''[, nick=''[, channels='']]]]
 
  *** Chat networks
 
-Chatnet->{}
-  type - "CHATNET" text
-  chat_type - String ID of chat protocol, for example "IRC"
-
-  name - name of chat network
-
-  nick - if not empty, nick preferred in this network
-  username - if not empty, username preferred in this network
-  realname - if not empty, realname preferred in this network
-
-  own_host - address to use when connecting this network
-  autosendcmd - command to send after connecting to this network
-
-chatnet_find(name)
-  Find chat network with name.
 
 
  *** Server redirections
@@ -300,113 +269,17 @@ Server::redirect_event(command, count, arg, remote, failure_signal, signals)
 
  *** Channels
 
-Channel->{}
-  type - "CHANNEL" text
-  chat_type - String ID of chat protocol, for example "IRC"
-
-  (..contains all the same data as Windowitem above..)
-
-  topic - Channel topic
-  topic_by - Nick who set the topic
-  topic_time - Timestamp when the topic was set
-
-  no_modes - Channel is modeless
-  mode - Channel mode
-  limit - Max. users in channel (+l mode)
-  key - Channel key (password)
-
-  chanop - You are channel operator
-  names_got - /NAMES list has been received
-  wholist - /WHO list has been received
-  synced - Channel is fully synchronized
-
-  joined - JOIN event for this channel has been received
-  left - You just left the channel (for "channel destroyed" event)
-  kicked - You was just kicked out of the channel (for
-           "channel destroyed" event)
-
-Server::channels_join(channels, automatic)
-  Join to channels in server. `channels' may also contain keys for
-  channels just like with /JOIN command. `automatic' specifies if this
-  channel was joined "automatically" or if it was joined because join
-  was requested by user. If channel join is "automatic", irssi doesn't
-  jump to the window where the channel was joined.
-
-
-Channel::destroy()
-  Destroy channel.
-
-Channel
-channel_find(channel)
-  Find channel from any server.
-
-Channel
-Server::channel_find(channel)
-  Find channel from specified server.
 
 
  *** Nick list
 
-Nick->{}
-  type - "NICK" text
-  chat_type - String ID of chat protocol, for example "IRC"
-
-  nick - Plain nick
-  host - Host address
-  realname - Real name
-  hops - Hop count to the server the nick is using
-
-  gone, serverop - User status, 1 or 0
-  op, voice, halfop - Channel status, 1 or 0
-
-  last_check - timestamp when last checked gone/ircop status.
-  send_massjoin - Waiting to be sent in a "massjoin" signal, 1 or 0
-
-Nick
-Channel::nick_insert(nick, op, voice, send_massjoin)
-  Add nick to nicklist.
-
-Channel::nick_remove(nick)
-  Remove nick from nicklist.
-
-Nick
-Channel::nick_find(nick)
-  Find nick from nicklist.
-
-Nick
-Channel::nick_find_mask(mask)
-  Find nick mask from nicklist, wildcards allowed.
-
-Channel::nicks()
-  Return a list of all nicks in channel.
-
-Server::nicks_get_same(nick)
-  Return all nick objects in all channels in server. List is in format:
-  Channel, Nick, Channel, ...
-
 
  *** Queries
 
-Query->{}
-  type - "QUERY" text
-  chat_type - String ID of chat protocol, for example "IRC"
-
-  (..contains all the same data as Windowitem above..)
-
-  address - Host address of the queries nick
-  server_tag - Server tag used for this nick (doesn't get erased if
-               server gets disconnected)
-  unwanted - 1 if the other side closed or some error occured (DCC chats)
 
 Query
 query_create(chat_type, server_tag, nick, automatic)
   Create a new query.
-
-Query::destroy()
-  Destroy the query.
-
-Query::query_change_server(server)
-  Change the active server of the query.
 
 Query
 query_find(nick)
@@ -436,132 +309,17 @@ Server::masks_match(masks, nick, address)
   matches nick!address.
 
 
- *** Rawlog
-
-Rawlog->{}
-  logging - The rawlog is being written to file currently
-  nlines - Number of lines in rawlog
-
-Rawlog
-rawlog_create()
-  Create a new rawlog.
-
-Rawlog::destroy()
-  Destroy the rawlog.
-
-Rawlog::get_lines()
-  Returns all lines in rawlog.
-
-rawlog_set_size(lines)
-  Set the default rawlog size for new rawlogs.
-
-Rawlog::open(filename)
-  Start logging new messages in rawlog to specified file.
-
-Rawlog::close()
-  Stop logging to file.
-
-Rawlog::save(filename)
-  Save the current rawlog history to specified file.
-
-Rawlog::input(str)
-  Send `str' to raw log as input text.
-
-Rawlog::output(str)
-  Send `str' to raw log as output text.
-
-Rawlog::redirect(str)
-  Send `str' to raw log as redirection text.
 
 
  *** Logging
 
-Log->{}
-  fname - Log file name
-  real_fname - The actual opened log file (after %d.%m.Y etc. are expanded)
-  opened - Log file is open
-  level - Log only these levels
-  last - Timestamp when last message was written
-  autoopen - Automatically open log at startup
-  failed - Opening log failed last time
-  temp - Log isn't saved to config file
-  items - List of log items
-
-Logitem->{}
-  type - 0=target, 1=window refnum
-  name - Name
-  servertag - Server tag
-
-Log
-log_create_rec(fname, level)
-  Create log file.
-
-Log::update()
-  Add log to list of logs / save changes to config file.
-
-Log
-log_find(fname)
-  Find log with file name.
-
-Log::close()
-  Destroy log file.
-
-Log::start_logging()
-  Open log file and start logging.
-
-Log::stop_logging()
-  Close log file.
-
-Log::item_add(type, name, server)
-  Add log item to log.
-
-Log::item_destroy(item)
-  Remove log item from log.
-
-Logitem
-Log::item_find(type, item, server)
-  Find item from log.
 
 
  *** Ignores
 
-Ignore->{}
-  mask - Ignore mask
-  servertag - Ignore only in server
-  channels - Ignore only in channels (list of names)
-  pattern - Ignore text pattern
-
-  level - Ignore level
-
-  exception - This is an exception ignore
-  regexp - Regexp pattern matching
-  fullword - Pattern matches only full words
-
-ignore_add_rec(ignore)
-  Add ignore record.
-
-ignore_update_rec(ignore)
-  Update ignore record in configuration
-
-ignore_check(nick, host, channel, text, level)
-Server::ignore_check(nick, host, channel, text, level)
-  Return 1 if ignoring matched.
-
 
  *** /EXEC processes
 
-Process->{}
-  id - ID for the process
-  name - Name for the process (if given)
-  args - The command that is being executed
-
-  pid - PID for the executed command
-  target - send text with /msg <target> ...
-  target_win - print text to this window
-
-  shell - start the program via /bin/sh
-  notice - send text with /notice, not /msg if target is set
-  silent - don't print "process exited with level xx"
 
 
  ***
@@ -620,96 +378,12 @@ Server::isupport(name)
 
  *** IRC channels
 
-Ban->{}
-  ban - The ban
-  setby - Nick of who set the ban
-  time - Timestamp when ban was set
-
-Channel::bans()
-  Return a list of bans in channel.
-
-Channel::ban_get_mask(nick)
-  Get ban mask for `nick'.
-
-Channel::banlist_add(ban, nick, time)
-   Add a new ban to channel.
-
-Channel::banlist_remove(ban)
-   Remove a ban from channel.
 
 
  *** DCC
 
-Dcc->{}
-  type - Type of the DCC: chat, send, get
-  orig_type - Original DCC type that was sent to us - same as type except
-              GET and SEND are swapped
-  created - Time stamp when the DCC record was created
-
-  server - Server record where the DCC was initiated.
-  servertag - Tag of the server where the DCC was initiated.
-  mynick - Our nick to use in DCC chat.
-  nick - Other side's nick name.
-
-  chat - Dcc chat record if the request came through DCC chat
-  target - Who the request was sent to - your nick, channel or empty
-           if you sent the request
-  arg - Given argument .. file name usually
-
-  addr - Other side's IP address.
-  port - Port we're connecting in.
-
-  starttime - Unix time stamp when the DCC transfer was started
-  transfd - Bytes transferred
-
-Dcc::Chat->{}
-  id - Unique identifier - usually same as nick
-  mirc_ctcp - Send CTCPs without the CTCP_MESSAGE prefix
-  connection_lost - Other side closed connection
-
-Dcc::Get->{}
-  (..contains all the same data as core Dcc object..)
-  size - File size
-  skipped - Bytes skipped from start (resuming file)
-
-  get_type - What to do if file exists? 0=default, 1=rename, 2=overwrite,
-             3=resume
-  file - The real file name which we use.
-  file_quoted - 1 if file name was received quoted ("file name")
-
-Dcc::Send->{}
-  (..contains all the same data as core Dcc object..)
-  size - File size
-  skipped - Bytes skipped from start (resuming file)
-
-  file_quoted - 1 if file name was received quoted ("file name")
-  waitforend - File is sent, just wait for the replies from the other side
-  gotalldata - Got all acks from the other end
 
 
-dccs() - return list of all dcc connections
-
-Dcc::destroy()
-  Destroy DCC connection.
-
-Dcc
-dcc_find_item(type, nick, arg)
-  Find DCC connection.
-
-Dcc
-dcc_find_by_port(nick, port)
-  Find DCC connection by port.
-
-Dcc
-Windowitem::get_dcc(item)
-  If `item' is a query of a =nick, return DCC chat record of nick.
-
-Dcc::chat_send(data)
-  Send `data' to dcc chat.
-
-Server::dcc_ctcp_message(target, notice, msg)
-Dcc::ctcp_message(target, notice, msg)
-  Send a CTCP message/notify to target.
 
 
  *** Netsplits
@@ -730,24 +404,10 @@ Netsplitchannel->{}
   name - Channel name
   nick - Nick object
 
-Netsplit
-Server::netsplit_find(nick, address)
-  Check if nick!address is on the other side of netsplit. Netsplit records
-  are automatically removed after 30 minutes (current default)..
-
-Nick
-Server::netsplit_find_channel(nick, address, channel)
-  Find nick record for nick!address in channel `channel'.
 
 
  *** Notify list
 
-Notifylist->{}
-  mask - Notify nick mask
-  away_check - Notify away status changes
-  idle_check_time - Notify when idle time is reset and idle was bigger
-                    than this (seconds)
-  ircnets - List of ircnets (strings) the notify is checked
 
 notifies() - Return list of all notifies
 
@@ -770,21 +430,8 @@ notifylist_ison(nick, serverlist)
 Server::notifylist_ison_server(nick)
   Check if `nick' is on IRC server.
 
-Notifylist::ircnets_match(ircnet)
-  Returns 1 if notify is checked in `ircnet'.
-
  *** Proxy clients
 
-Client->{}
-  nick - nick of the client
-  host - host of the client
-  proxy_address - address of the proxy server
-  server - Irc::Server for which we proxy to this client
-  pass_sent - whether the client already send a PASS command
-  user_sent - whether the client already send a USER command
-  connected - whether the client is connected and ready
-  want_ctcp - whether the client wants to receive CTCPs
-  ircnet - network tag of the network we proxy
 
  
 All the content of this site is copyright © 2000-2010 The Irssi project.

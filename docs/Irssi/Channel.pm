@@ -46,10 +46,34 @@ Server::channels_join(channels, automatic)
 Channel::destroy()
   Destroy channel.
 
-Channel
-channel_find(channel)
-  Find channel from any server.
 
-Channel
-Server::channel_find(channel)
-  Find channel from specified server.
+Channel::bans()
+  Return a list of bans in channel.
+
+Channel::ban_get_mask(nick)
+  Get ban mask for `nick'.
+
+Channel::banlist_add(ban, nick, time)
+   Add a new ban to channel.
+
+Channel::banlist_remove(ban)
+   Remove a ban from channel.
+
+
+Nick
+Channel::nick_insert(nick, op, voice, send_massjoin)
+  Add nick to nicklist.
+
+Channel::nick_remove(nick)
+  Remove nick from nicklist.
+
+Nick
+Channel::nick_find(nick)
+  Find nick from nicklist.
+
+Nick
+Channel::nick_find_mask(mask)
+  Find nick mask from nicklist, wildcards allowed.
+
+Channel::nicks()
+  Return a list of all nicks in channel.

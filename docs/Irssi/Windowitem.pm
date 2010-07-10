@@ -39,3 +39,17 @@ Windowitem::print(str[, level])
 Windowitem::command(cmd)
 
 
+
+Windowitem::set_active()
+  Change window item active in parent window.
+
+
+Windowitem::change_server(server)
+  Change server in window item.
+
+Windowitem::is_active()
+  Returns 1 if window item is the active item in parent window.
+
+Dcc
+Windowitem::get_dcc(item)
+  If `item' is a query of a =nick, return DCC chat record of nick.
