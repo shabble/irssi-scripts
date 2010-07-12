@@ -266,7 +266,7 @@ See also L<Irssi::Command>
 
 =head3 Registering Commands
 
-=head4 C<command_bind $cmd, $func, $category
+=head4 C<command_bind $cmd, $func, $category>
 
 Bind a command string C<$cmd> to call function C<$func>. C<$func> can be
 either a string or coderef. C<$category> is an optional string specifying
@@ -299,29 +299,59 @@ See also L<Irssi::Server/command $string>
 
 =head3 Parsing Command Arguments
 
-=head4 C<command_set_options(cmd, data)>
+=head4 C<command_set_options $cmd, $data>
 
-Set options for command `cmd' to `data'. `data' is a string of
+Set options for command C<$cmd> to C<$data>. C<$data> is a string of
 space separated words which specify the options. Each word can be
 optionally prefixed with one of the following character:
 
-=over
+=over 16
 
-=item  '-': optional argument
+=item C<->: optional argument
 
-=item   '+': argument required
+=item C<@>: optional numeric argument
 
-=item   '@': optional numeric argument
+=item C<+>: required argument
 
 =back
 
-=head4 C<command_parse_options(cmd, data)>
+For example:
 
-Parse options for command `cmd' in `data'. It returns a reference to
-an hash table with the options and a string with the remaining part
-of `data'. On error it returns the undefined value.
+   my $argument_format = "+something -other -another @number";
+   Irssi::command_set_options('mycmd', $argument_format);
 
+Thus, the command may be run as C</mycmd -something value -other value rest of args>.
 
+=head4 C<command_parse_options $cmd, $data>
+
+Parse out options as specified by L<command_set_options|/command_set_options
+$cmd, $data> for command C<$cmd>. A string containing the input received by the
+command handler should be passed in as C<$data>.
+
+The return value is either C<undef> if an error occurred, or a list containing
+two items. The first is a hashref mapping the option names to their
+values. Optional arguments which were not present in the input will not be
+included in the hash.
+
+The second item in the return list is a string containing the remainder of the input
+after the arguments have been parsed out.
+
+For example:
+
+    sub my_cmd_handler {
+        my ($command_args) = @_;
+        my @options_list = Irssi::command_parse_options "my_cmd", $command_args;
+        if (@options_list) {
+            my $options       = $options_list->[0];
+            my $arg_remainder = $options_list->[1];
+
+            if (exists $options->{other} && $options->{something} eq 'hello') {
+
+                ...
+
+            }
+        }
+    }
 
 =head2 Settings
 
@@ -510,10 +540,14 @@ rawlog_set_size(lines)
 chatnet_find(name)
   Find chat network with name.
 
+=head2 Status Bars
+
+B<TODO>
 
 =head1 COPYRIGHT
 
-All the content of this site is copyright © 2000-2010 The Irssi project.
+All the content of this site is copyright E<copy> 2000-2010 L<The Irssi
+project|http://irssi.org>.
 
 Formatting to POD and linking by Tom Feist
  L<shabble+irssi@metavore.org|mailto:shabble+irssi@metavore.org>

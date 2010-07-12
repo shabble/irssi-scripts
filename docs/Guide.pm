@@ -37,18 +37,21 @@ network connections or processes, and restore any Irssi modifications made.
 
 =head1 ANATOMY OF A SCRIPT
 
-In this section, we develop a very simplistic script
+In this section, we develop a very simplistic script and look at the
+necessary code.
 
 =head2 Preamble
 
 =head1 USEFUL THINGS
 
-=head2 Sharing code between scripts
-
+=head2 Sharing Code Between Scripts
 
 There are 2 main ways for scripts to communicate, either via emitting and
 handling Irssi signals, or by calling functions from one another directly.
 
+=head3 Using Signals
+
+=head3 Using Functions
 
 =head2 If In Doubt, Dump!
 
@@ -63,6 +66,13 @@ Dump perl object (e.g. C</dump Irssi::active_win>):
 
     /alias DUMP script exec use Data::Dumper\; print Data::Dumper->new([\\$0-])->Dump
 
+=head2 Making Script Look Native
+
+=head3 Provide Help
+
+=head3 Use Tab Completion
+
+=head3 Use Settings for Customisation
 
 =head1 OTHER RESOURCES
 

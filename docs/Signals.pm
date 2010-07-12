@@ -13,6 +13,88 @@ Irssi.
 
 See L<Irssi/"Signals">
 
+=begin irssi_signal_types
+
+=head SIGNAL ARGUMENT TYPES
+
+=over
+
+=item C<GList * of ([^,]*)> C<glistptr_$1>
+
+=item C<GSList * of (\w+)s> C<gslist_$1>
+
+=item C<char *> C<string>
+
+=item C<ulong *> C<ulongptr>
+
+=item C<int *> C<intptr>
+
+=item C<int> C<int>
+
+
+
+=item C<CHATNET_REC> C<iobject>
+
+=item C<SERVER_REC> C<iobject>
+
+=item C<RECONNECT_REC> C<iobject>
+
+=item C<CHANNEL_REC> C<iobject>
+
+=item C<QUERY_REC> C<iobject>
+
+=item C<COMMAND_REC> C<iobject>
+
+=item C<NICK_REC> C<iobject>
+
+=item C<LOG_REC> C<Irssi::Log>
+
+=item C<RAWLOG_REC> C<Irssi::Rawlog>
+
+=item C<IGNORE_REC> C<Irssi::Ignore>
+
+=item C<MODULE_REC> C<Irssi::Module>
+
+
+=item C<BAN_REC> C<Irssi::Irc::Ban>
+
+=item C<NETSPLIT_REC> C<Irssi::Irc::Netsplit>
+
+=item C<NETSPLIT_SERVER__REC> C<Irssi::Irc::Netsplitserver>
+
+
+=item C<DCC_REC> C<siobject>
+
+=item C<AUTOIGNORE_REC> C<Irssi::Irc::Autoignore>
+
+=item C<AUTOIGNORE_REC> C<Irssi::Irc::Autoignore>
+
+=item C<NOTIFYLIST_REC> C<Irssi::Irc::Notifylist>
+
+=item C<CLIENT_REC> C<Irssi::Irc::Client>
+
+
+=item C<THEME_REC> C<Irssi::UI::Theme>
+
+=item C<KEYINFO_REC> C<Irssi::UI::Keyinfo>
+
+=item C<PROCESS_REC> C<Irssi::UI::Process>
+
+=item C<TEXT_DEST_REC> C<Irssi::UI::TextDest>
+
+=item C<WINDOW_REC> C<Irssi::UI::Window>
+
+=item C<WI_ITEM_REC> C<iobject>
+
+
+
+=item C<PERL_SCRIPT_REC> C<Irssi::Script>
+
+=back
+
+
+=end irssi_signal_types
+
 =head1 SIGNAL DEFINITIONS
 
 The following signals are categorised as in the original documentation, but
@@ -20,21 +102,25 @@ have been revised to note Perl variable types and class names.
 
 Arguments are passed to signal handlers in the usual way, via C<@_>.
 
-
+=for irssi_signal_defs START OF SIGNAL DEFINITIONS
 
 =head2 Core
 
 =over 4
 
 =item C<"gui exit">
+
 I<None>
 
 =item C<"gui dialog">
-      string C<$type>, string C<$text>
+
+string C<$type>, string C<$text>
 
 =item C<"send command">
-      C<string $command> L<Irssi::Server> C<$server>, L<Irssi::Windowitem>
-      C<$window_item>
+
+C<string $command>,
+L<Irssi::Server> C<$server>,
+L<Irssi::Windowitem> C<$window_item>
 
 =back
 
@@ -503,3 +589,14 @@ B<Provides signals:>
 =item C<"script error"> PERL_SCRIPT_REC, string C<$errormsg>
 
 =back
+
+=for irssi_signal_defs END OF SIGNAL DEFINITIONS
+
+=head1 SIGNAL AUTO-GENERATION
+
+This file is used to auto-generate the signal definitions used by Irssi, and hence
+must be edited in order to add new signals.
+
+=head2 Format
+
+
