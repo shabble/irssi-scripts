@@ -15,19 +15,19 @@ See L<Irssi/"Signals">
 
 =begin irssi_signal_types
 
-=head SIGNAL ARGUMENT TYPES
+START OF SIGNAL TYPES
 
 =over
 
-=item C<GList * of ([^,]*)> C<glistptr_$1>
+=item C<GList \* of ([^,]*)> C<glistptr_$1>
 
-=item C<GSList * of (\w+)s> C<gslist_$1>
+=item C<GSList \* of (\w+)s> C<gslist_$1>
 
-=item C<char *> C<string>
+=item C<char \*> C<string>
 
-=item C<ulong *> C<ulongptr>
+=item C<ulong \*> C<ulongptr>
 
-=item C<int *> C<intptr>
+=item C<int \*> C<intptr>
 
 =item C<int> C<int>
 
@@ -92,6 +92,7 @@ See L<Irssi/"Signals">
 
 =back
 
+END OF SIGNAL TYPES
 
 =end irssi_signal_types
 
@@ -110,17 +111,35 @@ Arguments are passed to signal handlers in the usual way, via C<@_>.
 
 =item C<"gui exit">
 
-I<None>
+=over
+
+=item I<None>
+
+=back
 
 =item C<"gui dialog">
 
-string C<$type>, string C<$text>
+=over
+
+=item string C<$type>
+
+=item string C<$text>
+
+=back
 
 =item C<"send command">
 
-C<string $command>,
-L<Irssi::Server> C<$server>,
-L<Irssi::Windowitem> C<$window_item>
+=over
+
+=item C<string $command>,
+
+=item L<Irssi::Server> C<$server>,
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+This is sent when a command is entered via the GUI, or by scripts via L<Irssi::command>.
 
 =back
 
@@ -130,11 +149,29 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =over 4
 
-=item C<"chat protocol created"> CHAT_PROTOCOL_REC
+=item C<"chat protocol created">
 
-=item C<"chat protocol updated"> CHAT_PROTOCOL_REC
+=over
 
-=item C<"chat protocol destroyed"> CHAT_PROTOCOL_REC
+=item CHAT_PROTOCOL_REC C<$protocol>
+
+=back
+
+=item C<"chat protocol updated">
+
+=over
+
+=item CHAT_PROTOCOL_REC C<$protocol>
+
+=back
+
+=item C<"chat protocol destroyed">
+
+=over
+
+=item CHAT_PROTOCOL_REC C<$protocol>
+
+=back
 
 =back
 
@@ -142,9 +179,23 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =over 4
 
-=item C<"channel created"> L<Irssi::Channel>, int C<$automatic>
+=item C<"channel created">
 
-=item C<"channel destroyed"> L<Irssi::Channel> C<$channel>
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item int C<$automatic>
+
+=back
+
+=item C<"channel destroyed">
+
+=over
+
+=item  L<Irssi::Channel> C<$channel>
+
+=back
 
 =back
 
@@ -152,9 +203,21 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =over 4
 
-=item C<"chatnet created"> CHATNET_REC
+=item C<"chatnet created">
 
-=item C<"chatnet destroyed"> CHATNET_REC
+=over
+
+=item CHATNET_REC C<$chatnet>
+
+=back
+
+=item C<"chatnet destroyed">
+
+=over
+
+=item CHATNET_REC C<$chatnet>
+
+=back
 
 =back
 
@@ -162,25 +225,81 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =over 4
 
-=item C<"commandlist new">, L<Irssi::Command> C<$cmd>
+=item C<"commandlist new">
 
-=item C<"commandlist remove"> L<Irssi::Command> C<$cmd>
+=over
 
-=item C<"error command"> int C<$err>, string C<$cmd>
+=item L<Irssi::Command> C<$cmd>
 
-=item C<"send command"> string C<$args>,
-      L<Irssi::Server> C<$server>, L<Irssi::Windowitem> C<$witem>
+=back
 
-=item C<"send text"> string C<$line>, L<Irssi::Server> C<$server>,
-      L<Irssi::Windowitem> C<$witem>
+=item C<"commandlist remove">
 
-=item C<"command "<cmd>> string C<$args>, L<Irssi::Server> C<$server>,
-      L<Irssi::Windowitem> C<$witem>
+=over
+
+=item L<Irssi::Command> C<$cmd>
+
+=back
+
+=item C<"error command">
+
+=over
+
+=item int C<$err>
+
+=item string C<$cmd>
+
+=back
+
+=item C<"send command"> 
+
+=over
+
+=item string C<$args>
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Windowitem> C<$witem>
+
+=back
+
+=item C<"send text"> 
+
+=over
+
+=item string C<$line>
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Windowitem> C<$witem>
+
+=back
+
+=item C<"command "<cmd>> 
+
+=over 
+
+=item string C<$args>
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Windowitem> C<$witem>
+
+=back
 
 B<TODO: check this "cmd" out?>
 
-=item C<"default command"> string C<$args>, L<Irssi::Server> C<$server>,
-      L<Irssi::Windowitem> C<$witem>
+=item C<"default command">
+
+=over
+
+=item string C<$args>
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Windowitem> C<$witem>
+
+=back
 
 =back
 
@@ -188,11 +307,29 @@ B<TODO: check this "cmd" out?>
 
 =over 4
 
-=item C<"ignore created"> L<Irssi::Ignore> C<$ignore>
+=item C<"ignore created">
 
-=item C<"ignore destroyed"> L<Irssi::Ignore> C<$ignore>
+=over
 
-=item C<"ignore changed"> L<Irssi::Ignore> C<$ignore>
+=item L<Irssi::Ignore> C<$ignore>
+
+=back
+
+=item C<"ignore destroyed">
+
+=over
+
+=item L<Irssi::Ignore> C<$ignore>
+
+=back
+
+=item C<"ignore changed">
+
+=over
+
+=item L<Irssi::Ignore> C<$ignore>
+
+=back
 
 =back
 
@@ -200,21 +337,71 @@ B<TODO: check this "cmd" out?>
 
 =over 4
 
-=item C<"log new"> L<Irssi::Log> C<$log>
+=item C<"log new"> 
 
-=item C<"log remove"> L<Irssi::Log> C<$log>
+=over
 
-=item C<"log create failed"> L<Irssi::Log> C<$log>
+=item L<Irssi::Log> C<$log>
 
-=item C<"log locked"> L<Irssi::Log> C<$log>
+=back
 
-=item C<"log started"> L<Irssi::Log> C<$log>
+=item C<"log remove">
 
-=item C<"log stopped"> L<Irssi::Log> C<$log>
+=over
 
-=item C<"log rotated"> L<Irssi::Log> C<$log>
+=item L<Irssi::Log> C<$log>
 
-=item C<"log written"> L<Irssi::Log> C<$log>, string C<$line>
+=back
+
+=item C<"log create failed">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=back
+
+=item C<"log locked">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=back
+
+=item C<"log started">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=back
+
+=item C<"log stopped">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=back
+
+=item C<"log rotated">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=back
+
+=item C<"log written">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=item string C<$line>
+
+=back
 
 =back
 
@@ -224,11 +411,39 @@ B<TODO: what are these types?>
 
 =over 4
 
-=item "module loaded", MODULE_REC, MODULE_FILE_REC
+=item C<"module loaded">
 
-=item "module unloaded", MODULE_REC, MODULE_FILE_REC
+=over 
 
-=item "module error", int error, char *text, char *rootmodule, char *submodule
+=item MODULE_REC C<$module>
+
+=item MODULE_FILE_REC C<$module_file>
+
+=back
+
+=item C<"module unloaded">
+
+=over 
+
+=item MODULE_REC C<$module>
+
+=item MODULE_FILE_REC C<$module_file>
+
+=back
+
+=item C<"module error">
+
+=over
+
+=item int C<$error>
+
+=item string C<$text>
+
+=item string C<$root_module>
+
+=item string C<$sub_module>
+
+=back
 
 =back
 
@@ -236,100 +451,323 @@ B<TODO: what are these types?>
 
 =over 4
 
-=item C<"nicklist new"> L<Irssi::Channel> C<$channel>, L<Irssi::Nick> C<$nick>
+=item C<"nicklist new">
 
-=item "nicklist remove", CHANNEL_REC, NICK_REC
+=over
 
-=item "nicklist changed", CHANNEL_REC, NICK_REC, char *old_nick
+=item L<Irssi::Channel> C<$channel>
 
-=item "nicklist host changed", CHANNEL_REC, NICK_REC
-
-=item "nicklist gone changed", CHANNEL_REC, NICK_REC
-
-=item "nicklist serverop changed", CHANNEL_REC, NICK_REC
+=item L<Irssi::Nick> C<$nick>
 
 =back
 
-=head3 pidwait.c:
+=item C<"nicklist remove">
 
-=over 4
+=over
 
-=item "pidwait", int pid, int status
+=item L<Irssi::Channel> C<$channel>
 
-=back
-
-=head3 queries.c:
-
-=over 4
-
-=item "query created", QUERY_REC, int automatic
-
-=item "query destroyed", QUERY_REC
-
-=item "query nick changed", QUERY_REC, char *orignick
-
-=item "window item name changed", WI_ITEM_REC
-
-=item "query address changed", QUERY_REC
-
-=item "query server changed", QUERY_REC, SERVER_REC
+=item L<Irssi::Nick> C<$nick>
 
 =back
 
+=item C<"nicklist changed">
 
-=head3 rawlog.c:
+=over
 
-=over 4
+=item L<Irssi::Channel> C<$channel>
 
-=item "rawlog", RAWLOG_REC, char *data
+=item L<Irssi::Nick> C<$nick>
 
-=back
-
-=head3 server.c:
-
-=over 4
-
-=item "server looking", SERVER_REC
-
-=item "server connected", SERVER_REC
-
-=item "server connecting", SERVER_REC, ulong *ip
-
-=item "server connect failed", SERVER_REC
-
-=item "server disconnected", SERVER_REC
-
-=item "server quit", SERVER_REC, char *msg
-
-=item "server sendmsg", SERVER_REC, char *target, char *msg, int target_type
+=item string C<$old_nick>
 
 =back
 
-=head3 settings.c:
+=item C<"nicklist host changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Nick> C<$nick>
+
+=back
+
+=item C<"nicklist gone changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Nick> C<$nick>
+
+=back
+
+=item C<"nicklist serverop changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Nick> C<$nick>
+
+=back
+
+=back
+
+=head3 F<pidwait.c>:
 
 =over 4
 
-=item "setup changed"
+=item C<"pidwait">
 
-=item "setup reread", char *fname
+=over
 
-=item "setup saved", char *fname, int autosaved
+=item int C<$pid>
+
+=item int C<$status>
+
+=back
+
+=back
+
+=head3 F<queries.c>:
+
+=over 4
+
+=item C<"query created"> 
+
+=over
+
+=item L<Irssi::Query> C<$query>
+
+=item int C<$automatic>
+
+=back
+
+=item C<"query destroyed"> 
+
+=over
+
+=item L<Irssi::Query> C<$query>
+
+=back
+
+=item C<"query nick changed"> 
+
+=over
+
+=item L<Irssi::Query> C<$query>
+
+=item string C<$original_nick>
+
+=back
+
+=item C<"window item name changed">
+
+=over
+
+=item L<Irssi::Windowitem> C<$witem>
+
+=back
+
+=item C<"query address changed">
+
+=over
+
+=item L<Irssi::Query> C<$query>
+
+=back
+
+=item C<"query server changed">
+
+=over
+
+=item L<Irssi::Query> C<$query>
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=back
+
+
+=head3 F<rawlog.c>:
+
+=over 4
+
+=item C<"rawlog">
+
+=over
+
+=item L<Irssi::Rawlog> C<$raw_log>
+
+=item string C<$data>
+
+=back
+
+=back
+
+=head3 F<server.c>:
+
+=over 4
+
+=item C<"server looking">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=item C<"server connected">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+
+=item C<"server connecting">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item ulongptr C<$ip>
+
+=back
+
+=item C<"server connect failed">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=item C<"server disconnected">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=item C<"server quit">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$message>
+
+=back
+
+=item C<"server sendmsg">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$target>
+
+=item string C<$message>
+
+=item int C<$target_type>
+
+=back
+
+=back
+
+=head3 F<settings.c>:
+
+=over 4
+
+=item C<"setup changed">
+
+=over
+
+=item I<None>
+
+=back
+
+=item C<"setup reread">
+
+=over
+
+=item string C<$fname>
+
+=back
+
+=item C<"setup saved">
+
+=over
+
+=item string C<$fname>
+
+=item int C<$autosaved>
+
+=back
 
 =back
 
 =head2 IRC Core
 
-=head3 bans.c:
+=head3 F<bans.c>:
 
- "ban type changed", char *bantype
+=over 4
 
-=head3 channels, nicklist:
+=item C<"ban type changed">
 
- "channel joined", CHANNEL_REC
- "channel wholist", CHANNEL_REC
- "channel sync", CHANNEL_REC
+=over
 
- "channel topic changed", CHANNEL_REC
+=item string C<$bantype>
+
+=back
+
+=back
+
+=head3 F<channels>, F<nicklist>:
+
+B<TODO: are these actual files? .c?>
+
+=over 4
+
+=item C<"channel joined">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=back
+
+=item C<"channel wholist">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=back
+
+=item C<"channel sync">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=back
+
+=item C<"channel topic changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=back
+
+=back
 
 =head3 ctcp.c:
 
