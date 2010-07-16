@@ -22,6 +22,7 @@ didn't work :)
 =head1 FIELDS
 
 Windowitem->{}
+
   type - Type of the window item, for example "CHANNEL" or "QUERY"
   chat_type - String ID of chat protocol, for example "IRC"
 
@@ -34,22 +35,25 @@ Windowitem->{}
 
 =head1 METHODS
 
-Windowitem::print(str[, level])
+=head2 C<print $str, [$level]>
 
-Windowitem::command(cmd)
+=head2 C<command $cmd>
+
+=head2 C<set_active>
+
+Change window item active in parent window.
 
 
+=head2 C<change_server $server>
 
-Windowitem::set_active()
-  Change window item active in parent window.
+Change server in window item.
+
+=head2 C<is_active>
+
+Returns 1 if window item is the active item in parent window.
 
 
-Windowitem::change_server(server)
-  Change server in window item.
+=head2 C<get_dcc $item>
 
-Windowitem::is_active()
-  Returns 1 if window item is the active item in parent window.
-
-Dcc
-Windowitem::get_dcc(item)
-  If `item' is a query of a =nick, return DCC chat record of nick.
+If `item' is a query of a =nick, return DCC chat record of nick.
+returns L<Irssi::Dcc> object.

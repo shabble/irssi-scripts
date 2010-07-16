@@ -7,6 +7,7 @@ Irssi::Dcc
 =head1 FIELDS
 
 Dcc->{}
+
   type - Type of the DCC: chat, send, get
   orig_type - Original DCC type that was sent to us - same as type except
               GET and SEND are swapped
@@ -29,11 +30,13 @@ Dcc->{}
   transfd - Bytes transferred
 
 Dcc::Chat->{}
+
   id - Unique identifier - usually same as nick
   mirc_ctcp - Send CTCPs without the CTCP_MESSAGE prefix
   connection_lost - Other side closed connection
 
 Dcc::Get->{}
+
   (..contains all the same data as core Dcc object..)
   size - File size
   skipped - Bytes skipped from start (resuming file)
@@ -44,6 +47,7 @@ Dcc::Get->{}
   file_quoted - 1 if file name was received quoted ("file name")
 
 Dcc::Send->{}
+
   (..contains all the same data as core Dcc object..)
   size - File size
   skipped - Bytes skipped from start (resuming file)
@@ -55,11 +59,14 @@ Dcc::Send->{}
 
 =head1 METHODS
 
-Dcc::destroy()
-  Destroy DCC connection.
+=head2 C<destroy>
 
-Dcc::chat_send(data)
-  Send `data' to dcc chat.
+Destroy DCC connection.
 
-Dcc::ctcp_message(target, notice, msg)
-  Send a CTCP message/notify to target.
+=head2 C<chat_send $data>
+
+Send `data' to dcc chat.
+
+=head2 C<ctcp_message $target, $notice, $msg>
+
+Send a CTCP message/notify to target.

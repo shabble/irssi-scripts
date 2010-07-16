@@ -2,11 +2,12 @@ __END__
 
 =head1 NAME
 
-Irssi::Query
+Irssi::UI::Process
 
 =head1 FIELDS
 
 Process->{}
+
   id - ID for the process
   name - Name for the process (if given)
   args - The command that is being executed
