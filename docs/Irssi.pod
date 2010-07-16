@@ -85,53 +85,53 @@ For example:
 
 =head2 Accessors
 
-=head3 active_win
+=head3 C<active_win>
 
 C<my $win = Irssi::active_win();>
 
 returns the currently active L<Irssi::Window>
 
-=head3 active_server
+=head3 C<active_server>
 
 C<my $server = Irssi::active_server();>
 
 returns the currently active L<Irssi::Server> in active window.
 
-=head3 windows
+=head3 C<windows>
 
 returns a list of all L<windows|Irssi::Window>.
 
-=head3 servers
+=head3 C<servers>
 
 returns a list of all L<servers|Irssi::Server>.
 
-=head3 reconnects
+=head3 C<reconnects>
 
 returns a list of all L<server reconnections|Irssi::Reconnect>.
 
-=head3 channels
+=head3 C<channels>
 
 returns a list of all L<channels|Irssi::Channel>.
 
-=head3 queries
+=head3 C<queries>
 
 returns a list of all L<queries|Irssi::Query>.
 
-=head3 commands
+=head3 C<commands>
 
 returns a list of all L<commands|Irssi::Command>.
 
-=head3 logs
+=head3 C<logs>
 
 returns a list of all L<log files|Irssi::Log>.
 
-=head3 ignores
+=head3 C<ignores>
 
 returns a list of all L<ignores|Irssi::Ignore>.
 
-=head3 dccs
+=head3 C<dccs>
 
-returns a list of all L<DCC connections|Irssi::Dcc>
+returns a list of all L<DCC connections|Irssi::Irc::Dcc>
 
 =head2 Signals
 

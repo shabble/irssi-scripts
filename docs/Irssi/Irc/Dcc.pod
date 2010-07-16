@@ -6,7 +6,7 @@ Irssi::Dcc
 
 =head1 FIELDS
 
-Dcc->{}
+=head2 C<Dcc->{}>
 
   type - Type of the DCC: chat, send, get
   orig_type - Original DCC type that was sent to us - same as type except
@@ -29,24 +29,25 @@ Dcc->{}
   starttime - Unix time stamp when the DCC transfer was started
   transfd - Bytes transferred
 
-Dcc::Chat->{}
+=head2 C<Dcc::Chat->{}>
 
   id - Unique identifier - usually same as nick
   mirc_ctcp - Send CTCPs without the CTCP_MESSAGE prefix
   connection_lost - Other side closed connection
 
-Dcc::Get->{}
+=head2 C<Dcc::Get->{}>
 
   (..contains all the same data as core Dcc object..)
   size - File size
   skipped - Bytes skipped from start (resuming file)
 
-  get_type - What to do if file exists? 0=default, 1=rename, 2=overwrite,
-             3=resume
+  get_type - What to do if file exists?
+               0=default, 1=rename, 2=overwrite, 3=resume
+
   file - The real file name which we use.
   file_quoted - 1 if file name was received quoted ("file name")
 
-Dcc::Send->{}
+=head2 C<Dcc::Send->{}>
 
   (..contains all the same data as core Dcc object..)
   size - File size
@@ -55,7 +56,6 @@ Dcc::Send->{}
   file_quoted - 1 if file name was received quoted ("file name")
   waitforend - File is sent, just wait for the replies from the other side
   gotalldata - Got all acks from the other end
-
 
 =head1 METHODS
 

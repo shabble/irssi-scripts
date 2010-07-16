@@ -7,6 +7,7 @@ Irssi::Chatnet
 =head1 FIELDS
 
 Chatnet->{}
+
   type - "CHATNET" text
   chat_type - String ID of chat protocol, for example "IRC"
 
@@ -22,3 +23,4 @@ Chatnet->{}
 
 =head1 METHODS
 
+I<None found yet>
