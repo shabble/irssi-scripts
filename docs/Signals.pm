@@ -769,238 +769,1583 @@ B<TODO: are these actual files? .c?>
 
 =back
 
-=head3 ctcp.c:
+=head3 F<ctcp.c>:
 
- "ctcp msg", SERVER_REC, char *args, char *nick, char *addr, char *target
- "ctcp msg "<cmd>, SERVER_REC, char *args, char *nick, char *addr, char *target
- "default ctcp msg", SERVER_REC, char *args, char *nick, char *addr, char *target
- "ctcp reply", SERVER_REC, char *args, char *nick, char *addr, char *target
- "ctcp reply "<cmd>, SERVER_REC, char *args, char *nick, char *addr, char *target
- "default ctcp reply", SERVER_REC, char *args, char *nick, char *addr, char *target
- "ctcp action", SERVER_REC, char *args, char *nick, char *addr, char *target
+=over
 
-=head3 irc-log.c:
+=item C<"ctcp msg">
 
- "awaylog show", LOG_REC, int away_msgs, int filepos
+=over
 
-=head3 irc-nicklist.c:
+=item L<Irssi::Server> C<$server>
 
- "server nick changed", SERVER_REC
+=item string C<$args>
 
-=head3 irc-servers.c:
+=item string C<$nick>
 
- "event connected", SERVER_REC
+=item string C<$addr>
 
-=head3 irc.c:
+=item string C<$target>
 
- "server event", SERVER_REC, char *data, char *sender_nick, char *sender_address
- "event "<cmd>, SERVER_REC, char *args, char *sender_nick, char *sender_address
- "default event", SERVER_REC, char *data, char *sender_nick, char *sender_address
- "whois default event", SERVER_REC, char *args, char *sender_nick, char *sender_address
+=back
 
- "server incoming", SERVER_REC, char *data
+=item C<"ctcp msg "<cmd>>
 
-(for perl parser..)
- "redir "<cmd>, SERVER_REC, char *args, char *sender_nick, char *sender_address
+=over
 
-=head3 lag.c:
+=item L<Irssi::Server> C<$server>
 
- "server lag", SERVER_REC
- "server lag disconnect", SERVER_REC
+=item string C<$args>
 
-=head3 massjoin.c:
+=item string C<$nick>
 
- "massjoin", CHANNEL_REC, GSList of NICK_RECs
+=item string C<$addr>
 
-=head3 mode-lists.c:
+=item string C<$target>
 
- "ban new", CHANNEL_REC, BAN_REC
- "ban remove", CHANNEL_REC, BAN_REC, char *setby
+=back
 
-=head3 modes.c:
+=item C<"default ctcp msg">
 
- "channel mode changed", CHANNEL_REC, char *setby
- "nick mode changed", CHANNEL_REC, NICK_REC, char *setby, char *mode, char *type
- "user mode changed", SERVER_REC, char *old
- "away mode changed", SERVER_REC
+=over
 
-=head3 netsplit.c:
+=item L<Irssi::Server> C<$server>
 
- "netsplit server new", SERVER_REC, NETSPLIT_SERVER_REC
- "netsplit server remove", SERVER_REC, NETSPLIT_SERVER_REC
- "netsplit new", NETSPLIT_REC
- "netsplit remove", NETSPLIT_REC
+=item string C<$args>
 
+=item string C<$nick>
+
+=item string C<$addr>
+
+=item string C<$target>
+
+=back
+
+=item C<"ctcp reply">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$nick>
+
+=item string C<$addr>
+
+=item string C<$target>
+
+=back
+
+=item C<"ctcp reply "<cmd>>
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$nick>
+
+=item string C<$addr>
+
+=item string C<$target>
+
+=back
+
+=item C<"default ctcp reply">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$nick>
+
+=item string C<$addr>
+
+=item string C<$target>
+
+=back
+
+=item C<"ctcp action">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$nick>
+
+=item string C<$addr>
+
+=item string C<$target>
+
+=back
+
+=back
+
+=head3 F<irc-log.c>:
+
+=over
+
+=item C<"awaylog show">
+
+=over
+
+=item L<Irssi::Log> C<$log>
+
+=item int C<$away_msgs>
+
+=item int C<$filepos>
+
+=back
+
+=back
+
+=head3 F<irc-nicklist.c>:
+
+=over
+
+=item C<"server nick changed">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=back
+
+=head3 F<irc-servers.c>:
+
+=over
+
+=item C<"event connected">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=back
+
+=head3 F<irc.c>:
+
+=over
+
+=item C<"server event">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$data>
+
+=item string C<$sender_nick>
+
+=item string C<$sender_addr>
+
+=back
+
+=item C<"event "<cmd>>
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$sender_nick>
+
+=item string C<$sender_addr>
+
+=back
+
+=item C<"default event">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$data>
+
+=item string C<$sender_nick>
+
+=item string C<$sender_addr>
+
+=back
+
+=item C<"whois default event">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$data>
+
+=item string C<$sender_nick>
+
+=item string C<$sender_addr>
+
+=back
+
+=item C<"server incoming">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$data>
+
+=back
+
+=item C<"redir "<cmd>>
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$args>
+
+=item string C<$sender_nick>
+
+=item string C<$sender_addr>
+
+=back
+
+=back
+
+=head3 F<lag.c>:
+
+=over
+
+=item C<"server lag">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=item C<"server lag disconnect">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=back
+
+=head3 F<massjoin.c>:
+
+=over
+
+=item C<"massjoin">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item List of L<Irssi::Nick> C<@nicks>
+
+B<TODO: Check this is actually a perl list (array)>
+
+=back
+
+=back
+
+=head3 F<mode-lists.c>:
+
+=over
+
+=item C<"ban new">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Irc::Ban> C<$ban>
+
+=back
+
+=item C<"ban remove">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Irc::Ban> C<$ban>
+
+=item string C<$set_by>
+
+=back
+
+=back
+
+=head3 F<modes.c>:
+
+=over
+
+=item C<"channel mode changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item string C<$set_by>
+
+=back
+
+=item C<"nick mode changed">
+
+=over
+
+=item L<Irssi::Channel> C<$channel>
+
+=item L<Irssi::Nick> C<$nick>
+
+=item string C<$set_by>
+
+=item string C<$mode>
+
+=item string C<$type>
+
+=back
+
+=item C<"user mode changed">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$old_mode>
+
+=back
+
+=item C<"away mode changed">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=back
+
+=head3 F<netsplit.c>:
+
+=over
+
+=item C<"netsplit server new">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Irc::Netsplitserver> C<$netsplit_server>
+
+=back
+
+=item C<"netsplit server remove">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Irc::Netsplitserver> C<$netsplit_server>
+
+=back
+
+=item C<"netsplit new">
+
+=over
+
+=item L<Irssi::Irc::Netsplit> C<$netsplit>
+
+=back
+
+=item C<"netsplit remove">
+
+=over
+
+=item L<Irssi::Irc::Netsplit> C<$netsplit>
+
+=back
+
+=back
 
 =head2 IRC Modules
 
 
-=head3 dcc*.c:
+=head3 F<dcc*.c>:
 
- "dcc ctcp "<cmd>, char *args, DCC_REC
- "default dcc ctcp", char *args, DCC_REC
- "dcc unknown ctcp", char *args, char *sender, char *sendaddr
+=over
 
- "dcc reply "<cmd>, char *args, DCC_REC
- "default dcc reply", char *args, DCC_REC
- "dcc unknown reply", char *args, char *sender, char *sendaddr
+=item C<"dcc ctcp "<cmd>>
 
- "dcc chat message", DCC_REC, char *msg
+=over
 
- "dcc created", DCC_REC
- "dcc destroyed", DCC_REC
- "dcc connected", DCC_REC
- "dcc rejecting", DCC_REC
- "dcc closed", DCC_REC
- "dcc request", DCC_REC, char *sendaddr
- "dcc request send", DCC_REC
- "dcc chat message", DCC_REC, char *msg
- "dcc transfer update", DCC_REC
- "dcc get receive", DCC_REC
- "dcc error connect", DCC_REC
- "dcc error file create", DCC_REC, char *filename
- "dcc error file open", char *nick, char *filename, int errno
- "dcc error get not found", char *nick
- "dcc error send exists", char *nick, char *filename
- "dcc error unknown type", char *type
- "dcc error close not found", char *type, char *nick, char *filename
+=item string C<$args>
 
-=head3 autoignore.c:
+=item L<Irssi::Dcc> C<$dcc>
 
- "autoignore new", SERVER_REC, AUTOIGNORE_REC
- "autoignore remove", SERVER_REC, AUTOIGNORE_REC
+=back
 
-=head3 flood.c:
+=item C<"default dcc ctcp">
 
- "flood", SERVER_REC, char *nick, char *host, int level, char *target
+=over
 
-=head3 notifylist.c:
+=item string C<$args>
 
- "notifylist new", NOTIFYLIST_REC
- "notifylist remove", NOTIFYLIST_REC
- "notifylist joined", SERVER_REC, char *nick, char *user, char *host, char *realname, char *awaymsg
- "notifylist away changed", SERVER_REC, char *nick, char *user, char *host, char *realname, char *awaymsg
- "notifylist left", SERVER_REC, char *nick, char *user, char *host, char *realname, char *awaymsg
+=item L<Irssi::Dcc> C<$dcc>
 
-=head3 proxy/listen.c:
+=back
 
- "proxy client connected", CLIENT_REC
- "proxy client disconnected", CLIENT_REC
- "proxy client command", CLIENT_REC, char *args, char *data
- "proxy client dump", CLIENT_REC, char *data
+=item C<"dcc unknown ctcp">
 
+=over
+
+=item string C<$args>
+
+=item string C<$sender>
+
+=item string C<$send_addr>
+
+=back
+
+=item C<"dcc reply "<cmd>>
+
+=over
+
+=item string C<$args>
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"default dcc reply">
+
+=over
+
+=item string C<$args>
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc unknown reply">
+
+=over
+
+=item string C<$args>
+
+=item string C<$sender>
+
+=item string C<$send_addr>
+
+=back
+
+=item C<"dcc chat message">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"dcc created">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc destroyed">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc connected">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc rejecting">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc closed">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc request">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$send_addr>
+
+=back
+
+=item C<"dcc request send">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc chat message">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"dcc transfer update">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc get receive">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc error connect">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=back
+
+=item C<"dcc error file create">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$filename>
+
+=back
+
+=item C<"dcc error file open">
+
+=over
+
+=item string C<$nick>
+
+=item string C<$filename>
+
+=item int C<$errno>
+
+=back
+
+=item C<"dcc error get not found">
+
+=over
+
+=item string C<$nick>
+
+=back
+
+=item C<"dcc error send exists">
+
+=over
+
+=item string C<$nick>
+
+=item string C<$filename>
+
+=back
+
+=item C<"dcc error unknown type">
+
+=over
+
+=item string C<$type>
+
+=back
+
+=item C<"dcc error close not found">
+
+=over
+
+=item string C<$type>
+
+=item string C<$nick>
+
+=item string C<$filename>
+
+=back
+
+=back
+
+=head3 F<autoignore.c>:
+
+=over
+
+=item C<"autoignore new">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Irc::Autoignore> C<$autoignore>
+
+=back
+
+=item C<"autoignore remove">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item L<Irssi::Irc::Autoignore> C<$autoignore>
+
+=back
+
+=back
+
+=head3 F<flood.c>:
+
+=over
+
+=item C<"flood">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$nick>
+
+=item string C<$host>
+
+=item int C<$level>
+
+=item string C<$target>
+
+=back
+
+=back
+
+=head3 F<notifylist.c>:
+
+=over
+
+=item C<"notifylist new">
+
+=over
+
+=item L<Irssi::Irc::Notifylist> C<$notify_list>
+
+=back
+
+=item C<"notifylist remove">
+
+=over
+
+=item L<Irssi::Irc::Notifylist> C<$notify_list>
+
+=back
+
+=item C<"notifylist joined">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$nick>
+
+=item string C<$user>
+
+=item string C<$host>
+
+=item string C<$real_name>
+
+=item string C<$away_message>
+
+=back
+
+=item C<"notifylist away changed">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$nick>
+
+=item string C<$user>
+
+=item string C<$host>
+
+=item string C<$real_name>
+
+=item string C<$away_message>
+
+=back
+
+=item C<"notifylist left">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$nick>
+
+=item string C<$user>
+
+=item string C<$host>
+
+=item string C<$real_name>
+
+=item string C<$away_message>
+
+=back
+
+=back
+
+=head3 F<proxy/listen.c>:
+
+=over
+
+=item C<"proxy client connected">
+
+=over
+
+=item L<Irssi::Irc::Client> C<$client>
+
+=back
+
+=item C<"proxy client disconnected">
+
+=over
+
+=item L<Irssi::Irc::Client> C<$client>
+
+=back
+
+=item C<"proxy client command">
+
+=over
+
+=item L<Irssi::Irc::Client> C<$client>
+
+=item string C<$args>
+
+=item string C<$data>
+
+=back
+
+=item C<"proxy client dump">
+
+=over
+
+=item L<Irssi::Irc::Client> C<$client>
+
+=item string C<$data>
+
+=back
+
+=back
 
 =head2 Display (FE) Common
 
 B<Requires to work properly:>
 
- "gui print text", WINDOW_REC, int fg, int bg, int flags, char *text, TEXT_DEST_REC
+=over
+
+=item C<"gui print text">
+
+=over
+
+=item L<Irssi::Window> C<$window>
+
+=item int C<$fg>
+
+=item int C<$bg>
+
+=item int C<$flags>
+
+=item string C<$text>
+
+=item L<Irssi::UI::TextDest> C<$text_dest>
+
+=back
+
+=back
 
 (Can be used to determine when all "gui print text"s are sent (not required))
  "gui print text finished", WINDOW_REC
 
 B<Provides signals:>
 
-=head3 completion.c:
+=head3 F<completion.c>:
 
- "complete word", GList * of char*, WINDOW_REC, char *word, char *linestart, int *want_space
+=over
 
-=head3 fe-common-core.c:
+=item C<"complete word">
 
- "irssi init read settings"
+, GList * of char*, WINDOW_REC, char *word, char *linestart, int *want_space
 
-=head3 fe-exec.c:
+=back
 
- "exec new", PROCESS_REC
- "exec remove", PROCESS_REC, int status
- "exec input", PROCESS_REC, char *text
+=head3 F<fe-common-core.c>:
 
-=head3 fe-messages.c:
+=over
 
- "message public", SERVER_REC, char *msg, char *nick, char *address, char *target
- "message private", SERVER_REC, char *msg, char *nick, char *address
- "message own_public", SERVER_REC, char *msg, char *target
- "message own_private", SERVER_REC, char *msg, char *target, char *orig_target
- "message join", SERVER_REC, char *channel, char *nick, char *address
- "message part", SERVER_REC, char *channel, char *nick, char *address, char *reason
- "message quit", SERVER_REC, char *nick, char *address, char *reason
- "message kick", SERVER_REC, char *channel, char *nick, char *kicker, char *address, char *reason
- "message nick", SERVER_REC, char *newnick, char *oldnick, char *address
- "message own_nick", SERVER_REC, char *newnick, char *oldnick, char *address
- "message invite", SERVER_REC, char *channel, char *nick, char *address
- "message topic", SERVER_REC, char *channel, char *topic, char *nick, char *address
+=item C<"irssi init read settings">
 
-=head3 keyboard.c:
+=over
 
- "keyinfo created", KEYINFO_REC
- "keyinfo destroyed", KEYINFO_REC
+=item I<None>
 
-=head3 printtext.c:
+=back
 
- "print text", TEXT_DEST_REC *dest, char *text, char *stripped
+=back
 
-=head3 themes.c:
+=head3 F<fe-exec.c>:
 
- "theme created", THEME_REC
- "theme destroyed", THEME_REC
+=over
 
-=head3 window-activity.c:
+=item C<"exec new">
 
- "window hilight", WINDOW_REC
- "window dehilight", WINDOW_REC
- "window activity", WINDOW_REC, int old_level
- "window item hilight", WI_ITEM_REC
- "window item activity", WI_ITEM_REC, int old_level
+=over
 
-=head3 window-items.c:
+=item L<Irssi::UI::Process> C<$process>
 
- "window item new", WINDOW_REC, WI_ITEM_REC
- "window item remove", WINDOW_REC, WI_ITEM_REC
- "window item moved", WINDOW_REC, WI_ITEM_REC, WINDOW_REC
- "window item changed", WINDOW_REC, WI_ITEM_REC
- "window item server changed", WINDOW_REC, WI_ITEM_REC
+=back
 
-=head3 windows.c:
+=item C<"exec remove">
 
- "window created", WINDOW_REC
- "window destroyed", WINDOW_REC
- "window changed", WINDOW_REC, WINDOW_REC old
- "window changed automatic", WINDOW_REC
- "window server changed", WINDOW_REC, SERVER_REC
- "window refnum changed", WINDOW_REC, int old
- "window name changed", WINDOW_REC
- "window history changed", WINDOW_REC, char *oldname
- "window level changed", WINDOW_REC
+=over
+
+=item L<Irssi::UI::Process> C<$process>
+
+=item int C<$status>
+
+=back
+
+=item C<"exec input">
+
+=over
+
+=item L<Irssi::UI::Process> C<$process>
+
+=item string C<$text>
+
+=back
+
+=back
+
+=head3 F<fe-messages.c>:
+
+=over
+
+=item C<"message public">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$target>
+
+=back
+
+=item C<"message private">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=back
+
+=item C<"message own_public">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$target>
+
+=back
+
+=item C<"message own_private">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$target>
+
+=item string C<$original_target>
+
+=back
+
+=item C<"message join">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=back
+
+=item C<"message part">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$reason>
+
+=back
+
+=item C<"message quit">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$reason>
+
+=back
+
+=item C<"message kick">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$nick>
+
+=item string C<$kicker>
+
+=item string C<$address>
+
+=item string C<$reason>
+
+=back
+
+=item C<"message nick">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$new_nick>
+
+=item string C<$old_nick>
+
+=item string C<$address>
+
+=back
+
+=item C<"message own_nick">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$new_nick>
+
+=item string C<$old_nick>
+
+=item string C<$address>
+
+=back
+
+=item C<"message invite">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=back
+
+=item C<"message topic">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$topic>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=back
+
+=back
+
+=head3 F<keyboard.c>:
+
+=over
+
+=item C<"keyinfo created">
+
+=over
+
+=item L<Irssi::UI::Keyinfo> C<$key_info>
+
+=back
+
+=item C<"keyinfo destroyed">
+
+=over
+
+=item L<Irssi::UI::Keyinfo> C<$key_info>
+
+=back
+
+=back
+
+=head3 F<printtext.c>:
+
+=over
+
+=item C<"print text">
+
+=over
+
+=item L<Irssi::UI::TextDest> C<$text_dest>
+
+=item string C<$text>
+
+=item string C<$stripped_text>
+
+=back
+
+=back
+
+=head3 F<themes.c>:
+
+=over
+
+=item C<"theme created">
+
+=over
+
+=item L<Irssi::UI::Theme> C<$theme>
+
+=back
+
+=item C<"theme destroyed">
+
+=over
+
+=item L<Irssi::UI::Theme> C<$theme>
+
+=back
+
+=back
+
+=head3 F<window-activity.c>:
+
+=over
+
+=item C<"window hilight">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window dehilight">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window activity">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item int C<$old_level>
+
+=back
+
+=item C<"window item hilight">
+
+=over
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+=item C<"window item activity">
+
+=over
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=item int C<$old_level>
+
+=back
+
+=back
+
+=head3 F<window-items.c>:
+
+=over
+
+=item C<"window item new">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+=item C<"window item remove">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+=item C<"window item moved">
+
+B<TODO: Check ordering of arguments from/to here>
+
+=over
+
+=item L<Irssi::UI::Window> C<$window_from>
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=item L<Irssi::UI::Window> C<$window_to>
+
+=back
+
+=item C<"window item changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+=item C<"window item server changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::Windowitem> C<$window_item>
+
+=back
+
+=back
+
+=head3 F<windows.c>:
+
+=over
+
+=item C<"window created">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window destroyed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::UI::Window> C<$old_window>
+
+=back
+
+=item C<"window changed automatic">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window server changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item L<Irssi::Server> C<$server>
+
+=back
+
+=item C<"window refnum changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item int C<$old_refnum>
+
+=back
+
+=item C<"window name changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=item C<"window history changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=item string C<$old_name>
+
+=back
+
+=item C<"window level changed">
+
+=over
+
+=item L<Irssi::UI::Window> C<$window>
+
+=back
+
+=back
 
 =head2 Display (FE) IRC
 
-=head3 fe-events.c:
+=head3 F<fe-events.c>:
 
- "default event numeric", SERVER_REC, char *data, char *nick, char *address
+=over
 
-=head3 fe-irc-messages.c:
+=item C<"default event numeric">
 
- "message irc op_public", SERVER_REC, char *msg, char *nick, char *address, char *target
- "message irc own_wall", SERVER_REC, char *msg, char *target
- "message irc own_action", SERVER_REC, char *msg, char *target
- "message irc action", SERVER_REC, char *msg, char *nick, char *address, char *target
- "message irc own_notice", SERVER_REC, char *msg, char *target
- "message irc notice", SERVER_REC, char *msg, char *nick, char *address, char *target
- "message irc own_ctcp", SERVER_REC, char *cmd, char *data, char *target
- "message irc ctcp", SERVER_REC, char *cmd, char *data, char *nick, char *address, char *target
+=over
 
-=head3 fe-modes.c:
+=item L<Irssi::Server> C<$server>
 
- "message irc mode", SERVER_REC, char *channel, char *nick, char *addr, char *mode
+=item string C<$data>
 
-=head3 dcc/fe-dcc-chat-messages.c:
+=item string C<$nick>
 
- "message dcc own", DCC_REC *dcc, char *msg
- "message dcc own_action", DCC_REC *dcc, char *msg
- "message dcc own_ctcp", DCC_REC *dcc, char *cmd, char *data
- "message dcc", DCC_REC *dcc, char *msg
- "message dcc action", DCC_REC *dcc, char *msg
- "message dcc ctcp", DCC_REC *dcc, char *cmd, char *data
+=item string C<$address>
+
+=back
+
+=back
+
+=head3 F<fe-irc-messages.c>:
+
+=over
+
+=item C<"message irc op_public">
+
+=over
+
+=item L<Irssi::Server C<$server>
+
+=item string C<$msg>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc own_wall">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc own_action">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc action">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc own_notice">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc notice">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$msg>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc own_ctcp">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$cmd>
+
+=item string C<$data>
+
+=item string C<$target>
+
+=back
+
+=item C<"message irc ctcp">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$cmd>
+
+=item string C<$data>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$target>
+
+=back
+
+=back
+
+=head3 F<fe-modes.c>:
+
+=over
+
+=item C<"message irc mode">
+
+=over
+
+=item L<Irssi::Server> C<$server>
+
+=item string C<$channel>
+
+=item string C<$nick>
+
+=item string C<$address>
+
+=item string C<$mode>
+
+=back
+
+=back
+
+=head3 F<dcc/fe-dcc-chat-messages.c>:
+
+=over
+
+=item C<"message dcc own">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"message dcc own_action">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"message dcc own_ctcp">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$cmd>
+
+=item string C<$data>
+
+=back
+
+=item C<"message dcc">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"message dcc action">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$msg>
+
+=back
+
+=item C<"message dcc ctcp">
+
+=over
+
+=item L<Irssi::Dcc> C<$dcc>
+
+=item string C<$cmd>
+
+=item string C<$data>
+
+=back
+
+=back
 
 =head2 Display (FE) Text
 
@@ -1008,7 +2353,13 @@ B<Provides signals:>
 
 =over 4
 
-=item C<"gui key pressed"> int C<$key>
+=item C<"gui key pressed">
+
+=over
+
+=item int C<$key>
+
+=back
 
 =back
 
@@ -1016,7 +2367,13 @@ B<Provides signals:>
 
 =over 4
 
-=item C<"beep"> I<None>
+=item C<"beep">
+
+=over
+
+=item I<None>
+
+=back
 
 =back
 
@@ -1024,7 +2381,15 @@ B<Provides signals:>
 
 =over 4
 
-=item C<"script error"> PERL_SCRIPT_REC, string C<$errormsg>
+=item C<"script error">
+
+=over
+
+=item L<Irssi::Script> C<$script>
+
+=item string C<$error_msg>
+
+=back
 
 =back
 

@@ -42,6 +42,14 @@ necessary code.
 
 =head2 Preamble
 
+=head1 COMMONLY SCRIPTED TASKS
+
+=head2 Modifying an input line before sending
+
+=head2 Responding to a public message
+
+=head2 Responding to a private message
+
 =head1 USEFUL THINGS
 
 =head2 Sharing Code Between Scripts
@@ -66,15 +74,68 @@ Dump perl object (e.g. C</dump Irssi::active_win>):
 
     /alias DUMP script exec use Data::Dumper\; print Data::Dumper->new([\\$0-])->Dump
 
-=head2 Making Script Look Native
+=head2 Making Scripts Act Native
+
+An important part of creating a good script is to make it behave as though it
+were a part of Irssi. Adhering to some of the standard conventions can make this
+easier.
 
 =head3 Provide Help
 
+Scripts commonly store information about how to use them in comments at the top
+of their file.  Whilst better than no documentation at all, a preferable approach
+is to allow that help to be accessed from within Irssi itself, using the C</HELP>
+command.
+
+B<TODO: how>
+
+
 =head3 Use Tab Completion
+
+One of the great features of Irssi is the ability to complete commands,
+subcommands and even certain arguments.
 
 =head3 Use Settings for Customisation
 
+B<TODO: why?>
+
+B<TODO: different types of settings>
+
+B<TODO: register/set/get>
+
+=head3 Use Subcommands to Group Script Functionality
+
+A common theme in Irssi scripts is to define commands with a prefix, such as
+C</myscript_foo>, C<myscript_bar>, etc.  This helps to avoid accidentally clobbering
+native commands and those defined by other scripts, but is a problem better solved
+with I<subcommands>.
+
+Subcommands allow you to bind commands such as C</myscript foo> and C</myscript bar>.
+Completions are automatically handled for both the primary command, and any
+subcommands contained within it.
+
+The following example demonstrates how to use subcommands from within a script:
+
+    Irssi::command_bind("foo bar", \&subcmd_bar);
+    Irssi::command_bind("foo", \&subcmd_handler);
+
+    sub subcmd_handler {
+        my ($data, $server, $item) = @_;
+        $data =~ s/\s+$//g;
+        Irssi::command_runsub('foo', $data, $server, $item);
+    }
+
+    sub subcmd_bar {
+        my ($args) = @_;
+        print "subcommand called with: $args";
+    }
+
 =head1 OTHER RESOURCES
+
+The documentation assembled here and elsewhere on this site has been drawn from
+many different places, and a lot of valuable information is available from the
+following sites.
+
 
 =over
 

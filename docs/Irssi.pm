@@ -71,6 +71,16 @@ additional pages.
 
 =back
 
+
+=head1 EXPORTS
+
+Nothing by default, but passing a list of function names when C<use>ing the module
+will import them into the current namespace.
+
+For example:
+
+    use Irssi qw/signal_emit signal_add .../;
+
 =head1 METHODS
 
 =head2 Accessors
