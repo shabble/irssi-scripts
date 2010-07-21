@@ -1606,10 +1606,18 @@ B<Requires to work properly:>
 
 =back
 
+=item C<"gui print text finished">
+
+=over
+
+=item L<Irssi::Window> C<$window>
+
 =back
 
 (Can be used to determine when all "gui print text"s are sent (not required))
- "gui print text finished", WINDOW_REC
+
+=back
+
 
 B<Provides signals:>
 
@@ -1619,7 +1627,19 @@ B<Provides signals:>
 
 =item C<"complete word">
 
-, GList * of char*, WINDOW_REC, char *word, char *linestart, int *want_space
+=over
+
+=item arrayref of string C<$WHAT> B<TODO: ???>
+
+=item L<Irssi::Window> C<$window>
+
+=item string C<$word>
+
+=item string C<$linestart>
+
+=item int C<$want_space>
+
+=back
 
 =back
 

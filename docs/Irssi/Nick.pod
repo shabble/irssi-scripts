@@ -6,7 +6,8 @@ Irssi::Nick
 
 =head1 FIELDS
 
-Nick->{}
+C<Nick-E<gt>{}>
+
   type - "NICK" text
   chat_type - String ID of chat protocol, for example "IRC"
 

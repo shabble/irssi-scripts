@@ -18,8 +18,8 @@ support is available. If not, refer to the F<INSTALL> file for how to recompile
 irssi.
 
 The C<Irssi> package is the basis of Perl scripting in Irssi. It does not export any
-functions, and requires that all function-calls be fully qualified with the
-C<Irssi::I<cmd>> prefix.
+functions by default, and requires that all function-calls be fully qualified with the
+C<Irssi::I<cmd>> prefix. See L</EXPORTS> for alternatives.
 
 =head1 CLASSES
 
@@ -31,27 +31,25 @@ B<TODO: fix this list with proper package names>
 
 =over 4
 
-=item L<Irssi::Ban>
-
 =item L<Irssi::Chatnet>
-
-=item L<Irssi::Chatnet>
-
-=item L<Irssi::Client>
 
 =item L<Irssi::Command>
 
-=item L<Irssi::Dcc>
-
 =item L<Irssi::Ignore>
+
+=item L<Irssi::Irc::Ban>
+
+=item L<Irssi::Irc::Client>
+
+=item L<Irssi::Irc::Dcc>
+
+=item L<Irssi::Irc::Notifylist>
 
 =item L<Irssi::Log>
 
 =item L<Irssi::Logitem>
 
 =item L<Irssi::Nick>
-
-=item L<Irssi::Notifylist>
 
 =item L<Irssi::Process>
 
@@ -462,103 +460,123 @@ B<TODO: What is this for?>
 
 =head3 Modifying Settings
 
+=head4 C<settings_set_str $key, $value>
+
+=head4 C<settings_set_int $key, $value>
+
+=head4 C<settings_set_bool $key, $value>
+
+=head4 C<settings_set_time $key, $value>
+
+=head4 C<settings_set_level $key, $value>
+
+=head4 C<settings_set_size $key, $value>
+
+Changes the value of the setting with key C<$key> to C<$value>.
+
 B<If you change the settings of another module/script with one of these, you
 must emit a C<"setup changed"> signal afterwards.>
 
-=head4 C<settings_set_str(key, value)>
+This can be done with:
 
-=head4 C<settings_set_int(key, value)>
+   Irssi::signal_emit("setup changed");
 
-=head4 C<settings_set_bool(key, value)>
+=head4 C<settings_remove $key>
 
-=head4 C<settings_set_time(key, value)>
-
-=head4 C<settings_set_level(key, value)>
-
-=head4 C<settings_set_size(key, value)>
-
-=head4 C<settings_remove(key)>
-
-Remove a setting.
+Remove a setting specified with C<$key>.
 
 
 =head2 IO and Process Management
 
-timeout_add(msecs, func, data)
-  Call `func' every `msecs' milliseconds (1000 = 1 second) with
-  parameter `data'. Returns tag which can be used to stop the timeout.
+=head3 C<timeout_add $msecs, $func, $data>
 
-timeout_add_once(msecs, func, data);
-  Call `func' once after `msecs' milliseconds (1000 = 1 second)
-  with parameter `data'. Returns tag which can be used to stop the timeout.
+  Call C<$func> every C<$msecs> milliseconds (1/1000th of a second) with
+  parameter C<$data>. Returns a tag which can be used to stop the timeout via
+  L</timeout_remove $tag>.
 
-timeout_remove(tag)
-  Remove timeout with tag.
+=head3 C<timeout_add_once $msecs, $func, $data>
 
-input_add(source, condition, func, data)
-  Call `func' with parameter `data' when specified IO happens.
-  `source' is the file handle that is being listened. `condition' can
-  be INPUT_READ, INPUT_WRITE or both. Returns tag which can be used to
-  remove the listener.
+Call `func' once after `msecs' milliseconds (1000 = 1 second)
+with parameter `data'. Returns tag which can be used to stop the timeout.
 
-input_remove(tag)
-  Remove listener with tag.
+=head3 C<timeout_remove $tag>
 
-pidwait_add(pid)
-  Adds `pid' to the list of processes to wait for. The pid must identify
-  a child process of the irssi process. When the process terminates, a
-  "pidwait" signal will be sent with the pid and the status from
-  waitpid(). This is useful to avoid zombies if your script forks.
+Remove timeout specified with tag C<$tag>.
 
-pidwait_remove(pid)
-  Removes `pid' from the list of processes to wait for. Terminated
-  processes are removed automatically, so it is usually not necessary
-  to call this function.
+=head3 C<input_add $source, $condition, $func, $data>
 
+Call `func' with parameter `data' when specified IO happens.
+`source' is the file handle that is being listened. `condition' can
+be INPUT_READ, INPUT_WRITE or both. Returns tag which can be used to
+remove the listener.
+
+=head3 C<input_remove $tag>
+
+Remove listener with tag.
+
+=head3 C<pidwait_add $pid>
+
+Adds `pid' to the list of processes to wait for. The pid must identify
+a child process of the irssi process. When the process terminates, a
+"pidwait" signal will be sent with the pid and the status from
+waitpid(). This is useful to avoid zombies if your script forks.
+
+=head3 C<pidwait_remove $pid>
+
+Removes `pid' from the list of processes to wait for. Terminated
+processes are removed automatically, so it is usually not necessary
+to call this function.
 
 
 =head2 Message Levels
 
-level2bits(level)
+=head3 C<level2bits $level>
+
   Level string -> number
 
-bits2level(bits)
+=head3 C<bits2level $bits>
+
   Level number -> string
 
-combine_level(level, str)
+=head3 C<combine_level $level, $str>
+
   Combine level number to level string ("+level -level").
   Return new level number.
 
 
 =head2 Themes
 
-See also L<Irssi::Theme>
+See also L<Irssi::UI::Theme>
 
 You can have user configurable texts in scripts that work just like
 irssi's internal texts that can be changed in themes.
 
 First you'll have to register the formats:
 
-
-Irssi::theme_register([
-  'format_name', '{hilight my perl format!}',
-  'format2', 'testing.. nick = $0, channel = $1'
-]);
+    Irssi::theme_register([
+      'format_name', '{hilight my perl format!}',
+      'format2', 'testing.. nick = $0, channel = $1'
+    ]);
 
 Printing happens with one of the functions:
 
-printformat(level, format, ...)
-Window::printformat(level, format, ...)
-Server::printformat(target, level, format, ...)
-Windowitem::printformat(level, format, ...)
+    printformat $level, $format, ...
+
+    Window::printformat $level, $format, ...
+
+    Server::printformat $target, $level, $format, ...
+
+    Windowitem::printformat $level, $format, ...
 
 For example:
 
-  $channel->printformat(MSGLEVEL_CRAP, 'format2',
-		        'nick', $channel->{name});
+    $channel->printformat(MSGLEVEL_CRAP, 'format2',
+                          'nick', $channel->{name});
 
 
 =head2 DCC
+
+B<TODO: This should probably move to L<Irssi::Irc>
 
 See also L<Irssi::Dcc>
 
@@ -573,48 +591,58 @@ dcc_find_by_port(nick, port)
 
 =head2 Channels
 
-Channel
-channel_find(channel)
-  Find channel from any server.
+=head3 C<channel_find $channel>
+
+Find channel from any server. Returns an L<Irssi::Channel> object.
+
 
 =head2 Ignores
 
+=head3 C<ignore_add_rec $ignore>
 
-ignore_add_rec(ignore)
-  Add ignore record.
+Add ignore record.
 
-ignore_update_rec(ignore)
-  Update ignore record in configuration
+=head3 C<ignore_update_rec $ignore>
 
-ignore_check(nick, host, channel, text, level)
+Update ignore record in configuration
+
+=head3 C<ignore_check $nick, $host, $channel, $text, $level>
+
+B<TODO: Document what this does>
+
+
 
 =head2 Logging
 
+=head3 C<log_create_rec $fname, $level>
 
-Log
-log_create_rec(fname, level)
-  Create log file.
+Create log file. Returns L<Irssi::Log>
 
 
-Log
-log_find(fname)
-  Find log with file name.
+=head3 C<log_find $fname>
+
+Find log with file name. Returns L<Irssi::Log>
+
 
 =head2 Raw Logging
 
-Rawlog rawlog_create()
-  Create a new rawlog.
+=head3 C<rawlog_create>
 
-rawlog_set_size(lines)
-  Set the default rawlog size for new rawlogs.
+Create a new rawlog. Returns an L<Irssi::Rawlog> object.
+
+=head3 C<rawlog_set_size $lines>
+
+Set the default rawlog size for new rawlogs.
 
 =head2 Chat-Nets
 
-chatnet_find(name)
-  Find chat network with name.
+=head3 C<chatnet_find $name>
+
+Find chat network with name.
 
 =head2 Status Bars
 
+See also L<Irssi::TextUI::Statusbaritem>
 B<TODO>
 
 =head1 COPYRIGHT

@@ -1,0 +1,37 @@
+__END__
+
+=head1 NAME
+
+Formats
+
+=head1 DESCRIPTION
+
+Irssi's colors that you can use in text formats, hilights, etc:
+
+                           text            text            background
+   ---------------------------------------------------------------------
+   %k      %K      %0      black           dark grey       black
+   %r      %R      %1      red             bold red        red
+   %g      %G      %2      green           bold green      green
+   %y      %Y      %3      yellow          bold yellow     yellow
+   %b      %B      %4      blue            bold blue       blue
+   %m      %M      %5      magenta         bold magenta    magenta
+   %p      %P              magenta (think: purple)
+   %c      %C      %6      cyan            bold cyan       cyan
+   %w      %W      %7      white           bold white      white
+   %n      %N              Changes the color to "default color", removing
+                           all other coloring and formatting. %N is always
+			   the terminal's default color. %n is usually too,
+			   except in themes it changes to "previous color",
+			   ie. hello = "%Rhello%n" and "%G{hello} world"
+			   would print hello in red, and %n would turn back
+			   into %G making world green.
+   %F                      Blinking on/off (think: flash)
+   %U                      Underline on/off
+   %8                      Reverse on/off
+   %9      %_              Bold on/off
+   %:                      Insert newline
+   %|                      Marks the indentation position
+   %#                      Monospace font on/off (useful with lists and GUI)
+   %%                      A single %
+

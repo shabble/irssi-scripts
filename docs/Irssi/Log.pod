@@ -6,7 +6,8 @@ Irssi::Log
 
 =head1 FIELDS
 
-Log->{}
+C<Log-E<gt>{}>
+
   fname - Log file name
   real_fname - The actual opened log file (after %d.%m.Y etc. are expanded)
   opened - Log file is open
@@ -20,27 +21,30 @@ Log->{}
 
 =head1 METHODS
 
+=head2 C<update>
 
-Log::update()
-  Add log to list of logs / save changes to config file.
+Add log to list of logs / save changes to config file.
 
+=head2 C<close>
 
-Log::close()
-  Destroy log file.
+Destroy log file.
 
-Log::start_logging()
-  Open log file and start logging.
+=head2 C<start_logging>
 
-Log::stop_logging()
-  Close log file.
+Open log file and start logging.
 
-Log::item_add(type, name, server)
-  Add log item to log.
+=head2 C<stop_logging>
 
-Log::item_destroy(item)
-  Remove log item from log.
+Close log file.
 
+=head2 C<item_add $type, $name, $server>
 
-Logitem
-Log::item_find(type, item, server)
-  Find item from log.
+Add log item to log.
+
+=head2 C<item_destroy $item>
+
+Remove log item from log.
+
+=head2 C<item_find $type, $item, $server>
+
+Find item from log. Returns L<Irssi::Logitem>

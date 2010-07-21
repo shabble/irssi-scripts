@@ -87,7 +87,8 @@ The C<use vars qw($VERSION %IRSSI)> defines two global variables, which are then
 set below to the appropriate values.
 
 C<use Irssi> tells the script to make the various L<Irssi> support functions available.
-
+Additional parameters passed here with C<qw/.../> can be used to import functions into
+the current script namespace.
 
 
 =head1 COMMONLY SCRIPTED TASKS
@@ -196,6 +197,8 @@ settings for subsequent invocations.
 B<TODO: different types of settings>
 
 B<TODO: register/set/get>
+
+B<TODO: Listening for changes and acting accordingly>
 
 =head3 Use Subcommands to Group Script Functionality
 

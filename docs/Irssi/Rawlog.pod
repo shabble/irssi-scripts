@@ -7,34 +7,42 @@ Irssi::Rawlog
 =head1 FIELDS
 
 
-Rawlog->{}
+C<Rawlog-E<gt>{}>
+
   logging - The rawlog is being written to file currently
   nlines - Number of lines in rawlog
 
 =head1 METHODS
 
+=head2 C<destroy>
 
-Rawlog::destroy()
-  Destroy the rawlog.
+Destroy the rawlog.
 
-Rawlog::get_lines()
-  Returns all lines in rawlog.
+=head2 C<get_lines>
 
-Rawlog::open(filename)
-  Start logging new messages in rawlog to specified file.
+Returns all lines in rawlog.
 
-Rawlog::close()
-  Stop logging to file.
+=head2 C<open $filename>
 
-Rawlog::save(filename)
-  Save the current rawlog history to specified file.
+Start logging new messages in rawlog to specified file.
 
-Rawlog::input(str)
-  Send `str' to raw log as input text.
+=head2 C<close>
 
-Rawlog::output(str)
-  Send `str' to raw log as output text.
+Stop logging to file.
 
-Rawlog::redirect(str)
-  Send `str' to raw log as redirection text.
+=head2 C<save $filename>
+
+Save the current rawlog history to specified file.
+
+=head2 C<input $str>
+
+Send `str' to raw log as input text.
+
+=head2 C<output $str>
+
+Send `str' to raw log as output text.
+
+=head2 C<redirect $str>
+
+Send `str' to raw log as redirection text.
 

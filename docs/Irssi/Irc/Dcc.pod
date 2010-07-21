@@ -6,7 +6,7 @@ Irssi::Irc::Dcc
 
 =head1 FIELDS
 
-=head2 C<Dcc->{}>
+=head2 C<Dcc-E<gt>{}>
 
   type - Type of the DCC: chat, send, get
   orig_type - Original DCC type that was sent to us - same as type except
@@ -29,13 +29,13 @@ Irssi::Irc::Dcc
   starttime - Unix time stamp when the DCC transfer was started
   transfd - Bytes transferred
 
-=head2 C<Dcc::Chat->{}>
+=head2 C<Dcc::Chat-E<gt>{}>
 
   id - Unique identifier - usually same as nick
   mirc_ctcp - Send CTCPs without the CTCP_MESSAGE prefix
   connection_lost - Other side closed connection
 
-=head2 C<Dcc::Get->{}>
+=head2 C<Dcc::Get-E<gt>{}>
 
   (..contains all the same data as core Dcc object..)
   size - File size
@@ -47,7 +47,7 @@ Irssi::Irc::Dcc
   file - The real file name which we use.
   file_quoted - 1 if file name was received quoted ("file name")
 
-=head2 C<Dcc::Send->{}>
+=head2 C<Dcc::Send-E<gt>{}>
 
   (..contains all the same data as core Dcc object..)
   size - File size
