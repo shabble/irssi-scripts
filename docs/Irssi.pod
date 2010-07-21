@@ -404,6 +404,48 @@ using one of the C<settings_add> functions.
 
 =head4 C<settings_add_size $section, $key, $def>
 
+Each of the above functions operates in the same way, but creates a different
+data type.  For each function, C<$section> is a string describing the
+group the entry falls into, C<$key> is the name of the setting.  The key must
+be a single string, and typically multiple words are separated by underscores.
+
+The final parameter, C<$def>, is the default value of this setting.  It should
+correspond to the type of the setting being created.
+
+B<TODO: move this list to another section?>
+
+The following list summarises the data types available:
+
+=over
+
+=item C<str>
+
+A generic string type, which can contain arbitrary text.  It is also commonly
+used to build space-separated lists of entries.
+
+=item C<int>
+
+An integer type.  Integers must be whole numbers, but may also be negative or zero.
+
+=item C<bool>
+
+A boolean type.  In Perl terms, values are C<0> for false, and anything else for
+true.  When acting on them externally, C<ON> and C<OFF> are the usual terms used.
+
+=item C<time>
+
+A time type. B<TODO: what values can it take?>
+
+=item C<level>
+
+An irssi Messagelevel. See C</HELP LEVELS> for a full list and description.
+
+=item C<size>
+
+B<TODO: What is this for?>
+
+=back
+
 =head3 Retrieving Settings
 
 =head4 C<settings_get_str $key>

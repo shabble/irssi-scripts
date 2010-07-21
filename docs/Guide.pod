@@ -10,7 +10,18 @@ Guide To Irssi Scripting.
 
 =head2 File Locations
 
+Packaged Irssi script files are usually placed in F</usr/share/irssi/scripts/>,
+but custom scripts or those required by a single user can be placed in
+F<~/.irssi/scripts/>.
+
+=head3 Autorunning Scripts
+
+If you require a script be run when Irssi starts, you can place the file (or
+better, create a symlink to it) into F<~/.irssi/scripts/autorun/>.
+
 =head2 Testing
+
+B<TODO: Forgotten what was going to go here>
 
 =head2 Loading
 
@@ -21,7 +32,6 @@ LOAD>.
 Loaded scripts will exist in the Irssi namespace as:
 C<Irssi::Script::I<E<lt>nameE<gt>>>, where I<name> is the filename stripped of its
 F<.pl> extension.
-
 
 =head2 Unloading
 
@@ -43,6 +53,12 @@ network connections or processes, and restore any Irssi modifications made.
 
 In this section, we develop a very simplistic script and look at the
 necessary code.
+
+B<Note:> This section has considerable overlap with L<Juerd's Scripting
+Tutorial|http://juerd.nl/site.plp/irssiscripttut>, which you may also
+wish to read.
+
+B<TODO: Figure out a basic script to use as an example>
 
 =head2 Preamble
 
@@ -111,7 +127,21 @@ handling Irssi signals, or by calling functions from one another directly.
 
 =head3 Using Signals
 
+In order to use custom signals, they must first be registered with Irssi.
+During registration, a list of the parameters must also be specified.  Once specified,
+it cannot be changed without restarting Irssi, so be warned.
+
+After registration, your script can simply listen for signals with
+L<Irssi::signal_add|Irssi/signal_add $sig_name, $func>, or generate them for
+others to handle with L<Irssi::signal_emit|Irssi/signal_emit $sig_name, @params>
+
+For example:
+
+B<TODO: Example here>
+
 =head3 Using Functions
+
+B<TODO: Find the example code that demonstrates this>
 
 =head2 If In Doubt, Dump!
 
@@ -139,17 +169,29 @@ of their file.  Whilst better than no documentation at all, a preferable approac
 is to allow that help to be accessed from within Irssi itself, using the C</HELP>
 command.
 
-B<TODO: how>
-
+B<TODO: example - catch or rebind /HELP, then check args and either print and
+sig_stop or continue>
 
 =head3 Use Tab Completion
 
 One of the great features of Irssi is the ability to complete commands,
-subcommands and even certain arguments.
+subcommands and even certain arguments.  Using the subcommands processing feature
+described below automatically allows those subcommands to be tab-completed, but
+for more complex tasks, you can hook into the autocompletion system itself.
+
+
 
 =head3 Use Settings for Customisation
 
-B<TODO: why?>
+Many scripts require the setting of various parameters to affect how they behave.
+One approach is to require the user to directly edit the script file, but this
+is less than ideal for a number of reasons. Firstly, it is easy to introduce
+errors into a script by accidentally deleting closing quotes or semicolons.
+Secondly, it has no effect until the script is reloaded, leading to confusion.
+
+A much better alternative is to use Irssi's inbuilt settings mechanism to allow
+users to set these parameters from within Irssi, as well as to C</SAVE> their
+settings for subsequent invocations.
 
 B<TODO: different types of settings>
 
