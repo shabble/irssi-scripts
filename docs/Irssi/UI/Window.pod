@@ -6,7 +6,8 @@ Irssi::UI::Window
 
 =head1 FIELDS
 
-UI::Window->{}
+C<UI::Window-E<gt>{}>
+
   refnum - Reference number
   name - Name
 
@@ -33,7 +34,8 @@ UI::Window->{}
 
   theme_name - Active theme in window, undef = default
 
-UI::TextDest->{}
+C<UI::TextDest-E<gt>{}>
+
   window - Window where the text will be written
   server - Target server
   target - Target channel/query/etc name
@@ -45,72 +47,92 @@ UI::TextDest->{}
 
 =head1 METHODS
 
-Window::command(cmd)
-Window::print(str[, level])
+=head2 C<command $cmd>
+
+=head2 C<print $str, [$level]>
+
+=head2 C<items>
+
+Return a list of items in window.
 
 
-Window::items()
-  Return a list of items in window.
+=head2 C<window_create $automatic>
 
-Window
-window_create(automatic)
-Windowitem::window_create(automatic)
-  Create a new window.
+=head2 C<destroy>
 
-Window::destroy()
-  Destroy the window.
+Destroy the window.
 
 Irssi::Window
 Windowitem::window()
   Returns parent window for window item.
 
-Window
-window_find_name(name)
-  Find window with name.
+=head2 C<window_find_name $name>
 
-Window
-window_find_refnum(refnum)
-  Find window with reference number.
+Find window with name.L<Irssi::UI::Window>
+
+=head2 C<window_find_refnum $refnum>
+
+Find window with reference number.
 
 Window
 window_find_level(level)
+
 Server::window_find_level(level)
   Find window with level.
 
 Window
 window_find_closest(name, level)
+
 Server::window_find_closest(name, level)
   Find window that matches best to given arguments. `name' can be either
   window name or name of one of the window items.
 
 Window
 window_find_item(name)
+
 Server::window_find_item(name)
   Find window which contains window item with specified name/server.
 
 
-Window::item_add(item, automatic)
-Window::item_remove(item)
-Window::item_destroy(item)
-  Add/remove/destroy window item
+=head2 C<item_add $item, $automatic>
 
-Window::set_active()
-  Set window active.
+Add specified windowitem
 
-Window::change_server(server)
-Window::set_refnum(refnum)
-Window::set_name(name)
-Window::set_history(name)
-Window::set_level(level)
-  Change server/refnum/name/history/level in window.
+=head2 C<item_remove $item>
 
-Window::item_prev()
-Window::item_next()
-  Change to previous/next window item.
+remove specified windowitem
+
+=head2 C<item_destroy $item>
+
+destroy specified windowitem
+
+=head2 C<set_active>
+
+Set window active.
+
+=head2 C<change_server $server>
+
+=head2 C<set_refnum $refnum>
+
+=head2 C<set_name $name>
+
+=head2 C<set_history $name>
+
+=head2 C<set_level $level>
+
+Change server/refnum/name/history/level in window.
+
+=head2 C<item_prev>
+
+=head2 C<item_next>
+
+Change to previous/next window item.
 
 
-Window::get_active_name()
-  Return active item's name, or if none is active, window's name
+=head2 C<get_active_name>
 
-Window::item_find(server, name)
-  Find window item that matches best to given arguments.
+Return active item's name, or if none is active, window's name
+
+=head2 C<item_find $server, $name>
+
+Find window item that matches best to given arguments.

@@ -263,4 +263,5 @@ settings = {
   };
   "fe-text" = { actlist_sort = "refnum"; };
   "perl/core/scripts" = { autoinstall_custom_prompt = "yes"; };
+  "fe-common/core" = { bell_beeps = "yes"; };
 };

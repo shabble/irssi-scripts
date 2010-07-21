@@ -2,14 +2,14 @@ __END__
 
 =head1 NAME
 
-Irssi::Ban
+Irssi::Irc::Ban
 
 =head1 FIELDS
 
 Ban->{}
+
   ban - The ban
   setby - Nick of who set the ban
   time - Timestamp when ban was set
-
 
 =head1 METHODS

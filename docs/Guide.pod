@@ -18,6 +18,10 @@ Scripts are loaded via C</SCRIPT LOAD I<filename>>.  A default Irssi
 configuration also provides the C</RUN> alias as an alternative to C</SCRIPT
 LOAD>.
 
+Loaded scripts will exist in the Irssi namespace as:
+C<Irssi::Script::I<E<lt>nameE<gt>>>, where I<name> is the filename stripped of its
+F<.pl> extension.
+
 
 =head2 Unloading
 
@@ -42,15 +46,63 @@ necessary code.
 
 =head2 Preamble
 
+All scripts should contain a header as follows:
+
+    use strict;
+    use warnings;
+
+    use vars qw($VERSION %IRSSI);
+    use Irssi;
+
+    $VERSION = '1.00';
+    %IRSSI = (
+        authors     => 'Author Name(s)',
+        contact     => 'author_email@example.com',
+        name        => 'Script Title',
+        description => 'Longer script description ',
+        license     => 'Public Domain',
+    );
+
+The first two lines should be used in B<all> perl scripts, not just Irssi. They
+provide far greater error checking and diagnostics should you make a mistake in your
+code.
+
+The C<use vars qw($VERSION %IRSSI)> defines two global variables, which are then
+set below to the appropriate values.
+
+C<use Irssi> tells the script to make the various L<Irssi> support functions available.
+
+
+
 =head1 COMMONLY SCRIPTED TASKS
 
 =head2 Modifying an input line before sending
 
+B<TODO: catch "send text", modify it if necessary, signal_emit it>
+
 =head2 Responding to a public message
+
+B<TODO: catch "messsage public", check params, generate response>
 
 =head2 Responding to a private message
 
+B<TODO: catch "messsage private", check params, generate response>
+
 =head1 USEFUL THINGS
+
+
+=head2 Getting the Response Value of a Remote Command
+
+B<TODO: use server redirections?>
+
+=head2 Getting the Response Value of a Local Command
+
+B<TODO: How?!??>
+
+Maybe, look up the format, intercept gui print text, try to match it against
+what you're expecting?
+
+Can this be generalised at all?
 
 =head2 Sharing Code Between Scripts
 
@@ -121,7 +173,7 @@ The following example demonstrates how to use subcommands from within a script:
 
     sub subcmd_handler {
         my ($data, $server, $item) = @_;
-        $data =~ s/\s+$//g;
+        $data =~ s/\s+$//g; # strip trailing whitespace.
         Irssi::command_runsub('foo', $data, $server, $item);
     }
 

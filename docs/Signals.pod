@@ -251,7 +251,7 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =back
 
-=item C<"send command"> 
+=item C<"send command">
 
 =over
 
@@ -263,7 +263,7 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =back
 
-=item C<"send text"> 
+=item C<"send text">
 
 =over
 
@@ -275,9 +275,9 @@ B<TODO: What are CHAT_PROTOCOL_REC types?>
 
 =back
 
-=item C<"command "<cmd>> 
+=item C<"command "<cmd>>
 
-=over 
+=over
 
 =item string C<$args>
 
@@ -337,7 +337,7 @@ B<TODO: check this "cmd" out?>
 
 =over 4
 
-=item C<"log new"> 
+=item C<"log new">
 
 =over
 
@@ -413,7 +413,7 @@ B<TODO: what are these types?>
 
 =item C<"module loaded">
 
-=over 
+=over
 
 =item MODULE_REC C<$module>
 
@@ -423,7 +423,7 @@ B<TODO: what are these types?>
 
 =item C<"module unloaded">
 
-=over 
+=over
 
 =item MODULE_REC C<$module>
 
@@ -535,7 +535,7 @@ B<TODO: what are these types?>
 
 =over 4
 
-=item C<"query created"> 
+=item C<"query created">
 
 =over
 
@@ -545,7 +545,7 @@ B<TODO: what are these types?>
 
 =back
 
-=item C<"query destroyed"> 
+=item C<"query destroyed">
 
 =over
 
@@ -553,7 +553,7 @@ B<TODO: what are these types?>
 
 =back
 
-=item C<"query nick changed"> 
+=item C<"query nick changed">
 
 =over
 

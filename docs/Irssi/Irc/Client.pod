@@ -2,10 +2,12 @@ __END__
 
 =head1 NAME
 
-Irssi::Client
+Irssi::Irc::Client
 
 =head1 FIELDS
+
 Client->{}
+
   nick - nick of the client
   host - host of the client
   proxy_address - address of the proxy server
@@ -15,6 +17,5 @@ Client->{}
   connected - whether the client is connected and ready
   want_ctcp - whether the client wants to receive CTCPs
   ircnet - network tag of the network we proxy
-
 
 =head1 METHODS

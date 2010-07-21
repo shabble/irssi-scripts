@@ -2,7 +2,7 @@ __END__
 
 =head1 NAME
 
-Irssi::Dcc
+Irssi::Irc::Dcc
 
 =head1 FIELDS
 

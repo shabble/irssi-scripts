@@ -27,6 +27,8 @@ This documentation has been split into a number of pages, each documenting a
 particular class or pseudo-class.  The following list contains all of these
 additional pages.
 
+B<TODO: fix this list with proper package names>
+
 =over 4
 
 =item L<Irssi::Ban>
@@ -131,6 +133,7 @@ returns a list of all L<ignores|Irssi::Ignore>.
 
 =head3 C<dccs>
 
+B<TODO: this shouldn't be here>
 returns a list of all L<DCC connections|Irssi::Irc::Dcc>
 
 =head2 Signals
@@ -282,6 +285,20 @@ Bind a command string C<$cmd> to call function C<$func>. C<$func> can be
 either a string or coderef. C<$category> is an optional string specifying
 the category to display the command in when C</HELP> is used.
 
+When a command is invoked, either by the user typing C</command args>, the
+handler function will be called.
+
+It will receive the following parameters, passed in C<@_>:
+
+    my ($argument_string, $server_obj, $window_item_obj) = @_;
+
+The argument string must be processed by the handler to split it into
+individual words if necessary.
+
+The L<command_parse_options|/command_parse_options $cmd, $data> function can be
+used to process options (beginning with a single dash), and will also return the
+remainder of the string to be processed as desired.
+
 =head4 C<command_runsub $cmd, $data, $server, $item>
 
 Run subcommands for `cmd'. First word in `data' is parsed as
@@ -291,7 +308,8 @@ L<Irssi::Windowitem> `item'.
 Call command_runsub in handler function for `cmd' and bind
 with command_bind("`cmd' `subcmd'", subcmdfunc[, category]);
 
-B<TODO: example here>
+See the L<example|Guide/Use Subcommands to Group Script Functionality> for
+further details.
 
 =head4 C<command_unbind $cmd, $func>
 
@@ -365,39 +383,42 @@ For example:
 
 =head2 Settings
 
+Settings are a way to permanently store values that your script may wish to use.
+They are also easily manipulable by the user through the C</SET> command, making
+them a good way to allow configuration of your script.
 
 =head3 Creating New Settings
 
-=head4 C<settings_add_str(section, key, def)>
+If a setting does not currently exist, it must first be registered with Irssi
+using one of the C<settings_add> functions.
 
-=head4 C<settings_add_int(section, key, def)>
+=head4 C<settings_add_str $section, $key, $def>
 
-=head4 C<settings_add_bool(section, key, def)>
+=head4 C<settings_add_int $section, $key, $def>
 
-=head4 C<settings_add_time(section, key, def)>
+=head4 C<settings_add_bool $section, $key, $def>
 
-=head4 C<settings_add_level(section, key, def)>
+=head4 C<settings_add_time $section, $key, $def>
 
-=head4 C<settings_add_size(section, key, def)>
+=head4 C<settings_add_level $section, $key, $def>
 
+=head4 C<settings_add_size $section, $key, $def>
 
 =head3 Retrieving Settings
 
-=head4 C<settings_get_str($key)>
+=head4 C<settings_get_str $key>
 
-=head4 C<settings_get_int($key)>
+=head4 C<settings_get_int $key>
 
-=head4 C<settings_get_bool($key)>
+=head4 C<settings_get_bool $key>
 
-=head4 C<settings_get_time($key)>
+=head4 C<settings_get_time $key>
 
-=head4 C<settings_get_level($key)>
+=head4 C<settings_get_level $key>
 
-=head4 C<settings_get_size($key)>
+=head4 C<settings_get_size $key>
 
 =head3 Modifying Settings
-
-Set value for setting.
 
 B<If you change the settings of another module/script with one of these, you
 must emit a C<"setup changed"> signal afterwards.>

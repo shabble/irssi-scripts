@@ -7,6 +7,7 @@ Irssi::Ignore
 =head1 FIELDS
 
 Ignore->{}
+
   mask - Ignore mask
   servertag - Ignore only in server
   channels - Ignore only in channels (list of names)

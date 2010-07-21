@@ -57,3 +57,6 @@ Returns 1 if window item is the active item in parent window.
 
 If `item' is a query of a =nick, return DCC chat record of nick.
 returns L<Irssi::Dcc> object.
+
+Windowitem::window_create(automatic)
+  Create a new window.
