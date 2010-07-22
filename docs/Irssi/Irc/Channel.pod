@@ -1,0 +1,16 @@
+__END__
+
+=head1 NAME
+
+Irssi::Irc::Channel
+
+=head1 FIELDS
+
+=head1 METHODS
+
+  Irssi::Irc::Channel::ban_get_mask
+  Irssi::Irc::Channel::banlist_add
+  Irssi::Irc::Channel::banlist_remove
+  Irssi::Irc::Channel::bans
+  Irssi::Irc::Channel::nick_insert
+

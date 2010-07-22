@@ -6,7 +6,7 @@ Irssi::Ignore
 
 =head1 FIELDS
 
-Ignore->{}
+C<Ignore-E<gt>{}>
 
   mask - Ignore mask
   servertag - Ignore only in server
@@ -20,4 +20,10 @@ Ignore->{}
   fullword - Pattern matches only full words
 
 =head1 METHODS
+
+B<TODO>
+
+=head2 C<add_rec>
+
+=head2 C<update_rec>
 

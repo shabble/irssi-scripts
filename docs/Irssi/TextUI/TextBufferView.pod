@@ -1,3 +1,26 @@
 __END__
 
-=head1 Empty
+=head1 NAME
+
+Irssi::TextUI::TextBufferView
+
+=head1 FIELDS
+
+=head1 METHODS
+
+    Irssi::TextUI::TextBufferView::clear
+    Irssi::TextUI::TextBufferView::get_bookmark
+    Irssi::TextUI::TextBufferView::get_line_cache
+    Irssi::TextUI::TextBufferView::get_lines
+    Irssi::TextUI::TextBufferView::redraw
+    Irssi::TextUI::TextBufferView::remove_all_lines
+    Irssi::TextUI::TextBufferView::remove_line
+    Irssi::TextUI::TextBufferView::scroll
+    Irssi::TextUI::TextBufferView::scroll_line
+    Irssi::TextUI::TextBufferView::set_bookmark
+    Irssi::TextUI::TextBufferView::set_bookmark_bottom
+    Irssi::TextUI::TextBufferView::set_default_indent
+    Irssi::TextUI::TextBufferView::set_scroll
+
+I<undocumented>
+

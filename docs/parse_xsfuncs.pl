@@ -39,8 +39,8 @@ sub process_file {
         foreach my $sub (@$subs) {
             my $sub_name = $sub->{symname};
             next if $sub_name =~ m/::$/;
-            print_msglevel($sub_name);
-            #print $sub->{symname}, $/;
+            #print_msglevel($sub_name);
+            print $sub->{symname}, $/;
         }
     }
 }

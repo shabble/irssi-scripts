@@ -8,6 +8,14 @@ Irssi::UI::Theme
 
 =head1 METHODS
 
+=head2 C<format_expand>
+
+I<undocumented>
+
+=head2 C<get_format>
+
+I<undocumented>
+
 =head1 THEME DOCUMENTATION
 
 When testing changes, the easiest way to reload the theme is with /RELOAD.

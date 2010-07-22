@@ -1,0 +1,11 @@
+__END__
+
+=head1 NAME
+
+Irssi::UI::TextDest
+
+=head1 FIELDS
+
+=head1 METHODS
+
+    Irssi::UI::TextDest::print

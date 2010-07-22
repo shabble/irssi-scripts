@@ -20,9 +20,11 @@ Query->{}
 
 =head1 METHODS
 
-Query::destroy()
-  Destroy the query.
+=head2 C<destroy>
 
-Query::query_change_server(server)
-  Change the active server of the query.
+Destroy the query.
+
+=head2 C<query_change_server $server>
+
+Change the active server of the query.
 

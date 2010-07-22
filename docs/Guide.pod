@@ -227,7 +227,6 @@ described below automatically allows those subcommands to be tab-completed, but
 for more complex tasks, you can hook into the autocompletion system itself.
 
 
-
 =head3 Use Settings for Customisation
 
 Many scripts require the setting of various parameters to affect how they behave.

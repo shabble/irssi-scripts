@@ -1,0 +1,26 @@
+__END__
+
+=head1 NAME
+
+Irssi::Irc::Server
+
+=head1 FIELDS
+
+=head1 METHODS
+
+    Irssi::Irc::Server::ctcp_send_reply
+    Irssi::Irc::Server::get_channels
+    Irssi::Irc::Server::isupport
+    Irssi::Irc::Server::netsplit_find
+    Irssi::Irc::Server::netsplit_find_channel
+    Irssi::Irc::Server::notifylist_ison_server
+    Irssi::Irc::Server::query_create
+    Irssi::Irc::Server::redirect_event
+    Irssi::Irc::Server::redirect_get_signal
+    Irssi::Irc::Server::redirect_peek_signal
+    Irssi::Irc::Server::redirect_register
+    Irssi::Irc::Server::send_raw
+    Irssi::Irc::Server::send_raw_first
+    Irssi::Irc::Server::send_raw_now
+    Irssi::Irc::Server::send_raw_split
+

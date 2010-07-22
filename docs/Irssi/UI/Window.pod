@@ -136,3 +136,32 @@ Return active item's name, or if none is active, window's name
 =head2 C<item_find $server, $name>
 
 Find window item that matches best to given arguments.
+
+=head1 Full list of functions
+
+    Irssi::UI::Window::activity
+    Irssi::UI::Window::change_server
+    Irssi::UI::Window::command
+    Irssi::UI::Window::destroy
+    Irssi::UI::Window::format_get_text
+    Irssi::UI::Window::get_active_name
+    Irssi::UI::Window::get_history_lines
+    Irssi::UI::Window::gui_printtext_after
+    Irssi::UI::Window::item_add
+    Irssi::UI::Window::item_destroy
+    Irssi::UI::Window::item_find
+    Irssi::UI::Window::item_next
+    Irssi::UI::Window::item_prev
+    Irssi::UI::Window::item_remove
+    Irssi::UI::Window::items
+    Irssi::UI::Window::last_line_insert
+    Irssi::UI::Window::print
+    Irssi::UI::Window::print_after
+    Irssi::UI::Window::printformat
+    Irssi::UI::Window::set_active
+    Irssi::UI::Window::set_history
+    Irssi::UI::Window::set_level
+    Irssi::UI::Window::set_name
+    Irssi::UI::Window::set_refnum
+    Irssi::UI::Window::view
+

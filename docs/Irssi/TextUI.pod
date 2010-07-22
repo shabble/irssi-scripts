@@ -1,0 +1,12 @@
+__END__
+
+=head1 NAME
+
+Irssi::TextUI
+
+=head1 FIELDS
+
+=head1 METHODS
+
+    Irssi::TextUI::deinit
+    Irssi::TextUI::init

@@ -1,0 +1,13 @@
+__END__
+
+=head1 NAME
+
+Irssi::UI::Server
+
+=head1 FIELDS
+
+=head1 METHODS
+
+    Irssi::UI::Server::gui_printtext_after
+    Irssi::UI::Server::term_refresh_freeze
+    Irssi::UI::Server::term_refresh_thaw

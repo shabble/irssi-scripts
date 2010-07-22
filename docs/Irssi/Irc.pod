@@ -12,6 +12,29 @@ Irssi::Irc
 
 =head1 METHODS
 
+=head2 TODO
+
+    Irssi::Irc::dcc_chat_find_id
+    Irssi::Irc::dcc_chat_send
+    Irssi::Irc::dcc_ctcp_message
+    Irssi::Irc::dcc_find_request
+    Irssi::Irc::dcc_find_request_latest
+    Irssi::Irc::dcc_get_download_path
+    Irssi::Irc::dcc_register_type
+    Irssi::Irc::dcc_str2type
+    Irssi::Irc::dcc_type2str
+    Irssi::Irc::dcc_unregister_type
+    Irssi::Irc::dccs
+    Irssi::Irc::deinit
+    Irssi::Irc::get_mask
+    Irssi::Irc::init
+    Irssi::Irc::modes_join
+    Irssi::Irc::notifies
+    Irssi::Irc::notifylist_add
+    Irssi::Irc::notifylist_find
+    Irssi::Irc::notifylist_ison
+    Irssi::Irc::notifylist_remove
+
 =head2 Accessors
 
 =head3 C<dccs>
@@ -25,3 +48,4 @@ project|http://irssi.org>.
 
 Formatting to POD and linking by Tom Feist
  L<shabble+irssi@metavore.org|mailto:shabble+irssi@metavore.org>
+

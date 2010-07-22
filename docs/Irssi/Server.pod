@@ -116,3 +116,34 @@ Return all L<nick|Irssi::Nick> objects in all channels in server.
 List is in format:
 
   Channel, Nick, Channel, ...
+
+
+=head1 FULL LIST OF FUNCS
+
+    Irssi::Server::channel_find
+    Irssi::Server::channels
+    Irssi::Server::channels_join
+    Irssi::Server::command
+    Irssi::Server::disconnect
+    Irssi::Server::format_create_dest
+    Irssi::Server::get_nick_flags
+    Irssi::Server::ignore_check
+    Irssi::Server::ischannel
+    Irssi::Server::isnickflag
+    Irssi::Server::mask_match
+    Irssi::Server::mask_match_address
+    Irssi::Server::masks_match
+    Irssi::Server::nicks_get_same
+    Irssi::Server::parse_special
+    Irssi::Server::print
+    Irssi::Server::printformat
+    Irssi::Server::queries
+    Irssi::Server::query_find
+    Irssi::Server::ref
+    Irssi::Server::send_message
+    Irssi::Server::unref
+    Irssi::Server::window_find_closest
+    Irssi::Server::window_find_item
+    Irssi::Server::window_find_level
+    Irssi::Server::window_item_find
+

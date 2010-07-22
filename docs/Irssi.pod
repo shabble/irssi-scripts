@@ -717,3 +717,150 @@ project|http://irssi.org>.
 
 Formatting to POD and linking by Tom Feist
  L<shabble+irssi@metavore.org|mailto:shabble+irssi@metavore.org>
+
+=head1 Complete List of Functions
+
+    Irssi::abstracts_register
+    Irssi::active_server
+    Irssi::active_win
+
+    Irssi::bits2level
+
+    Irssi::channel_find
+    Irssi::channels
+
+    Irssi::chatnet_find
+    Irssi::chatnets
+
+    Irssi::combine_level
+
+    Irssi::command
+    Irssi::command_bind
+    Irssi::command_bind_first
+    Irssi::command_bind_last
+    Irssi::command_parse_options
+    Irssi::command_runsub
+    Irssi::command_set_options
+    Irssi::command_unbind
+    Irssi::commands
+
+    Irssi::ctcp_register
+    Irssi::ctcp_unregister
+
+    Irssi::current_theme
+
+    Irssi::deinit
+
+    Irssi::expando_create
+    Irssi::expando_destroy
+
+    Irssi::format_create_dest
+    Irssi::format_get_length
+    Irssi::format_real_length
+
+    Irssi::get_gui
+    Irssi::get_irssi_binary
+    Irssi::get_irssi_config
+    Irssi::get_irssi_dir
+
+    Irssi::gui_input_get_pos
+    Irssi::gui_input_set
+    Irssi::gui_input_set_pos
+    Irssi::gui_printtext
+
+    Irssi::ignore_check
+    Irssi::ignores
+    Irssi::init
+    Irssi::input_add
+    Irssi::input_remove
+    Irssi::level2bits
+
+    Irssi::log_create_rec
+    Irssi::log_find
+    Irssi::logs
+
+    Irssi::mask_match
+    Irssi::mask_match_address
+    Irssi::masks_match
+
+    Irssi::parse_special
+
+    Irssi::pidwait_add
+    Irssi::pidwait_remove
+
+    Irssi::print
+    Irssi::printformat
+
+    Irssi::queries
+    Irssi::query_find
+
+    Irssi::rawlog_create
+    Irssi::rawlog_set_size
+
+    Irssi::reconnects
+
+    Irssi::server_create_conn
+    Irssi::server_find_chatnet
+    Irssi::server_find_tag
+    Irssi::servers
+
+    Irssi::settings_add_bool
+    Irssi::settings_add_int
+    Irssi::settings_add_level
+    Irssi::settings_add_size
+    Irssi::settings_add_str
+    Irssi::settings_add_time
+    Irssi::settings_get_bool
+    Irssi::settings_get_int
+    Irssi::settings_get_level
+    Irssi::settings_get_size
+    Irssi::settings_get_str
+    Irssi::settings_get_time
+    Irssi::settings_remove
+    Irssi::settings_set_bool
+    Irssi::settings_set_int
+    Irssi::settings_set_level
+    Irssi::settings_set_size
+    Irssi::settings_set_str
+    Irssi::settings_set_time
+
+    Irssi::signal_add
+    Irssi::signal_add_first
+    Irssi::signal_add_last
+    Irssi::signal_add_priority
+    Irssi::signal_continue
+    Irssi::signal_emit
+    Irssi::signal_get_emitted
+    Irssi::signal_get_emitted_id
+    Irssi::signal_register
+    Irssi::signal_remove
+    Irssi::signal_stop
+    Irssi::signal_stop_by_name
+
+    Irssi::statusbar_item_register
+    Irssi::statusbar_item_unregister
+    Irssi::statusbar_items_redraw
+    Irssi::statusbars_recreate_items
+
+    Irssi::strip_codes
+
+    Irssi::theme_register
+    Irssi::themes_reload
+
+    Irssi::timeout_add
+    Irssi::timeout_add_once
+    Irssi::timeout_remove
+
+    Irssi::version
+
+    Irssi::window_find_closest
+    Irssi::window_find_item
+    Irssi::window_find_level
+    Irssi::window_find_name
+    Irssi::window_find_refnum
+    Irssi::window_item_find
+    Irssi::window_refnum_next
+    Irssi::window_refnum_prev
+    Irssi::windows
+    Irssi::windows_refnum_last
+

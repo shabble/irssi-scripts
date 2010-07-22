@@ -70,3 +70,10 @@ Send `data' to dcc chat.
 =head2 C<ctcp_message $target, $notice, $msg>
 
 Send a CTCP message/notify to target.
+
+=head2 C<close>
+
+=head2 C<init_rec>
+
+=head2 C<reject>
+

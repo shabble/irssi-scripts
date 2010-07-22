@@ -48,3 +48,8 @@ Remove log item from log.
 =head2 C<item_find $type, $item, $server>
 
 Find item from log. Returns L<Irssi::Logitem>
+
+=head2 C<write_rec>
+
+I<Undocumented>
+

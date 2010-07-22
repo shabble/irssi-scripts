@@ -60,3 +60,19 @@ returns L<Irssi::Dcc> object.
 
 Windowitem::window_create(automatic)
   Create a new window.
+
+=head1 full func list
+
+
+    Irssi::Windowitem::activity
+    Irssi::Windowitem::change_server
+    Irssi::Windowitem::command
+    Irssi::Windowitem::get_dcc
+    Irssi::Windowitem::is_active
+    Irssi::Windowitem::parse_special
+    Irssi::Windowitem::print
+    Irssi::Windowitem::printformat
+    Irssi::Windowitem::set_active
+    Irssi::Windowitem::window
+    Irssi::Windowitem::window_create
+
