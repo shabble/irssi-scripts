@@ -640,6 +640,10 @@ For example:
                           'nick', $channel->{name});
 
 
+=head3 C<current_theme>
+
+Returns the current L<theme|Irssi::UI::Theme> object.
+
 =head2 DCC
 
 B<TODO: This should probably move to L<Irssi::Irc>

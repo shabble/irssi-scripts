@@ -39,27 +39,30 @@ to change the /FORMATs directly, they're also saved in the  F<*.theme> files.
 So, the templates. They're those C<{blahblah}> parts you see all over the
 /FORMATs and here. Their usage is simply C<{name parameter1 parameter2}>.
 
-When irssi sees this kind of text, it goes to find "name" from abstracts block
-below and sets C<parameter1> into C<$0> and C<parameter2> into C<$1> (you can
-have more parameters of course). Templates can have subtemplates.  Here's a
+When irssi sees this kind of text, it goes to find C<name> from the abstracts
+block below and sets C<parameter1> into C<$0> and C<parameter2> into C<$1> (you
+can have more parameters of course). Templates can have sub-templates.  Here's a
 small example:
 
   /FORMAT format hello {colorify {underline world}}
 
   abstracts = { colorify = "%G$0-%n"; underline = "%U$0-%U"; }
 
-When irssi expands the templates in "format", the final string would be:
+When irssi expands the templates in C<"format">, the final string would be:
 
   hello %G%Uworld%U%n
 
 ie. underlined bright green "world" text.  and why C<$0->, why not C<$0>? C<$0>
-would only mean the first parameter, $0- means all the parameters. With
-{underline hello world} you'd really want to underline both of the words, not
+would only mean the first parameter, C<$0-> means all the parameters. With
+C<{underline hello world}> you'd really want to underline both of the words, not
 just the hello (and world would actually be removed entirely).
+
+See also L<Formats#arguments|Formats/ALIAS AND FORMAT TEMPLATE ARGUMENTS> for
+details on the variable to argument mapping.
 
 =head2 COLOURS
 
-You can find definitions for the color format codes in L<Formats>
+You can find definitions for the colour format codes in L<Formats/COLOURS>.
 
 There's one difference here though. C<%n> format. Normally it means the default
 color of the terminal (white mostly), but here it means the "reset color back to
