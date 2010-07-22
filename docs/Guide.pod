@@ -21,7 +21,15 @@ better, create a symlink to it) into F<~/.irssi/scripts/autorun/>.
 
 =head2 Testing
 
-B<TODO: Forgotten what was going to go here>
+=for comment B<TODO: Forgotten what was going to go here>
+
+=head3 C</SCRIPT EXEC>
+
+B<TODO: Using it for testing stuff out>
+
+B<TODO: Also for very short scripts (with -permanent?)>
+
+B<TODO: Quoting rules for vars and things?>
 
 =head2 Loading
 
@@ -142,7 +150,33 @@ B<TODO: Example here>
 
 =head3 Using Functions
 
-B<TODO: Find the example code that demonstrates this>
+Because scripts exist in a well-defined namespace of C<Irssi::Script::SOMEPACKAGE>,
+it is possible to manipulate the perl symbol table to call functions directly on them,
+assuming they are loaded.
+
+Because the following code depends on I<symbolic references>, it is necessary to
+tell Perl to allow them, despite normally being prohibited by C<use strict>.
+The C<no strict 'refs';> line takes care of this, and reenables them at the end
+of the snippet.
+
+    no strict 'refs';
+    if (defined %{ 'Irssi::Script::SOMEPACKAGE::' }) {
+        if (defined &{'Irssi::Script::SOMEPACKAGE::SOME_FUNC'} ) {
+            (&{'Irssi::Script::SOMEPAKAGE::SOME_FUNC'}(@args));
+        } else {
+            print("Err: can't find Irssi::Script::SOMEPACKAGE::SOME_FUNC");
+        }
+      }
+    use strict 'refs';
+
+Here, C<SOMEPACKAGE> is the name of the script package which contains the
+function you want to call, and C<SOME_FUNC> is the name of the function within
+it you wish to call.  The first 2 C<defined(..)> lines take care of ensuring
+that the package and function exist, and generate an error otherwise. Other
+error handling is possible, including executing a C</SCRIPT LOAD> to load the
+necessary script and retry, but is not shown here.
+
+I<This snippet was provided by C<Bazerka> on Freenode/#irssi.>
 
 =head2 If In Doubt, Dump!
 
@@ -170,8 +204,20 @@ of their file.  Whilst better than no documentation at all, a preferable approac
 is to allow that help to be accessed from within Irssi itself, using the C</HELP>
 command.
 
-B<TODO: example - catch or rebind /HELP, then check args and either print and
-sig_stop or continue>
+    our $help = "this is help for b";
+
+    Irssi::command_bind('help', sub {
+            if ($_[0] eq 'test_b') {
+                Irssi::print($help, MSGLEVEL_CLIENTCRAP);
+                Irssi::signal_stop;
+                return;
+            }
+      }
+    );
+
+This example demonstrates overriding the C</HELP> command, and if the argument
+matches our command, print some custom help and prevent the internal Irssi help
+function from being called.  Otherwise, it falls back to the default help.
 
 =head3 Use Tab Completion
 
@@ -226,6 +272,17 @@ The following example demonstrates how to use subcommands from within a script:
         my ($args) = @_;
         print "subcommand called with: $args";
     }
+
+=head1 AUTHOR & THANKS
+
+This page was written by Tom Feist C<shabble+irssi@metavore.org>, but draws
+on the help of many many people.
+
+The denizens of Freenode/#irssi have been particularly helpful, especially
+C<Bazerka> and C<nightfrog>.
+
+To report bugs or suggestions, email me at the address before, or come talk to
+me in C<#irssi> on C<irc.freenode.net>.
 
 =head1 OTHER RESOURCES
 

@@ -83,6 +83,7 @@ For example:
 
 =head1 METHODS
 
+
 =head2 Accessors
 
 =head3 C<active_win>
@@ -299,12 +300,14 @@ remainder of the string to be processed as desired.
 
 =head4 C<command_runsub $cmd, $data, $server, $item>
 
-Run subcommands for `cmd'. First word in `data' is parsed as
-subcommand. `server' is L<Irssi::Server> record for current
-L<Irssi::Windowitem> `item'.
+Run subcommands for C<$cmd>. First word in C<$data> is parsed as
+subcommand. C<$server> is L<Irssi::Server> record for current
+L<Irssi::Windowitem> C<$item>.
 
-Call command_runsub in handler function for `cmd' and bind
-with command_bind("`cmd' `subcmd'", subcmdfunc[, category]);
+Call command_runsub in handler function for C<$cmd> and bind
+with:
+
+    command_bind("$cmd $subcmd", subcmdfunc[, category]);
 
 See the L<example|Guide/Use Subcommands to Group Script Functionality> for
 further details.
@@ -436,7 +439,8 @@ A time type. B<TODO: what values can it take?>
 
 =item C<level>
 
-An irssi Messagelevel. See C</HELP LEVELS> for a full list and description.
+An irssi Messagelevel. See C</HELP LEVELS> for a full list and description, or
+L</Message Levels> for a description of the Perl equivalents.
 
 =item C<size>
 
@@ -490,14 +494,15 @@ Remove a setting specified with C<$key>.
 
 =head3 C<timeout_add $msecs, $func, $data>
 
-  Call C<$func> every C<$msecs> milliseconds (1/1000th of a second) with
-  parameter C<$data>. Returns a tag which can be used to stop the timeout via
-  L</timeout_remove $tag>.
+Call C<$func> every C<$msecs> milliseconds (1/1000th of a second) with
+parameter C<$data>. Returns a tag which can be used to stop the timeout via
+L</timeout_remove $tag>.
 
 =head3 C<timeout_add_once $msecs, $func, $data>
 
-Call `func' once after `msecs' milliseconds (1000 = 1 second)
-with parameter `data'. Returns tag which can be used to stop the timeout.
+Call C<$func> once after C<$msecs> milliseconds (1000 = 1 second) with parameter
+C<$data>. Returns tag which can be used to stop the timeout via
+L</timeout_remove $tag>.
 
 =head3 C<timeout_remove $tag>
 
@@ -505,43 +510,104 @@ Remove timeout specified with tag C<$tag>.
 
 =head3 C<input_add $source, $condition, $func, $data>
 
-Call `func' with parameter `data' when specified IO happens.
-`source' is the file handle that is being listened. `condition' can
-be INPUT_READ, INPUT_WRITE or both. Returns tag which can be used to
-remove the listener.
+Call C<$func> with parameter C<$data> when specified IO happens.  C<$source> is
+the file handle that is being listened. C<$condition> can be
+C<Irssi::INPUT_READ>, C<Irssi::INPUT_WRITE> or both.  Returns tag which can be
+used to remove the listener with L</input_remove $tag>.
 
 =head3 C<input_remove $tag>
 
-Remove listener with tag.
+Remove listener with C<$tag>.
 
 =head3 C<pidwait_add $pid>
 
-Adds `pid' to the list of processes to wait for. The pid must identify
+Adds C<$pid> to the list of processes to wait for. The pid must identify
 a child process of the irssi process. When the process terminates, a
 "pidwait" signal will be sent with the pid and the status from
 waitpid(). This is useful to avoid zombies if your script forks.
 
 =head3 C<pidwait_remove $pid>
 
-Removes `pid' from the list of processes to wait for. Terminated
+Removes C<$pid> from the list of processes to wait for. Terminated
 processes are removed automatically, so it is usually not necessary
 to call this function.
 
 
 =head2 Message Levels
 
+The standard Irssi levels (as specified in C</HELP LEVELS>) are accessible from
+within scripts with the following zero-arguments functions:
+
+=over
+
+=item C<MSGLEVEL_CRAP>
+
+=item C<MSGLEVEL_MSGS>
+
+=item C<MSGLEVEL_PUBLIC>
+
+=item C<MSGLEVEL_NOTICES>
+
+=item C<MSGLEVEL_SNOTES>
+
+=item C<MSGLEVEL_CTCPS>
+
+=item C<MSGLEVEL_ACTIONS>
+
+=item C<MSGLEVEL_JOINS>
+
+=item C<MSGLEVEL_PARTS>
+
+=item C<MSGLEVEL_QUITS>
+
+=item C<MSGLEVEL_KICKS>
+
+=item C<MSGLEVEL_MODES>
+
+=item C<MSGLEVEL_TOPICS>
+
+=item C<MSGLEVEL_WALLOPS>
+
+=item C<MSGLEVEL_INVITES>
+
+=item C<MSGLEVEL_NICKS>
+
+=item C<MSGLEVEL_DCC>
+
+=item C<MSGLEVEL_DCCMSGS>
+
+=item C<MSGLEVEL_CLIENTNOTICE>
+
+=item C<MSGLEVEL_CLIENTCRAP>
+
+=item C<MSGLEVEL_CLIENTERROR>
+
+=item C<MSGLEVEL_HILIGHT>
+
+=item C<MSGLEVEL_ALL>
+
+=item C<MSGLEVEL_NOHILIGHT>
+
+=item C<MSGLEVEL_NO_ACT>
+
+=item C<MSGLEVEL_NEVER>
+
+=item C<MSGLEVEL_LASTLOG>
+
+=back
+
 =head3 C<level2bits $level>
 
-  Level string -> number
+Level string -> number
 
 =head3 C<bits2level $bits>
 
-  Level number -> string
+Level number -> string
 
 =head3 C<combine_level $level, $str>
 
-  Combine level number to level string ("+level -level").
-  Return new level number.
+Combine level number to level string (C<"+level -level">).
+Return new level number.
 
 
 =head2 Themes
@@ -609,7 +675,6 @@ Update ignore record in configuration
 =head3 C<ignore_check $nick, $host, $channel, $text, $level>
 
 B<TODO: Document what this does>
-
 
 
 =head2 Logging

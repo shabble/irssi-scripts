@@ -149,6 +149,8 @@ aliases = {
   RESET = "set -default";
   s = "script";
   rltest = "/script unload history_search; /script load history_search.pl";
+  DUMP = "script exec use Data::Dumper\\; print Data::Dumper->new([\\\\$0-])->Dump";
+  funcs_for = "/dump [map *\\$_{NAME}, grep ref(\\$_) eq 'GLOB' && *\\$_{CODE} && *\\$_{PACKAGE} eq 'Irssi::UI::Window', values \\%Irssi::UI::Window::]";
 };
 
 statusbar = {
