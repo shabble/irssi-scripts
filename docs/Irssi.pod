@@ -65,7 +65,7 @@ B<TODO: fix this list with proper package names>
 
 =item L<Irssi::Theme>
 
-=item L<Irssi::Window>
+=item L<Irssi::UI::Window>
 
 =item L<Irssi::Windowitem>
 
@@ -90,7 +90,7 @@ For example:
 
 C<my $win = Irssi::active_win();>
 
-returns the currently active L<Irssi::Window>
+returns the currently active L<Irssi::UI::Window>
 
 =head3 C<active_server>
 
@@ -100,7 +100,7 @@ returns the currently active L<Irssi::Server> in active window.
 
 =head3 C<windows>
 
-returns a list of all L<windows|Irssi::Window>.
+returns a list of all L<windows|Irssi::UI::Window>.
 
 =head3 C<servers>
 
@@ -129,11 +129,6 @@ returns a list of all L<log files|Irssi::Log>.
 =head3 C<ignores>
 
 returns a list of all L<ignores|Irssi::Ignore>.
-
-=head3 C<dccs>
-
-B<TODO: this shouldn't be here>
-returns a list of all L<DCC connections|Irssi::Irc::Dcc>
 
 =head2 Signals
 
@@ -428,6 +423,8 @@ used to build space-separated lists of entries.
 
 An integer type.  Integers must be whole numbers, but may also be negative or zero.
 
+It is stored internally as a C<signed int>, and has a range of +/- 2^31.
+
 =item C<bool>
 
 A boolean type.  In Perl terms, values are C<0> for false, and anything else for
@@ -435,16 +432,32 @@ true.  When acting on them externally, C<ON> and C<OFF> are the usual terms used
 
 =item C<time>
 
-A time type. B<TODO: what values can it take?>
+A time type. An integer with optional unit specifier.  Valid specifiers are:
+
+    days
+    hours
+    minutes / mins
+    seconds / secs
+    milliseconds / millisecs / mseconds / msecs
+
+B<TODO: can different specifiers be combined?>
+
+The value is stored internally as a number of milliseconds.  Since it is stored
+as an C<signed int>, it will overflow at 2^31 ms, or approximately 24 days.
+
+Times longer than this are considered invalid.
 
 =item C<level>
 
 An irssi Messagelevel. See C</HELP LEVELS> for a full list and description, or
-L</Message Levels> for a description of the Perl equivalents.
+L</Message Levels> for a list of the Perl equivalents.
 
 =item C<size>
 
-B<TODO: What is this for?>
+A size type. This is an non-negative integer, and the default suffix is I<kbytes>.
+An optional suffix of C<bytes>, C<kbytes>, C<mbytes>, or C<gbytes> can be used
+to set the size accordingly. Note that sizes are given using the exponent of 2
+scheme, rather than the decimal C<$x * 1000> system.
 
 =back
 
@@ -489,20 +502,21 @@ This can be done with:
 
 Remove a setting specified with C<$key>.
 
-
 =head2 IO and Process Management
 
 =head3 C<timeout_add $msecs, $func, $data>
 
-Call C<$func> every C<$msecs> milliseconds (1/1000th of a second) with
-parameter C<$data>. Returns a tag which can be used to stop the timeout via
-L</timeout_remove $tag>.
+Call C<$func> every C<$msecs> milliseconds (1/1000th of a second) with parameter
+C<$data>. C<$msecs> must be at least 10 or an error is signaled via C<croak>.
+
+Returns a tag which can be used to stop the timeout via L</timeout_remove $tag>.
 
 =head3 C<timeout_add_once $msecs, $func, $data>
 
 Call C<$func> once after C<$msecs> milliseconds (1000 = 1 second) with parameter
-C<$data>. Returns tag which can be used to stop the timeout via
-L</timeout_remove $tag>.
+C<$data>. C<$msecs> must be at least 10 or an error is signaled via C<croak>.
+
+Returns tag which can be used to stop the timeout via L</timeout_remove $tag>.
 
 =head3 C<timeout_remove $tag>
 
@@ -643,21 +657,6 @@ For example:
 =head3 C<current_theme>
 
 Returns the current L<theme|Irssi::UI::Theme> object.
-
-=head2 DCC
-
-B<TODO: This should probably move to L<Irssi::Irc>
-
-See also L<Irssi::Dcc>
-
-Dcc
-dcc_find_item(type, nick, arg)
-  Find DCC connection.
-
-Dcc
-dcc_find_by_port(nick, port)
-  Find DCC connection by port.
-
 
 =head2 Channels
 

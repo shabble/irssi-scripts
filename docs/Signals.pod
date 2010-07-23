@@ -1614,7 +1614,7 @@ B<Requires to work properly:>
 
 =back
 
-(Can be used to determine when all "gui print text"s are sent (not required))
+(Can be used to determine when all C<"gui print text">s are sent (not required))
 
 =back
 
@@ -1629,15 +1629,29 @@ B<Provides signals:>
 
 =over
 
-=item arrayref of string C<$WHAT> B<TODO: ???>
+=item arrayref of strings C<$strings_ref>
+
+An arrayref which can be modified to add additional completion candidates.
+
+For example:
+
+    push @$strings_ref, "another_candidate";
 
 =item L<Irssi::Window> C<$window>
 
 =item string C<$word>
 
+The prefix of the word currently being typed.
+
 =item string C<$linestart>
 
+The contents of the input line up to (but not including) the current
+word prefix C<$word>.
+
 =item int C<$want_space>
+
+A scalar reference which can be set to indicate if tab completion of these
+candidates should be appended with a space.
 
 =back
 

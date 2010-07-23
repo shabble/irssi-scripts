@@ -251,10 +251,12 @@ statusbar = {
     };
     prompt = {
       items = {
-        custom_prompt = { priority = "-5"; };
+        prompt = { };
+        prompt_empty = { };
         input = { priority = "10"; };
       };
     };
+    promptadd = { disabled = "yes"; };
   };
 };
 settings = {

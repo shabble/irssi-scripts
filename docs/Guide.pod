@@ -176,7 +176,7 @@ that the package and function exist, and generate an error otherwise. Other
 error handling is possible, including executing a C</SCRIPT LOAD> to load the
 necessary script and retry, but is not shown here.
 
-I<This snippet was provided by C<Bazerka> on Freenode/#irssi.>
+I<This snippet was provided by C<Bazerka> on Freenode/#irssi>.
 
 =head2 If In Doubt, Dump!
 
@@ -219,6 +219,9 @@ This example demonstrates overriding the C</HELP> command, and if the argument
 matches our command, print some custom help and prevent the internal Irssi help
 function from being called.  Otherwise, it falls back to the default help.
 
+
+I<This snippet was provided by C<nightfrog> on Freenode/#irssi>.
+
 =head3 Use Tab Completion
 
 One of the great features of Irssi is the ability to complete commands,
@@ -226,6 +229,30 @@ subcommands and even certain arguments.  Using the subcommands processing featur
 described below automatically allows those subcommands to be tab-completed, but
 for more complex tasks, you can hook into the autocompletion system itself.
 
+In order to create your own completions, you must intercept the C<"complete
+word"> signal and return a list of completion candidates.
+
+    sub do_complete {
+        my ($strings, $window, $word, $linestart, $want_space) = @_;
+
+        # only provide these completions if the input line is otherwise empty.
+        return unless ($linestart eq '' && $word eq '');
+
+        # add the completion candidates
+        push @$strings, qw/foo bar baz bacon/;
+
+        # indicate that we want to include a space after the completion
+        $$want_space = 1;
+
+        # prevent internal Irssi completion from responding
+        Irssi::signal_stop;
+    }
+
+    Irssi::signal_add_first('complete word',  \&do_complete);
+
+I<This snippet taken from
+L<F<complete_lastspoke.pl>|http://scripts.irssi.org/scripts/complete_lastspoke.pl>
+by Daenyth>
 
 =head3 Use Settings for Customisation
 
