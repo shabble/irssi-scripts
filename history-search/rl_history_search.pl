@@ -8,10 +8,18 @@
 # * You can cycle through multiple matches with ^R (older matches), and
 #   ^S (newer matches)
 
+# NOTE: Ctrl-S may not work if you have software flow control configured for
+# your terminal. It may appear to freeze irssi entirely. If this happens, it can
+# be restored with Ctrl-Q, but you will be unable to use the Ctrl-S binding.
+# You can disable flow control by running the command `stty -ixon' in your
+# terminal, or setting `defflow off' in your ~/.screenrc if using GNU Screen.
+
 # * Hitting enter selects a match and terminates search mode.
 
 # * You can use ^G to exit search mode without selecting.
 
+# * Any other ctrl- or meta- key binding will terminate search mode, leaving the
+#   selected item in the input line.
 
 # Original script Copyright 2007  Wouter Coekaerts <coekie@irssi.org>
 # Heavy modifications by Shabble <shabble+irssi@metavore.org>, 2010.
@@ -40,7 +48,7 @@ $VERSION = '1.0';
 %IRSSI =
   (
    authors     => 'Wouter Coekaerts, Tom Feist',
-   contact     => 'coekie@irssi.org',
+   contact     => '',
    name        => 'rl_history_search',
    description => 'Search within your typed history as you type'
                 . ' (like ctrl-R in readline applications)',
