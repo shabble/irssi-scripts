@@ -31,16 +31,37 @@ sub process_file {
 	$parser->preprocess_pods;
 	$parser->clean_out_empty_pods;
 
-    #print Dumper($parser->{data}), $/;
+#    print Dumper($parser->{data}), $/;
     my $data = $parser->{data};
     foreach my $package (keys %$data) {
         #print "Package: $package\n";
         my $subs = $data->{$package}->{xsubs};
         foreach my $sub (@$subs) {
+
             my $sub_name = $sub->{symname};
+
+            my $args_str = '';
+            my @processed_args = ();
+            my $args = $sub->{args};
+
+            foreach my $arg (@$args) {
+                my $type = $arg->{type} // '';
+                if ($type eq 'char *') {
+                    $type = 'string';
+                } elsif ($type eq 'SV *') {
+                    $type = 'SVptr';
+                }
+                my $aname = $arg->{name} // '';
+                if ($aname eq '...') {
+                    push @processed_args, '...';
+                } else {
+                    push @processed_args, $type . ' $' . $aname;
+                }
+            }
+            $args_str = join(", ", @processed_args);
+
             next if $sub_name =~ m/::$/;
-            #print_msglevel($sub_name);
-            print $sub->{symname}, $/;
+            print $sub->{symname}, "(", $args_str, ")\n";
         }
     }
 }
