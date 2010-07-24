@@ -66,7 +66,7 @@ abstracts = {
   line_start = "%B-%W!%B-%n ";
 
   # timestamp styling, nothing by default
-  timestamp = "$*";
+  timestamp = "[[[$*]]]";
 
   # any kind of text that needs hilighting, default is to bold
   hilight = "%_$*%_";
@@ -250,12 +250,12 @@ abstracts = {
 
   # default background for all statusbars. You can also give
   # the default foreground color for statusbar items.
-  sb_background = "%4%w";
+  sb_background = "%5%w";
 
   # default backround for "default" statusbar group
   #sb_default_bg = "%4";
   # background for prompt / input line
-  sb_prompt_bg = "%n";
+  sb_prompt_bg = "%w";
   # background for info statusbar
   sb_info_bg = "%8";
   # background for topicbar (same default)
@@ -271,7 +271,7 @@ abstracts = {
   topicsbstart = "{sbstart $*}";
   topicsbend = "{sbend $*}";
 
-  prompt = "[$* $expando_test] ";
+  prompt = "[$*$prompt_additional] ";
 
   sb = " %c[%n$*%c]%n";
   sbmode = "(%c+%n$*)";
