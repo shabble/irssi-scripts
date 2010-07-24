@@ -33,7 +33,9 @@ $VERSION = "1.0.1";
    changed         => "24/7/2010"
   );
 
+#sub DEBUG () { 1 }
 sub DEBUG () { 0 }
+
 
 my $prompt_additional_content = '';
 
@@ -52,9 +54,10 @@ sub redraw_prompts {
 sub handle_change_prompt_sig {
     my ($text) = @_;
 
-    print "Got prompt change sig with: $text" if DEBUG;
-
     my $expanded_text = Irssi::parse_special($text);
+
+    print "Got prompt change sig with: $text -> $expanded_text" if DEBUG;
+
     my $changed = ($expanded_text ne $prompt_additional_content);
 
     $prompt_additional_content = $expanded_text;
