@@ -45,12 +45,14 @@ sub handle_keypress {
     } elsif ($key == 11) { # Ctrl-k
     } else {
     }
-    Irssi::signal_remove('gui key pressed', 'handle_keypress');
+
+    Irssi::signal_remove('gui key pressed', \&handle_keypress);
 }
 
 sub require_confirmation {
     my ($window) = @_;
-    Irssi::signal_add_first('gui key pressed', 'handle_keypress');
+    Irssi::signal_add_first('gui key pressed', \&handle_keypress);
+
     $window->print("You are scrolled up Really send?");
     write_to_prompt($window, 'Press Ctrl-K to confirm, Ctrl-C to cancel ');
 }
