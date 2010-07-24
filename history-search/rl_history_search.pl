@@ -47,13 +47,13 @@ use vars qw($VERSION %IRSSI);
 $VERSION = '1.0';
 %IRSSI =
   (
-   authors     => 'Wouter Coekaerts, Tom Feist',
-   contact     => '',
+   authors     => 'Tom Feist, Wouter Coekaerts',
+   contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
    name        => 'rl_history_search',
    description => 'Search within your typed history as you type'
                 . ' (like ctrl-R in readline applications)',
    license     => 'GPLv2 or later',
-   url         => 'http://wouter.coekaerts.be/irssi/',
+   url         => 'http://github.com/shabble/shab-irssi-scripts/tree/master/history-search/',
    changed     => '24/7/2010'
   );
 
