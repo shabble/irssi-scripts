@@ -2395,6 +2395,22 @@ B<TODO: Check ordering of arguments from/to here>
 
 =back
 
+Notes:
+
+Ordinary keys C<a-zA-Z> are their ordinal (ascii) equivalents.
+
+Ctrl-key begins at 1 (C<C-a>), but skips 13?, C<C-j> and C<C-m> both give the same
+as C<RET> (10).  Tab and C<C-i> are equivalent (9). C<C-o> does not appear to send
+an observable sequence.
+
+C<BS> sends 127.
+
+C<meta-E<lt>keyE<gt>> sends a 27 (ESC) followed by the original key value.
+
+Arrow keys send usual meta-stuff (C<\e[I<ABCD>>).
+
+B<TODO: Turn this into some sort of list>
+
 =back
 
 =head3 F<gui-printtext.c>:

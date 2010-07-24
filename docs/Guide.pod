@@ -115,14 +115,16 @@ B<TODO: catch "messsage private", check params, generate response>
 
 =head1 USEFUL THINGS
 
-
 =head2 Getting the Response Value of a Remote Command
 
-B<TODO: use server redirections?>
+B<TODO: Add bazerka's snippet here>
 
 =head2 Getting the Response Value of a Local Command
 
 B<TODO: How?!??>
+
+There is no simple way to achieve this.  The data backing most common activities
+can be extracted through other API calls, but there are some exceptions.
 
 Maybe, look up the format, intercept gui print text, try to match it against
 what you're expecting?
@@ -204,13 +206,12 @@ of their file.  Whilst better than no documentation at all, a preferable approac
 is to allow that help to be accessed from within Irssi itself, using the C</HELP>
 command.
 
-    our $help = "this is help for b";
+    my $help = "this is help for b";
 
     Irssi::command_bind('help', sub {
             if ($_[0] eq 'test_b') {
                 Irssi::print($help, MSGLEVEL_CLIENTCRAP);
                 Irssi::signal_stop;
-                return;
             }
       }
     );
@@ -220,7 +221,7 @@ matches our command, print some custom help and prevent the internal Irssi help
 function from being called.  Otherwise, it falls back to the default help.
 
 
-I<This snippet was provided by C<nightfrog> on Freenode/#irssi>.
+I<This snippet was provided by C<culb> on Freenode/#irssi>.
 
 =head3 Use Tab Completion
 
@@ -305,7 +306,7 @@ This page was written by Tom Feist C<shabble+irssi@metavore.org>, but draws
 on the help of many many people.
 
 The denizens of Freenode/#irssi have been particularly helpful, especially
-C<Bazerka> and C<nightfrog>.
+C<Bazerka> and C<culb>.
 
 To report bugs or suggestions, email me at the address before, or come talk to
 me in C<#irssi> on C<irc.freenode.net>.

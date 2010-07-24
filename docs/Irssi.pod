@@ -628,6 +628,12 @@ Return new level number.
 
 See also L<Irssi::UI::Theme>
 
+=head3 C<themes_reload>
+
+Reloads the current theme (set with C</SET THEME>) from file.
+
+=head3 Miscellaneous
+
 You can have user configurable texts in scripts that work just like
 irssi's internal texts that can be changed in themes.
 
@@ -848,7 +854,7 @@ Formatting to POD and linking by Tom Feist
     Irssi::strip_codes
 
     Irssi::theme_register
-    Irssi::themes_reload
+    *Irssi::themes_reload
 
     Irssi::timeout_add
     Irssi::timeout_add_once
