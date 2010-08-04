@@ -212,6 +212,7 @@ sub handle_keypress {
         }
         update_history_matches();
         update_history_prompt();
+        update_input();
 
         Irssi::signal_stop();
         return;

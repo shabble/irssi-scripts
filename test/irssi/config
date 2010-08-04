@@ -278,13 +278,6 @@ keyboard = (
     data = "se print defined(Irssi::gui_input_set(\"hello\"))?1:0";
   },
   { key = "meta-x"; id = "command"; data = "history_search "; },
-  {
-    key = "M-g";
-    id = "command";
-    data = "se print defined(Irssi::gui_input_set(\"hello\"))?1:0";
-  },
   { key = "^Z"; id = "command"; data = "echo moo"; },
-  { key = "^O"; id = "command"; data = "echo moo"; },
-  { key = "^o"; id = "command"; data = "echo moo"; },
   { key = "^R"; id = "command"; data = "history_search_start "; }
 );

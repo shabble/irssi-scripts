@@ -2,7 +2,7 @@ __END__
 
 =head1 NAME
 
-Irssi.pm
+Irssi
 
 =head1 DESCRIPTION
 
@@ -83,7 +83,6 @@ For example:
 
 =head1 METHODS
 
-
 =head2 Accessors
 
 =head3 C<active_win>
@@ -100,7 +99,11 @@ returns the currently active L<Irssi::Server> in active window.
 
 =head3 C<windows>
 
+C<my @windows = Irssi::windows();>
 returns a list of all L<windows|Irssi::UI::Window>.
+
+When called in scalar context C<my $win = Irssi::windows();>, only the first
+window is returned.
 
 =head3 C<servers>
 
@@ -383,33 +386,6 @@ Settings are a way to permanently store values that your script may wish to use.
 They are also easily manipulable by the user through the C</SET> command, making
 them a good way to allow configuration of your script.
 
-=head3 Creating New Settings
-
-If a setting does not currently exist, it must first be registered with Irssi
-using one of the C<settings_add> functions.
-
-=head4 C<settings_add_str $section, $key, $def>
-
-=head4 C<settings_add_int $section, $key, $def>
-
-=head4 C<settings_add_bool $section, $key, $def>
-
-=head4 C<settings_add_time $section, $key, $def>
-
-=head4 C<settings_add_level $section, $key, $def>
-
-=head4 C<settings_add_size $section, $key, $def>
-
-Each of the above functions operates in the same way, but creates a different
-data type.  For each function, C<$section> is a string describing the
-group the entry falls into, C<$key> is the name of the setting.  The key must
-be a single string, and typically multiple words are separated by underscores.
-
-The final parameter, C<$def>, is the default value of this setting.  It should
-correspond to the type of the setting being created.
-
-B<TODO: move this list to another section?>
-
 The following list summarises the data types available:
 
 =over
@@ -444,8 +420,9 @@ B<TODO: can different specifiers be combined?>
 
 The value is stored internally as a number of milliseconds.  Since it is stored
 as an C<signed int>, it will overflow at 2^31 ms, or approximately 24 days.
-
 Times longer than this are considered invalid.
+
+The default specifier if none are specified is I<seconds>.
 
 =item C<level>
 
@@ -460,6 +437,34 @@ to set the size accordingly. Note that sizes are given using the exponent of 2
 scheme, rather than the decimal C<$x * 1000> system.
 
 =back
+
+=head3 Creating New Settings
+
+If a setting does not currently exist, it must first be registered with Irssi
+using one of the C<settings_add> functions.
+
+=head4 C<settings_add_str $section, $key, $def>
+
+=head4 C<settings_add_int $section, $key, $def>
+
+=head4 C<settings_add_bool $section, $key, $def>
+
+=head4 C<settings_add_time $section, $key, $def>
+
+=head4 C<settings_add_level $section, $key, $def>
+
+=head4 C<settings_add_size $section, $key, $def>
+
+Each of the above functions operates in the same way, but creates a different
+data type.  For each function, C<$section> is a string describing the
+group the entry falls into, C<$key> is the name of the setting.  The key must
+be a single string, and typically multiple words are separated by underscores.
+
+The final parameter, C<$def>, is the default value of this setting.  It should
+correspond to the type of the setting being created.
+
+B<TODO: move this list to another section?>
+
 
 =head3 Retrieving Settings
 

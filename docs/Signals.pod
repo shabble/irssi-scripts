@@ -2089,6 +2089,9 @@ B<TODO: Check ordering of arguments from/to here>
 
 =back
 
+B<TODO: does this fire if you dont' change windows? (eg: send a switch commandf
+for the window you're already on)
+
 =item C<"window changed automatic">
 
 =over

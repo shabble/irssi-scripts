@@ -44,6 +44,8 @@ Irssi::expando_create('prompt_additional', \&expando_prompt, {});
 sub expando_prompt {
     my ($server, $witem, $arg) = @_;
     return $prompt_additional_content;
+    #return Irssi::current_theme->format_expand("{sb
+    #$prompt_additional_content}", 0x0f);
 }
 
 sub redraw_prompts {

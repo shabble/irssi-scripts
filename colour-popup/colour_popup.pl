@@ -5,7 +5,7 @@
 #
 # usage:
 #
-# after loading the script, add the statusbar item somewhere convenient: 
+# after loading the script, add the statusbar item somewhere convenient:
 #   /statusbar window add -after barstart colours
 #
 
@@ -21,7 +21,7 @@ $VERSION = "1.0";
     name        => "mirc_colour_popup",
     description => "Shows a mIRC-style colour popup when you hit ^C.",
     license     => "Public Domain",
-    changed     => "9.26.2008",
+    changed     => "31/7/2010",
 );
 
 
@@ -36,7 +36,7 @@ sub colours_sb {
 	if( $vis ) {
 		$txt = join " ", map { "\%$colours[$_]$_" } 0 .. 15;
 	}
-	$item->default_handler($get_size_only, "{sb $txt}", undef, 1);
+	$item->default_handler($get_size_only, "\%0{sb $txt}", undef, 1);
 }
 
 
