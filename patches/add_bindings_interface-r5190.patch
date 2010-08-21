@@ -2,10 +2,12 @@ Index: ui/UI.xs
 ===================================================================
 --- ui/UI.xs	(revision 5190)
 +++ ui/UI.xs	(working copy)
-@@ -106,3 +106,47 @@
+@@ -106,3 +106,71 @@
  	irssi_boot(UI__Formats);
  	irssi_boot(UI__Themes);
  	irssi_boot(UI__Window);
++
++MODULE = Irssi::UI  PACKAGE = Irssi
 +
 +HV*
 +bindings()
@@ -41,7 +43,7 @@ Index: ui/UI.xs
 +                    : newSV(0));
 +
 +            /* wedge it all into a reference so we can use it in the hash */
-+            SV* value_ref = newRV_inc((SV*)value_array);
++            SV* value_ref = newRV_noinc((SV*)value_array);
 +
 +            /* and finally, set up the hash */
 +            hv_store(RETVAL, key_rec->key, strlen(key_rec->key),
@@ -50,13 +52,34 @@ Index: ui/UI.xs
 +    }
 +OUTPUT:
 +    RETVAL
++
++SV*
++binding_add(key, function, data)
++char *key
++char *function
++char *data
++CODE:
++
++    if (key_info_find(function) == NULL)
++        RETVAL = &PL_sv_no;
++	else {
++        key_configure_add(function, key, data);
++        RETVAL = &PL_sv_yes;
++    }
++OUTPUT:
++   RETVAL
++
++void
++binding_remove(key)
++char *key
++CODE:
++    key_configure_remove(key);
 Index: ui/module.h
 ===================================================================
 --- ui/module.h	(revision 5190)
 +++ ui/module.h	(working copy)
-@@ -12,3 +12,5 @@
+@@ -12,3 +12,4 @@
  typedef TEXT_DEST_REC *Irssi__UI__TextDest;
  typedef THEME_REC *Irssi__UI__Theme;
  typedef KEYINFO_REC *Irssi__UI__Keyinfo;
 +typedef KEY_REC *Irssi__UI__Key;
-+
