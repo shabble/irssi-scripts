@@ -115,6 +115,13 @@ B<TODO: catch "messsage private", check params, generate response>
 
 =head1 USEFUL THINGS
 
+
+=head2 Dealing with Blocking IO
+
+B<TODO: see F<hddtemp.pl> on SIO> - fork and use pipes to communicate. Also
+remember to pidwait the child>
+
+
 =head2 Getting the Response Value of a Remote Command
 
 B<TODO: Add bazerka's snippet here>

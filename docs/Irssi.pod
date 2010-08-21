@@ -133,6 +133,52 @@ returns a list of all L<log files|Irssi::Log>.
 
 returns a list of all L<ignores|Irssi::Ignore>.
 
+
+=head2 File Accessors
+
+=head3 C<get_gui>
+
+Indicates if Irssi has been started with a GUI frontend.
+
+Return values are:
+
+=over
+
+=item C<IRSSI_GUI_NONE> - C<0>
+
+=item C<IRSSI_GUI_TEXT> - C<1>
+
+=item C<IRSSI_GUI_GTK> - C<2>
+
+=item C<IRSSI_GUI_GNOME> - C<3>
+
+=item C<IRSSI_GUI_QT> - C<4>
+
+=item C<IRSSI_GUI_KDE> - C<5>
+
+=back
+
+The symbolic constants listed above can be accessed from scripts as follows:
+
+    my $is_text = Irssi::get_gui == Irssi::IRSSI_GUI_TEXT;
+
+=head3 C<get_irssi_binary>
+
+Returns a string containing the absolute location of the binary that this
+instance of Irssi was invoked from.
+
+=head3 C<get_irssi_config>
+
+Returns a string containing the absolute location of the config file that was
+specified or defaulted to when Irssi started up.  Can be modified at startup
+using the C<--config=> commandline option, or defaults to F<~/.irssi/config>.
+
+=head3 C<get_irssi_dir>
+
+Returns a string containing the absolute location of the base directory that was
+specified or defaulted to when Irssi started up.  Can be modified at startup
+using the C<--home=> commandline option, or defaults to F<~/.irssi/>.
+
 =head2 Signals
 
 See also L<Signals>
@@ -230,7 +276,21 @@ Propagate a currently emitted signal, but with different parameters.  This only
 needs to be called if you wish to change them, otherwise all subsequent handlers
 will be invoked as normal.
 
-B<Should only be called from within a signal handler>
+For example, we can intercept a public message and rewrite the content before
+passing it on:
+
+    Irssi::signal_add_first 'message public',
+        sub {
+            my ($server, $msg, @rest) = @_;
+            $msg =~ s/this/that/g;
+            Irssi::signal_continue($server, $msg, @rest);
+        };
+
+Note that if you want to do this sort of rewriting, it is important to add your
+handler using L<signal_add_first|/signal_add_first $sig_name, $func> to it is
+called before the internal Irssi handlers which would usually consume it.
+
+B<Note: It should only be called from within a signal handler>
 
 =head4 C<signal_stop>
 
@@ -266,8 +326,6 @@ Registration is required to get any parameters to signals written in
 Perl and to emit and continue signals from Perl.
 
 B<TODO: What are the complete list of recognised types?>
-
-
 
 
 =head2 Commands
@@ -669,6 +727,33 @@ For example:
 
 Returns the current L<theme|Irssi::UI::Theme> object.
 
+
+=head2 Text GUI
+
+=head3 C<gui_input_get_pos>
+
+Returns the position of the cursor in the input field.
+
+=head3 C<gui_input_set $str>
+
+Replaces the contents of the input field with C<$str>
+
+=head3 C<gui_input_set_pos $pos>
+
+Sets the position of the cursor in the input field.
+
+=head3 Getting the Input Field Contents
+
+There is no equivalent function for accessing this directly as there
+are for the others above, but it can be determined using the C<$L> expando
+documented in L<Formats>.
+
+For example:
+
+    my $gui_input_contents = Irssi::parse_special '$L', undef, 0;
+
+See L<parse_special|/parse_special $cmd, $data, $flags> for more detail.
+
 =head2 Channels
 
 =head3 C<channel_find $channel>
@@ -722,6 +807,7 @@ Find chat network with name.
 =head2 Status Bars
 
 See also L<Irssi::TextUI::Statusbaritem>
+
 B<TODO>
 
 =head1 COPYRIGHT
@@ -729,7 +815,7 @@ B<TODO>
 All the content of this site is copyright E<copy> 2000-2010 L<The Irssi
 project|http://irssi.org>.
 
-Formatting to POD and linking by Tom Feist
+Formatting to POD, and some additional comments by Tom Feist
  L<shabble+irssi@metavore.org|mailto:shabble+irssi@metavore.org>
 
 =head1 Complete List of Functions

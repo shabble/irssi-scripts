@@ -153,6 +153,9 @@ aliases = {
   funcs_for = "/dump [map *\\$_{NAME}, grep ref(\\$_) eq 'GLOB' && *\\$_{CODE} && *\\$_{PACKAGE} eq 'Irssi::UI::Window', values \\%Irssi::UI::Window::]";
   et = "/script unload expando_test.pl; /script load expando_test";
   se = "script exec";
+  detach = "eval exec - screen -X detach";
+  xxx = "/dump Irssi::UI::bindings()";
+  showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
 };
 
 statusbar = {
@@ -266,8 +269,9 @@ settings = {
     real_name = "shabble";
     user_name = "tomfeist";
     nick = "tomfeist";
+    timestamp_format = "%+";
   };
-  "fe-text" = { actlist_sort = "refnum"; };
+  "fe-text" = { actlist_sort = "refnum"; indent = "1"; };
   "perl/core/scripts" = { autoinstall_custom_prompt = "yes"; };
   "fe-common/core" = { bell_beeps = "yes"; };
 };

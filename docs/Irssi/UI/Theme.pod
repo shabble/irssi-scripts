@@ -16,14 +16,40 @@ I<undocumented>
 
 I<undocumented>
 
-=head1 THEME DOCUMENTATION
+=head1 THEME DETAILS
 
-When testing changes, the easiest way to reload the theme is with /RELOAD.
-This reloads the configuration file too, so if you did any changes remember
-to /SAVE it first. Remember also that /SAVE overwrites the theme file with
-old data so keep backups C<:)>
+=head2 Loading and Testing
+
+You can change themes by issuing a C</SET theme F<theme-name>> command from Irssi.
+Reloading is slightly harder, since Irssi will only reload and process a new theme
+if the C<theme> variable I<changes>.
+
+You can force a reload of the theme (and everything else) with C</RELOAD>.  This
+reloads the configuration file too, so if you did any changes remember to C</SAVE>
+first.
+
+B<Remember also that C</SAVE> overwrites the theme file with old data so keep
+backups C<:)>>
+
+Better alternatives are the following aliases:
+
+    /ALIAS THEMERELOAD SCRIPT EXEC Irssi::themes_reload();
+
+or
+
+    /ALIAS THEMERELOAD SET theme default; EVAL SET theme $theme
+
+The former is preferred if you have scripting support, whereas the latter will
+work without scripting (Perl) support loaded, but requires that you are editing
+a custom theme, rather than modifying F<default.theme>.
 
 =head2 TEMPLATES
+
+The actual mechanism used by Irssi to print text into the client involves a
+certain amount of indirection, which allows themes to reformat messages in
+various ways before they are displayed.
+
+
 
 The real text formats that irssi uses are the ones you can find with
 /FORMAT command. Back in the old days all the colors and texts were mixed
@@ -72,3 +98,12 @@ with C<%Y>) but C<"bar"> would be green, which was set at the beginning before
 the C<{foo}> template. If there wasn't the C<%g> at start, the normal behaviour
 of C<%n> would occur. If you I<really> want to use the terminal's default color,
 use C<%N>.
+
+=head1 AUTHOR
+
+Based on the original content found as comments in the F<default.theme> file.
+Copyright E<copy> 2000-2010 L<The Irssi project|http://irssi.org>.
+
+Formatting and additional content by Tom Feist
+ L<shabble+irssi@metavore.org|mailto:shabble+irssi@metavore.org>
+
