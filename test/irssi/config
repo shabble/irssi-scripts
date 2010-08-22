@@ -154,7 +154,7 @@ aliases = {
   et = "/script unload expando_test.pl; /script load expando_test";
   se = "script exec";
   detach = "eval exec - screen -X detach";
-  xxx = "/dump Irssi::UI::bindings()";
+  xxx = "/dump Irssi::bindings()";
   showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
 };
 
@@ -272,7 +272,11 @@ settings = {
     timestamp_format = "%+";
   };
   "fe-text" = { actlist_sort = "refnum"; indent = "1"; };
-  "perl/core/scripts" = { autoinstall_custom_prompt = "yes"; };
+  "perl/core/scripts" = {
+    autoinstall_custom_prompt = "yes";
+    mass_hilight_action = "/echo $nick";
+    mass_hilight_threshold = "0";
+  };
   "fe-common/core" = { bell_beeps = "yes"; };
 };
 keyboard = (
@@ -283,5 +287,7 @@ keyboard = (
   },
   { key = "meta-x"; id = "command"; data = "history_search "; },
   { key = "^Z"; id = "command"; data = "echo moo"; },
-  { key = "^R"; id = "command"; data = "history_search_start "; }
+  { key = "^R"; id = "command"; data = "history_search_start "; },
+  { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
+  { key = "meta-q"; id = "command"; data = " "; }
 );

@@ -8,11 +8,11 @@ Irssi::UI::Theme
 
 =head1 METHODS
 
-=head2 C<format_expand>
+=head2 C<format_expand $theme, $format, $flags>
 
 I<undocumented>
 
-=head2 C<get_format>
+=head2 C<get_format $theme, $module, $tag>
 
 I<undocumented>
 
@@ -49,7 +49,7 @@ The actual mechanism used by Irssi to print text into the client involves a
 certain amount of indirection, which allows themes to reformat messages in
 various ways before they are displayed.
 
-
+The overall structure of these 
 
 The real text formats that irssi uses are the ones you can find with
 /FORMAT command. Back in the old days all the colors and texts were mixed
