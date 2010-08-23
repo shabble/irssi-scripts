@@ -181,7 +181,7 @@ using the C<--home=> commandline option, or defaults to F<~/.irssi/>.
 
 =head2 Signals
 
-See also L<Signals>
+See also L<General::Signals>
 
 Irssi is pretty much based on sending and handling different signals.
 Like when you receive a message from server, say:
@@ -225,7 +225,8 @@ could use /IGNORE instead for both of these C<:)>
 You can also use L<Irssi::signal_add_last|/signal_add_last> if you wish to let the
 Irssi's internal functions be run before yours.
 
-A list of signals that irssi sends can be found in the L<Signals> documentation.
+A list of signals that irssi sends can be found in the L<General::Signals>
+documentation.
 
 
 
@@ -246,7 +247,7 @@ For example:
     Irssi::signal_add("default command", \&my_function);
 
 In all cases, the specified function will be passed arguments in C<@_> as specified
-in L<Signals>.
+in L<General::Signals>.
 
 =head4 C<signal_add_first $sig_name, $func>
 
@@ -365,8 +366,8 @@ with:
 
     command_bind("$cmd $subcmd", subcmdfunc[, category]);
 
-See the L<example|Guide/Use Subcommands to Group Script Functionality> for
-further details.
+See the L<example|General::Guide/Use Subcommands to Group Script Functionality>
+for further details.
 
 =head4 C<command_unbind $cmd, $func>
 
@@ -695,38 +696,160 @@ See also L<Irssi::UI::Theme>
 
 Reloads the current theme (set with C</SET THEME>) from file.
 
-=head3 Miscellaneous
+See also L<Irssi::UI::Theme/Loading and Testing>.
+
+=head3 C<current_theme>
+
+Returns the current L<theme|Irssi::UI::Theme> object.
+
+=head3 C<theme_register $format_list_ref>
 
 You can have user configurable texts in scripts that work just like
 irssi's internal texts that can be changed in themes.
 
-First you'll have to register the formats:
+See also the L<template|Irssi::UI::Theme/TEMPLATES> and L<format
+arguments|General::Formats/ALIAS AND FORMAT TEMPLATE ARGUMENTS> docs for
+details on the structure of these templates.
 
     Irssi::theme_register([
       'format_name', '{hilight my perl format!}',
       'format2', 'testing.. nick = $0, channel = $1'
     ]);
 
-Printing happens with one of the functions:
+B<NB: Format variable placeholders should be single-quoted or escaped to prevent
+Perl from trying to expand the C<$> variables prematurely.>
 
-    printformat $level, $format, ...
+=head3 Printing
 
-    Window::printformat $level, $format, ...
+Printing happens with one of the following functions:
 
-    Server::printformat $target, $level, $format, ...
+=over
 
-    Windowitem::printformat $level, $format, ...
+=item C<printformat $level, $format, ...>
+
+=item C<Irssi::UI::Window::printformat $window, $level, $format, ...>
+
+=item C<Irssi::Server::printformat $server, $target, $level, $format, ...>
+
+=item C<Irssi::Windowitem::printformat $win_item, $level, $format, ...>
+
+=back
+
+The remaining args passed after C<$format> are passed to the format template as
+arguments, starting at C<$0>.
+
+Note that the latter 3 functions are intended to be called as methods on a
+Window, Server, or Windowitem object, and will print to their respective
+destinations.
+
+B<TODO: What does plain old printformat use as a destination?>
 
 For example:
 
     $channel->printformat(MSGLEVEL_CRAP, 'format2',
                           'nick', $channel->{name});
 
+or
 
-=head3 C<current_theme>
+    $window->printformat(MSGLEVEL_CRAP, 'format_blah', @format_data);
 
-Returns the current L<theme|Irssi::UI::Theme> object.
+=head3 C<parse_special $str, $data, $flags>
 
+This function takes a string in C<$str> containing L<colour
+codes|General::Formats/COLOURS> and L<expandos|General::Formats/EXPANDOS
+(SPECIAL VARIABLES)> and ordinary text, returns a string with all variables,
+formats and expandos expanded to their appropriate values.
+
+B<TODO: What is data?>
+
+B<TODO: What are flags?>
+
+
+=head2 Expandos
+
+Expandos are special variables which can be used in format and abstract
+L<templates|Irssi::UI::Theme/TEMPLATES>.
+
+They behave similarly to Perl "Magic" variables, and their value is set behind
+the scenes depending on calling context.
+
+See also L<Formats/Expandos|General::Formats/EXPANDOS (SPECIAL VARIABLES)> for
+a list of builtin expandos.
+
+Scripts can fetch the value of expandos using the L<parse_special|/parse_special
+$cmd, $data, $flags> function, and can also register and handle rendering of
+additional ones.
+
+=head3 C<expando_create $name, $func, $update_flags>
+
+This function creates a new expando with name C<$name>.  The expando is
+accessible from templates via C<I<$expando_name>>.
+
+C<$func> is a CODEREF which is called by Irssi internally when the expando
+should be updated.
+
+A simple handler function would look something like:
+
+    sub handle_my_expando {
+        my ($server, $win_item, $arg) = @_;
+        return "some string";
+    }
+
+B<TODO: What is passed in $arg?>
+
+C<$update_flags> is a hashref containing one or more C<SIGNAL =E<gt> BEHAVIOUR> pairs.
+
+The signals are strings containing ordinary Irssi L<signals|General::Signals>.
+The behaviour flag can take one of the following (string) values:
+
+=over
+
+=item C<"none">
+
+Unconditionally update the expando when this signal is received.
+
+=item C<"server">
+
+Only update this expando if the signal received passes an L<Irssi::Server>
+argument that matches the Server in which the expando is used in.
+
+=item C<"window">
+
+Only update this expando if the signal received passes an L<Irssi::UI::Window>
+argument that matches the Window in which the expando is used in.
+
+=item C<"windowitem">
+
+Only update this expando if the signal received passes an L<Irssi::Windowitem>
+argument that matches the Windowitem in which the expando is used in.
+
+=item C<"never">
+
+Never update the value of this expando. It is calculated once and never altered.
+
+=back
+
+For example:
+
+    Irssi::expando_create 'my_expando', \&handle_my_expando, { 'message part' => 'none' };
+
+This expando will be refreshed (via a call to C<handle_my_expando()>) every time
+a C<message part> signal is emitted.
+
+B<NB: Only expandos used in statusbars will be updated dynamically to reflect
+their new value.  Those used in a template to print text will remain static as
+determined by their value when they were firstrendered.>
+
+Expandos used in statusbars can be forced to refresh using
+L<statusbar_items_redraw|/statusbar_items_redraw $name>, even if they have no
+autorefresh signals set.
+
+=head3 C<expando_destroy $name>
+
+This function removes the expando specified by C<$name>. Its handler function
+will no longer be called, and all update signal listeners are also removed.
+
+B<TODO: What is the value of a destroyed expando if used in a template/sbar?>
 
 =head2 Text GUI
 
@@ -746,13 +869,24 @@ Sets the position of the cursor in the input field.
 
 There is no equivalent function for accessing this directly as there
 are for the others above, but it can be determined using the C<$L> expando
-documented in L<Formats>.
+documented in L<General::Formats>.
 
 For example:
 
     my $gui_input_contents = Irssi::parse_special '$L', undef, 0;
 
 See L<parse_special|/parse_special $cmd, $data, $flags> for more detail.
+
+=head3 C<gui_printtext $x, $y, $str>
+
+Prints C<$str> starting at the C<$x, $y> position on the current screen.
+
+The coordinates treat the top-left corner of the screen as the origin (0, 0).
+
+B<NB: The contents of the string will overwrite whatever is currently located at
+that screen position, but is transient, and will be replaced by the original
+content if the screen is redrawn (C</REDRAW> or C<Ctrl-L>).>
+
 
 =head2 Channels
 
@@ -808,7 +942,13 @@ Find chat network with name.
 
 See also L<Irssi::TextUI::Statusbaritem>
 
-B<TODO>
+=head3 C<statusbar_item_register $name, $value, $func>
+
+=head3 C<statusbar_item_unregister $name>
+
+=head3 C<statusbar_items_redraw $name>
+
+=head3 C<statusbars_recreate_items>
 
 =head1 COPYRIGHT
 
@@ -820,9 +960,12 @@ Formatting to POD, and some additional comments by Tom Feist
 
 =head1 Complete List of Functions
 
-    Irssi::abstracts_register
-    Irssi::active_server
-    Irssi::active_win
+C<*> indicates functions currently documented, C<+> for those which aren't
+useful for scripting, and won't be dealt with here. Go read the source C<:)>
+
+    *Irssi::abstracts_register
+    *Irssi::active_server
+    *Irssi::active_win
 
     Irssi::bits2level
 
@@ -834,107 +977,107 @@ Formatting to POD, and some additional comments by Tom Feist
 
     Irssi::combine_level
 
-    Irssi::command
-    Irssi::command_bind
-    Irssi::command_bind_first
-    Irssi::command_bind_last
-    Irssi::command_parse_options
-    Irssi::command_runsub
-    Irssi::command_set_options
-    Irssi::command_unbind
-    Irssi::commands
+    *Irssi::command
+    *Irssi::command_bind
+    *Irssi::command_bind_first
+    *Irssi::command_bind_last
+    *Irssi::command_parse_options
+    *Irssi::command_runsub
+    *Irssi::command_set_options
+    *Irssi::command_unbind
+    *Irssi::commands
 
     Irssi::ctcp_register
     Irssi::ctcp_unregister
 
-    Irssi::current_theme
+    *Irssi::current_theme
 
-    Irssi::deinit
+    +Irssi::deinit
 
-    Irssi::expando_create
-    Irssi::expando_destroy
+    *Irssi::expando_create
+    *Irssi::expando_destroy
 
     Irssi::format_create_dest
     Irssi::format_get_length
     Irssi::format_real_length
 
-    Irssi::get_gui
-    Irssi::get_irssi_binary
-    Irssi::get_irssi_config
-    Irssi::get_irssi_dir
+    *Irssi::get_gui
+    *Irssi::get_irssi_binary
+    *Irssi::get_irssi_config
+    *Irssi::get_irssi_dir
 
-    Irssi::gui_input_get_pos
-    Irssi::gui_input_set
-    Irssi::gui_input_set_pos
-    Irssi::gui_printtext
+    *Irssi::gui_input_get_pos
+    *Irssi::gui_input_set
+    *Irssi::gui_input_set_pos
+    *Irssi::gui_printtext
 
     Irssi::ignore_check
-    Irssi::ignores
-    Irssi::init
-    Irssi::input_add
-    Irssi::input_remove
+    *Irssi::ignores
+    +Irssi::init
+    *Irssi::input_add
+    *Irssi::input_remove
     Irssi::level2bits
 
-    Irssi::log_create_rec
+    +Irssi::log_create_rec
     Irssi::log_find
-    Irssi::logs
+    *Irssi::logs
 
     Irssi::mask_match
     Irssi::mask_match_address
     Irssi::masks_match
 
-    Irssi::parse_special
+    *Irssi::parse_special
 
-    Irssi::pidwait_add
-    Irssi::pidwait_remove
+    *Irssi::pidwait_add
+    *Irssi::pidwait_remove
 
     Irssi::print
-    Irssi::printformat
+    *Irssi::printformat
 
-    Irssi::queries
+    *Irssi::queries
     Irssi::query_find
 
-    Irssi::rawlog_create
-    Irssi::rawlog_set_size
+    *Irssi::rawlog_create
+    *Irssi::rawlog_set_size
 
-    Irssi::reconnects
+    *Irssi::reconnects
 
     Irssi::server_create_conn
     Irssi::server_find_chatnet
     Irssi::server_find_tag
-    Irssi::servers
+    *Irssi::servers
 
-    Irssi::settings_add_bool
-    Irssi::settings_add_int
-    Irssi::settings_add_level
-    Irssi::settings_add_size
-    Irssi::settings_add_str
-    Irssi::settings_add_time
-    Irssi::settings_get_bool
-    Irssi::settings_get_int
-    Irssi::settings_get_level
-    Irssi::settings_get_size
-    Irssi::settings_get_str
-    Irssi::settings_get_time
-    Irssi::settings_remove
-    Irssi::settings_set_bool
-    Irssi::settings_set_int
-    Irssi::settings_set_level
-    Irssi::settings_set_size
-    Irssi::settings_set_str
-    Irssi::settings_set_time
+    *Irssi::settings_add_bool
+    *Irssi::settings_add_int
+    *Irssi::settings_add_level
+    *Irssi::settings_add_size
+    *Irssi::settings_add_str
+    *Irssi::settings_add_time
+    *Irssi::settings_get_bool
+    *Irssi::settings_get_int
+    *Irssi::settings_get_level
+    *Irssi::settings_get_size
+    *Irssi::settings_get_str
+    *Irssi::settings_get_time
+    *Irssi::settings_remove
+    *Irssi::settings_set_bool
+    *Irssi::settings_set_int
+    *Irssi::settings_set_level
+    *Irssi::settings_set_size
+    *Irssi::settings_set_str
+    *Irssi::settings_set_time
 
-    Irssi::signal_add
-    Irssi::signal_add_first
-    Irssi::signal_add_last
+    *Irssi::signal_add
+    *Irssi::signal_add_first
+    *Irssi::signal_add_last
     Irssi::signal_add_priority
-    Irssi::signal_continue
-    Irssi::signal_emit
+    *Irssi::signal_continue
+    *Irssi::signal_emit
     Irssi::signal_get_emitted
     Irssi::signal_get_emitted_id
-    Irssi::signal_register
+    *Irssi::signal_register
     Irssi::signal_remove
-    Irssi::signal_stop
+    *Irssi::signal_stop
     Irssi::signal_stop_by_name
 
     Irssi::statusbar_item_register
@@ -947,9 +1090,9 @@ Formatting to POD, and some additional comments by Tom Feist
     Irssi::theme_register
     *Irssi::themes_reload
 
-    Irssi::timeout_add
-    Irssi::timeout_add_once
-    Irssi::timeout_remove
+    *Irssi::timeout_add
+    *Irssi::timeout_add_once
+    *Irssi::timeout_remove
 
     Irssi::version
 
@@ -961,6 +1104,6 @@ Formatting to POD, and some additional comments by Tom Feist
     Irssi::window_item_find
     Irssi::window_refnum_next
     Irssi::window_refnum_prev
-    Irssi::windows
+    *Irssi::windows
     Irssi::windows_refnum_last
 

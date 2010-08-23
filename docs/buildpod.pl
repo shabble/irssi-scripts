@@ -19,7 +19,6 @@ sub new {
     my $self = shift;
     my $obj = $self->SUPER::new(@_);
 
-    $obj->add_css('podstyle.css', 1);
     $obj->css_flurry(0);
     $obj->javascript_flurry(0);
 
@@ -83,8 +82,15 @@ sub _write_contents_middle {
 
 package main;
 
+use File::Copy;
+
 my $output_dir = "../../tmp/shab-irssi-scripts/docs/";
 my $batchconv = Pod::Simple::HTMLBatch::Custom->new;
+my $css = 'podstyle.css';
+
+$batchconv->add_css('podstyle.css', 1);
 
 $batchconv->batch_convert([qw/./], $output_dir);
-
+print "Copying CSS...\n";
+copy($css, $output_dir . $css);
+print "Done\n";

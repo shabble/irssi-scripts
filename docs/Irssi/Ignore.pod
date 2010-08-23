@@ -21,8 +21,6 @@ C<Ignore-E<gt>{}>
 
 =head1 METHODS
 
-B<TODO>
-
 =head2 C<add_rec>
 
 =head2 C<update_rec>

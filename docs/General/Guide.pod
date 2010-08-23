@@ -6,6 +6,10 @@ Guide To Irssi Scripting.
 
 =head1 DESCRIPTION
 
+This page presents a bunch of additional information about scripting for Irssi
+that doesn't fit well anywhere else. It contains useful tips, common pitfalls,
+and a bunch of other handy things.  At least, I hope so.
+
 =head1 LOADING AND UNLOADING SCRIPTS
 
 =head2 File Locations
@@ -19,11 +23,32 @@ F<~/.irssi/scripts/>.
 If you require a script be run when Irssi starts, you can place the file (or
 better, create a symlink to it) into F<~/.irssi/scripts/autorun/>.
 
+Alternatively, if you want more control over the order in which scripts are
+autoloaded, you can place
+
+   SCRIPT LOAD script1
+   SCRIPT LOAD script2
+   SCRIPT LOAD script3
+
+into your F<~/.irssi/startup> file.
+
+I<This tip was provided by C<Rhonda> on Freenode/#irssi>.
+
 =head2 Testing
 
 =for comment B<TODO: Forgotten what was going to go here>
 
 =head3 C</SCRIPT EXEC>
+
+The C<SCRIPT EZEC> command allows you to test various simple ideas straight from
+the Irssi interface.  It can also be used to register signal handlers and
+commands if run with the C<-permanent> option.
+
+B<NB: C<-permanent> only means that the script should not terminate
+immediately. It is still not persistent between restarts of the Irssi client.
+Truly permanent scripts should be placed in autorun scripts or added to
+F<~/.irssi/startup>>
+
 
 B<TODO: Using it for testing stuff out>
 

@@ -10,11 +10,59 @@ Irssi::UI::Theme
 
 =head2 C<format_expand $theme, $format, $flags>
 
-I<undocumented>
+C<$flags> is an optional bitmask of any of the following flags:
+
+=over
+
+=item C<EXPAND_FLAG_IGNORE_REPLACES>
+
+Any replacements specified in the theme are not applied to this expansion.
+
+=item C<EXPAND_FLAG_RECURSIVE_MASK>
+
+B<TODO: dunno>
+
+=item C<EXPAND_FLAG_IGNORE_EMPTY>
+
+If the format contains variables and no values are specified, an empty string is
+returned instead of a partially filled template.
+
+=back
+
+B<TODO: What?>
+
+Example:
+
+    my $formatted_str = Irssi::current_theme()->format_expand('{hilight Hello}');
+
+B<NOTE: it seems that this only operates on abstract templates, not those
+accessible with C</FORMAT>. Weird>
 
 =head2 C<get_format $theme, $module, $tag>
 
-I<undocumented>
+Returns the unexpanded format template for the format name supplied in C<$tag>.
+
+Valid values for C<$module> are:
+
+=over
+
+=item C<fe-common/perl>
+
+=item C<fe-common/irc/dcc>
+
+=item C<fe-common/irc>
+
+=item C<fe-common/core>
+
+=item C<fe-common/irc/notifylist>
+
+=item C<fe-text>
+
+=back
+
+Example:
+
+    my $pubmsg_format = Irssi::current_theme()->get_format('fe-common/core', 'pubmsg');
 
 =head1 THEME DETAILS
 
@@ -49,7 +97,19 @@ The actual mechanism used by Irssi to print text into the client involves a
 certain amount of indirection, which allows themes to reformat messages in
 various ways before they are displayed.
 
-The overall structure of these 
+The overall structure of these templates is based around 3 basic ideas:
+
+=over
+
+=item Nested Templates
+
+=item Colour Codes
+
+=item Variable Expansion
+
+=item Special Variables
+
+=back
 
 The real text formats that irssi uses are the ones you can find with
 /FORMAT command. Back in the old days all the colors and texts were mixed

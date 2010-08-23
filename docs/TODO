@@ -1,0 +1,63 @@
+* Documentation
+** Finish writing up function defs in Irssi:: namespace
+** Write up more stuff on Themes, including brief tutorial
+** Fill in more stuff in Guide
+** Write up what triggers signals, when/how, etc.
+** Rest of docs
+*** Window
+*** WindowItem
+*** Server
+*** Channel
+*** Query
+*** Theme/View/Accessing screen content
+* Doc Gen
+** Prettify snippets with perltidy HTML mode
+** Javascript(?) c&p generator for signals
+   eg:
+   sub handle_sig_<foo> {
+       my ($arg1, $arg2, $arg3) = @_;
+   }
+   Irssi::signal_add("<foo>", \&handle_sig_<foo>);
+
+** Make CSS suck less (steal from perldoc.perl.org?)
+** Sidebar/frameset with quick links menu? 
+
+** Write parser for module-formats files and incorporate into docs somewhere
+*** Some sort of javascript bacon for viewing default formats?
+    Or just a big list?
+
+** Have something to check link validity, since refs have changed a lot
+** Index page
+*** Make it more multi-level, split on namespaces
+
+* Misc Code
+** finish off build-signals script to parse POD and produce signals header file.
+
+* Patches
+** Bindings
+*** Figure out how memory management / ref-counting works, and check for leaks
+*** Add "binding added/changed/deleted" signals
+*** Talk to someone (Bazerka?) about merging into trunk
+*** Proof of concept (modify adv_windowlist to use bindings rather than parsing cmd)
+
+** Abstract raw access
+*** Where are they stored - why doesn't get_format work?
+** Statusbars
+*** Access to entries (as objects)
+*** Create
+*** Remove
+** StatusbarItems
+*** List (given sbar)
+*** Enable/Disable
+** Aliases
+*** Add / Modify
+*** Remove
+*** List
+*** Fetch Single
+*** Signals
+
+* Misc Stuff
+** Publicise it a bit more, try to get links from people
+** Host on metavore?
+** Talk to maintainers about inclusion in core
+*** Maybe as patches to .xs files + parsing scripts?

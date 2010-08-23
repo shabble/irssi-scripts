@@ -289,5 +289,5 @@ keyboard = (
   { key = "^Z"; id = "command"; data = "echo moo"; },
   { key = "^R"; id = "command"; data = "history_search_start "; },
   { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
-  { key = "meta-q"; id = "command"; data = " "; }
+  { key = "meta-q"; id = "command"; data = "echo bacons"; }
 );
