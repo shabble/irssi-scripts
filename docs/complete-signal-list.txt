@@ -1,0 +1,379 @@
+away mode changed
+awaylog show
+ban type changed
+beep
+channel created
+channel destroyed
+channel joined
+channel rejoin new
+channel sync
+channel wholist
+chanquery abort
+chanquery ban
+chanquery ban end
+chanquery mode
+chanquery who end
+chat protocol created
+chat protocol deinit
+chat protocol destroyed
+chat protocol unknown
+chatnet destroyed
+chatnet read
+chatnet saved
+command clear
+command scrollback
+complete command action
+complete command alias
+complete command away
+complete command bind
+complete command cat
+complete command connect
+complete command dcc send
+complete command disconnect
+complete command format
+complete command help
+complete command load
+complete command msg
+complete command query
+complete command rawlog open
+complete command rawlog save
+complete command recode remove
+complete command reconnect
+complete command reload
+complete command save
+complete command script load
+complete command script unload
+complete command server
+complete command server add
+complete command server remove
+complete command set
+complete command stats
+complete command toggle
+complete command topic
+complete command unalias
+complete command window goto
+complete command window item move
+complete command window server
+complete erase
+complete erase command action
+complete erase command msg
+complete erase command query
+complete word
+ctcp action
+ctcp msg
+ctcp msg clientinfo
+ctcp msg dcc
+ctcp msg dcc accept
+ctcp msg dcc chat
+ctcp msg dcc resume
+ctcp msg dcc send
+ctcp msg ping
+ctcp msg time
+ctcp msg userinfo
+ctcp msg version
+ctcp reply
+ctcp reply dcc
+ctcp reply dcc reject
+ctcp reply ping
+dcc chat message
+dcc closed
+dcc connected
+dcc ctcp action
+dcc ctcp dcc
+dcc destroyed
+dcc error close not found
+dcc error connect
+dcc error ctcp
+dcc error file create
+dcc error file open
+dcc error get not found
+dcc error send exists
+dcc error send no route
+dcc error unknown type
+dcc error write
+dcc list print
+dcc rejected
+dcc reply dcc
+dcc reply send pasv
+dcc request
+dcc request send
+dcc server message
+dcc server started
+default command
+default command server
+default ctcp msg
+default ctcp msg dcc
+default ctcp reply
+default ctcp reply dcc
+default dcc ctcp
+default event
+default event numeric
+error command
+event 001
+event 004
+event 005
+event 221
+event 254
+event 271
+event 272
+event 281
+event 301
+event 302
+event 303
+event 305
+event 306
+event 311
+event 312
+event 313
+event 314
+event 315
+event 317
+event 318
+event 319
+event 324
+event 326
+event 327
+event 328
+event 329
+event 330
+event 332
+event 333
+event 338
+event 341
+event 344
+event 345
+event 346
+event 347
+event 348
+event 349
+event 352
+event 353
+event 364
+event 365
+event 366
+event 367
+event 368
+event 369
+event 372
+event 375
+event 376
+event 377
+event 378
+event 379
+event 381
+event 386
+event 387
+event 388
+event 389
+event 396
+event 401
+event 403
+event 404
+event 405
+event 407
+event 408
+event 421
+event 422
+event 432
+event 433
+event 436
+event 437
+event 438
+event 439
+event 442
+event 465
+event 470
+event 471
+event 472
+event 473
+event 474
+event 475
+event 476
+event 477
+event 478
+event 479
+event 482
+event 486
+event 489
+event 494
+event 506
+event 707
+event 716
+event 717
+event 728
+event 729
+event connected
+event empty
+event error
+event invite
+event join
+event kick
+event kill
+event mode
+event nick
+event notice
+event part
+event ping
+event pong
+event privmsg
+event quit
+event silence
+event topic
+event wallops
+exec input
+expando timer
+flood
+gui dialog
+gui entry redirect
+gui exit
+gui key pressed
+gui page scrolled
+gui print text
+gui print text finished
+gui window create override
+gui window created
+ignore changed
+ignore created
+ignore destroyed
+irssi init finished
+irssi init read settings
+lag ping error
+lag pong
+layout reset
+layout restore
+layout restore item
+layout restore window
+layout save
+layout save item
+layout save window
+list subcommands
+log config read
+log config save
+log create failed
+log locked
+log new
+log written
+mainwindow destroyed
+mainwindow moved
+mainwindow resized
+message dcc
+message dcc action
+message dcc ctcp
+message dcc own
+message dcc own_action
+message dcc own_ctcp
+message invite
+message irc action
+message irc ctcp
+message irc mode
+message irc notice
+message irc op_public
+message irc own_action
+message irc own_ctcp
+message irc own_notice
+message irc own_wall
+message join
+message kick
+message nick
+message own_nick
+message own_private
+message own_public
+message part
+message private
+message public
+message quit
+message topic
+module error
+module loaded
+module unloaded
+netsplit new
+nickfind event whois
+nicklist changed
+nicklist host changed
+nicklist new
+nicklist remove
+notifylist away changed
+notifylist event
+notifylist event whois
+notifylist event whois away
+notifylist event whois end
+notifylist joined
+notifylist left
+pidwait
+print format
+print starting
+print text
+proxy client dump
+query created
+query destroyed
+query nick changed
+query server changed
+reload
+requested usermode change
+script destroyed
+script error
+send command
+send text
+server add fill
+server connect copy
+server connect failed
+server connected
+server connecting
+server disconnected
+server event
+server incoming
+server lag
+server lag disconnect
+server looking
+server nick changed
+server quit
+server reconnect not found
+server reconnect remove
+server reconnect save status
+server sendmsg
+server setup fill chatnet
+server setup fill connect
+server setup fill reconn
+server setup read
+server setup saved
+session restore
+session restore channel
+session restore nick
+session restore server
+session save
+session save channel
+session save server
+settings errors
+setup changed
+setup reread
+silent event who
+silent event whois
+terminal resized
+theme changed
+theme destroyed
+user mode changed
+userhost event
+whois away
+whois default event
+whois end
+whois event
+whois event not found
+whois oper
+whois try whowas
+whowas away
+whowas event
+whowas event end
+window activity
+window changed
+window changed automatic
+window created
+window dehilight
+window destroyed
+window hilight
+window history changed
+window item changed
+window item remove
+window item server changed
+window print info
+window refnum changed
+window server changed
