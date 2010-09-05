@@ -28,6 +28,12 @@ sub new {
                         "<title>Irssi Scripting Documentation</title>\n",
                         "</head><body class='contentspage'>\n",
                         "<h1>Irssi Scripting Documentation</h1>\n",
+                        q(<p><b>This is a work in progress. If you ),
+                        q(find something obviously wrong, or have requests ),
+                        q(for further documentation on topics not yet ),
+                        q(filled out, please ),
+                        q(<a href="http://github.com/shabble/shab-irssi-scripts/issues#">create an issue</a>),
+                        " on my Github page, and I'll see what I can do.</b></p>",
                        );
 
     $obj->contents_page_start(join("", @index_header));

@@ -26,7 +26,14 @@ servers = (
   { address = "irc.webchat.org"; chatnet = "WebChat"; port = "6667"; },
   { address = "irc.rizon.net"; chatnet = "Rizon"; port = "6667"; },
   { address = "irc.link-net.org"; chatnet = "LinkNet"; port = "6667"; },
-  { address = "silc.silcnet.org"; chatnet = "SILC"; port = "706"; }
+  { address = "silc.silcnet.org"; chatnet = "SILC"; port = "706"; },
+  {
+    address = "blondu.dyndns.ws";
+    chatnet = "botnettest";
+    port = "6667";
+    use_ssl = "no";
+    ssl_verify = "no";
+  }
 );
 
 chatnets = {
@@ -92,6 +99,7 @@ chatnets = {
     max_whois = "30";
   };
   SILC = { type = "SILC"; };
+  botnettest = { type = "IRC"; };
 };
 
 channels = (
@@ -156,6 +164,7 @@ aliases = {
   detach = "eval exec - screen -X detach";
   xxx = "/dump Irssi::bindings()";
   showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
+  botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
 };
 
 statusbar = {
@@ -178,7 +187,7 @@ statusbar = {
 
     # treated specially .. window is printed with non-empty windows,
     # window_empty is printed with empty windows
-    window = "{sb $winref:$tag/$itemname{sbmode $M}}";
+    window = "{sb $winref:$tag/$itemname{sbmode $M_nopass}}";
     window_empty = "{sb $winref{sbservertag $tag}}";
     prompt = "{prompt $[.15]itemname}";
     prompt_empty = "{prompt $winname}";
@@ -266,7 +275,7 @@ statusbar = {
 };
 settings = {
   core = {
-    real_name = "shabble";
+    real_name = "fjkdlafad";
     user_name = "tomfeist";
     nick = "tomfeist";
     timestamp_format = "%+";
@@ -278,6 +287,7 @@ settings = {
     mass_hilight_threshold = "0";
   };
   "fe-common/core" = { bell_beeps = "yes"; };
+  "irc/core" = { ctcp_userinfo_reply = ""; };
 };
 keyboard = (
   {
@@ -289,5 +299,6 @@ keyboard = (
   { key = "^Z"; id = "command"; data = "echo moo"; },
   { key = "^R"; id = "command"; data = "history_search_start "; },
   { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
-  { key = "meta-q"; id = "command"; data = "echo bacons"; }
+  { key = "meta-q"; id = "command"; data = "echo bacons"; },
+  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; }
 );

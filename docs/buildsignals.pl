@@ -4,8 +4,10 @@ use strict;
 use warnings;
 #use Pod::Simple::Debug (3);
 use Data::Dumper;
+$|++;
 
 package Pod::Simple::IrssiSignalParser;
+$|++;
 
 use base qw/Pod::Simple::PullParser/;
 use Carp qw/cluck/;
@@ -91,7 +93,8 @@ sub validate_token {
     my ($self, $token, $expected, $type) = @_;
 
     unless ($token->type eq $type && $token->is_tag($expected)) {
-        cluck "Eeek. Expected $expected: $type, got $token->type";
+        cluck "Eeek. Expected $expected: $type, got "
+          . $token->dump();
 
         # cluck("Invalid token. " # on line " . $token->attr('start_line')
         #   . "expected $expected $type, got " . $token->tag
@@ -174,8 +177,52 @@ sub process_def_entry {
     my $token;
     print "Processing definition entry\n";
     while ($token = $self->get_token()) {
+        print "Token is ", $token->dump, "\n";
 
         last if $token->is_end && $token->tag eq 'item-text';
+
+        $self->validate_token($token, 'item-text', 'start');
+        $token = $self->get_token();
+        $self->validate_token($token, 'C', 'start');
+        $token = $self->get_token();
+
+        if ($token->is_text) {
+            my $sig_name = $token->text;
+            print "Signal: $sig_name\n";
+        }
+
+        $token = $self->get_token();
+
+        $self->validate_token($token, 'C', 'end');
+        $token = $self->get_token();
+        print "matched end of code\n";
+
+        $self->validate_token($token, 'item-text', 'end');
+        $token = $self->get_token();
+
+        print "matched end of header list\n";
+
+        $self->validate_token($token, 'over-text', 'start');
+        $token = $self->get_token();
+
+        print "matched start of args list\n";
+
+        $self->validate_token($token, 'item-text', 'start');
+        $token = $self->get_token();
+
+        # consume argument list.
+        until ($token->is_end && $token->tag eq 'over-text') {
+            $token = $self->get_token();
+            print "waiting for arglist Token: " . $token->dump() . "\n";
+        }
+        print "Token now: ", $token->dump(), $/;
+
+        print "consumed arg list\n";
+        $token = $self->get_token();
+        print "Token now: ", $token->dump(), $/;
+        $self->validate_token($token, 'item-text', 'end');
+        $token = $self->get_token();
+
     }
     #$self->unget_token($token);
     print "Done Processing definition entry\n";
@@ -184,7 +231,7 @@ sub process_def_entry {
 
 package main;
 
-my $input_file = $ARGV[0] // 'Signals.pm';
+my $input_file = $ARGV[0] // 'General/Signals.pod';
 my $parser = Pod::Simple::IrssiSignalParser->new;
 
 $parser->accept_targets('irssi_signal_defs', 'irssi_signal_types');

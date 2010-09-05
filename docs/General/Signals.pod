@@ -131,7 +131,7 @@ Arguments are passed to signal handlers in the usual way, via C<@_>.
 
 =over
 
-=item C<string $command>,
+=item string C<$command>,
 
 =item L<Irssi::Server> C<$server>,
 
@@ -2089,8 +2089,8 @@ B<TODO: Check ordering of arguments from/to here>
 
 =back
 
-B<TODO: does this fire if you dont' change windows? (eg: send a switch commandf
-for the window you're already on)
+B<TODO: does this fire if you don't change windows? (eg: send a switch command
+for the window you're already on)>
 
 =item C<"window changed automatic">
 
