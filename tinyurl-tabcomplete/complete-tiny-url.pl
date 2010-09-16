@@ -16,7 +16,9 @@ $VERSION = '2.1';
 sub do_complete {
 	my ($strings, $window, $word, $linestart, $want_space) = @_;
 	return if $word eq '';
-    if (defined (my $found_uri = match_uri($word))) {
+    my $found_uri = match_uri($word);
+    if (defined $found_uri && $found_uri !~ m/tinyurl\./i) {
+        print "Going to reduce: $found_uri";
         my $uri = makeashorterlink($found_uri);
         push @$strings, $uri if $uri;
         $$want_space = 1;
@@ -60,7 +62,7 @@ sub match_uri {
         $uri = 'http://' . $uri if $uri !~ m(http://);
         return $uri;
     } else {
-        return '';
+        return undef;
     }
 }
 
