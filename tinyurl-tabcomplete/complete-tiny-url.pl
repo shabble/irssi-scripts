@@ -4,22 +4,28 @@ use vars qw($VERSION %IRSSI);
 use Irssi;
 use WWW::Shorten::TinyURL;
 
-$VERSION = '2.1';
+$VERSION = '1.0';
 %IRSSI = (
     authors     => 'Shabble',
     contact     => 'shabble+irssi /at/ metavore /dot/ org',
     name        => 'Shorten URLs using Tab',
-    description => '',
+    description => 'Hitting Tab after typing/pasting a long URL will replace it with'
+                 . ' its tinyURL.com equivalent',
     license     => 'WTFPL',
 );
 
 sub do_complete {
 	my ($strings, $window, $word, $linestart, $want_space) = @_;
+    # needs some context.
 	return if $word eq '';
     my $found_uri = match_uri($word);
+
+    # don't re-reduce already tiny urls.
     if (defined $found_uri && $found_uri !~ m/tinyurl\./i) {
+
         #print "Going to reduce: $found_uri";
         my $uri = makeashorterlink($found_uri);
+
         push @$strings, $uri if $uri;
         $$want_space = 1;
         Irssi::signal_stop();
@@ -28,7 +34,8 @@ sub do_complete {
 
 sub match_uri {
     my $text = shift;
-
+    # url matching regex taken
+    # from http://daringfireball.net/2010/07/improved_regex_for_matching_urls
     my $regex = qr((?xi)
 \b
 (                           # Capture 1: entire matched URL
@@ -57,14 +64,16 @@ sub match_uri {
   )
 ));
 
+
     if ($text =~ $regex) {
         my $uri = $1;
+        # shorten needs the http prefix or it'll treat it as a relative link.
         $uri = 'http://' . $uri if $uri !~ m(http://);
         return $uri;
     } else {
+        # no match
         return undef;
     }
 }
 
 Irssi::signal_add_first( 'complete word',  \&do_complete);
-
