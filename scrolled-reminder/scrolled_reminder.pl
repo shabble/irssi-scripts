@@ -155,6 +155,11 @@ sub handle_keypress {
         # and restore the prompt
         set_prompt('');
 
+    } elsif ($key == 32) {
+
+        $pending_input->{win_item}->command("scrollback end");
+        Irssi::signal_stop();
+
     } else {
 
         #TODO: What should the behaviour of other keys be when we're
@@ -168,7 +173,7 @@ sub handle_keypress {
 sub require_confirmation {
     # enable the key handler
     $active = 1;
-    set_prompt('Scrolled Warning: C-k to confirm, C-c to cancel');
+    set_prompt('Scrolled Alert: C-k confirms, C-c cancels, SPC goes to end of buffer');
 }
 
 
