@@ -87,7 +87,8 @@ sub test_abstract_setup {
     my $prompt = $theme->format_expand('{prompt}', 0);
     if ($prompt !~ m/\$prompt_additional/) {
         print "Prompt_Info: It looks like you haven't modified your theme"
-          . " include the \$prompt_additional expando.  You will not see"
-            . " any prompt info messages until you do.";
+          . " to include the \$prompt_additional expando.  You will not see"
+            . " any prompt info messages until you do. See script comments"
+              . "for details";
     }
 }
