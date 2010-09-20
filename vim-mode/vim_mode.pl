@@ -1,10 +1,36 @@
+# A script to emulate some of the vi(m) features for the Irssi inputline.
+#
+# Currently supported features:
+#
+# * Insert/Command mode. Escape enter command mode.
+# * cursor motion with: h, l
+# * cursor word motion with: w, b
+# * delete at cursor: x
+# * Insert mode at pos: i
+# * Insert mode at end: I
+# * insert mode at start: A
+
+# Installation:
+#
+# The usual, stick in scripts dir, /script load vim_mode.pl ...
+#
+# Use the following command to get a statusbar item that shows which mode you're
+# in. Annoying vi bleeping not yet supported :)
+
+# /statusbar window add vim_mode to get the status.
+
+# NOTE: This is still under extreme development, and there's a whole bunch of
+# debugging output. Edit the script to remove all the print statements if it
+# bothers you.
+
+# Have fun!
+
 use strict;
 use warnings;
 
 use Irssi;
 use Irssi::TextUI; # for sbar_items_redraw
 
-# /statusbar window add vim_mode to get the status.
 
 use vars qw($VERSION %IRSSI);
 $VERSION = "1.0.1";
