@@ -23,6 +23,7 @@ sub DEBUG () { 0 }
 
 # circular buffer to keep track of the last N keystrokes.
 my @key_buf;
+my $buf_idx = 0;
 my $key_buf_timer;
 my $key_buf_enabled = 0;
 my $should_ignore = 0;
@@ -59,11 +60,50 @@ my $commands
               params => { 'dir' => 'right' },
             },
 
+     'w' => { command => 'move forward word',
+              func => \&cmd_jump_word,
+              params => { 'dir' => 'fwd',
+                          'pos' => sub { _input_pos() }
+                        },
+            },
+     'b' => { command => 'move backward word',
+              func => \&cmd_jump_word,
+              params => { 'dir' => 'back',
+                          'pos' => sub { _input_pos() }
+                        },
+            },
+
+     'x' => { command => 'delete char forward',
+              func => \&cmd_delete_char,
+              params => { 'dir' => 'fwd',
+                          'pos' => sub { _input_pos() }
+                        },
+            },
     };
+
+sub cmd_delete_char {
+    my ($params) = @_;
+    my $pos = $params->{pos}->();
+    my $direction = $params->{dir};
+    print "Sending keystrokes for delete-char";
+    _stop();
+    my @buf = (4);
+    _emulate_keystrokes(@buf);
+
+}
 
 sub cmd_jump_word {
     my ($params) = @_;
-
+    my $pos = $params->{pos}->();
+    my $direction = $params->{dir};
+    _stop();
+    my @buf;
+    if ($direction eq 'fwd') {
+        push @buf, (27, 102);
+    } else {
+        push @buf, (27, 98);
+    }
+    _emulate_keystrokes(@buf);
 }
 
 sub cmd_insert {
@@ -83,17 +123,14 @@ sub cmd_move {
     my ($params) = @_;
     my $dir = $params->{dir};
     my $current_pos = _input_pos();
-
-    if ($dir eq 'left') {
-        _input_pos($current_pos -1) if $current_pos;
-    } elsif ($dir eq 'right') {
-        my $current_len = _input_len();
-        _input_pos($current_pos +1) unless $current_pos == $current_len;
-    } else {
-        print "Unknown direction: $dir";
-    }
-
     _stop();
+    my @buf = (27, 91);
+    if ($dir eq 'left') {
+        push @buf, 68;
+    } else {
+        push @buf, 67;
+    }
+    _emulate_keystrokes(@buf);
 }
 
 sub vim_mode_cb {
@@ -111,38 +148,21 @@ sub vim_mode_cb {
 sub got_key {
     my ($key) = @_;
 
-# goals:
-
-# * all keys should work normally in insert mode (including Arrow keys)
-# * we should be able to reliably detect a single press of the esc key and
-#     switch to command mode
-# *
-
-# whenever we see an escape, we need to be sure it's not part of a
-# longer escape sequence (eg ^[[A for arrowkeys or whatever)
-
-# when we see an escape (27), we start a timer for a short period, and
-# capture all additional keystrokes into a buffer.
-
-# once the timer expires, we examine the buffer to see if it's a plain escape
-# (hopefully time is short enough that we don't get user-repeated keypresses)
-# or an escape sequence, which we can then parse and do whatever with.
-
-# issues:
-
-# do the buffered commands get evaluated? (ie: do we sig_stop them?)
-#
     return if ($should_ignore);
 
     if ($key == 27) {
         print "Esc seen, starting buffer";
         $key_buf_enabled = 1;
+
+        # NOTE: this timeout might be too low on laggy systems, but
+        # it comes at the cost of keystroke latency for things that
+        # contain escape sequences (arrow keys, etc)
         $key_buf_timer
           = Irssi::timeout_add_once(10, \&handle_key_buffer, undef);
     }
 
     if ($key_buf_enabled) {
-        push @key_buf, $key;
+        $key_buf[$buf_idx++] = $key;
         _stop();
     }
 
@@ -170,22 +190,19 @@ sub handle_key_buffer {
         # or pass it off to the command handler.
         if ($mode == M_CMD) {
             # command
-            my $key_str = join '', map { chr $_ } @key_buf;
+            my $key_str = join '', map { chr } @key_buf;
             if ($key_str =~ m/^\e\[([ABCD])/) {
                 print "Arrow key: $1";
             } else {
                 print "Dunno what that is."
             }
         } else {
-            $should_ignore = 1;
-            for my $key (@key_buf) {
-                Irssi::signal_emit('gui key pressed', $key);
-            }
-            $should_ignore = 0;
+            _emulate_keystrokes(@key_buf);
         }
     }
 
     @key_buf = ();
+    $buf_idx = 0;
     $key_buf_enabled = 0;
 }
 
@@ -194,13 +211,12 @@ sub handle_command {
     my $char = chr($key);
     if (exists $commands->{$char}) {
         my $cmd = $commands->{$char};
-        print "Going to execute command: ", $cmd->{command};
+        # print "Going to execute command: ", $cmd->{command};
         $cmd->{func}->( $cmd->{params} );
     } else {
         _stop(); # disable everything else
     }
 }
-
 
 Irssi::signal_add_first 'gui key pressed' => \&got_key;
 Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
@@ -216,19 +232,30 @@ sub _input {
 }
 
 sub _input_len {
-    return length (Irssi::parse_special('$L', 0, 0));
+    return length _input();
 }
 
 sub _input_pos {
     my ($pos) = @_;
+    my $cur_pos = Irssi::gui_input_get_pos();
+
     if (defined $pos) {
-        Irssi::gui_input_set_pos($pos);
+        Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
     } else {
-        $pos = Irssi::gui_input_get_pos();
+        $pos = $cur_pos;
     }
+
     return $pos;
 }
 
+sub _emulate_keystrokes {
+    my @keys = @_;
+    $should_ignore = 1;
+    for my $key (@keys) {
+        Irssi::signal_emit('gui key pressed', $key);
+    }
+    $should_ignore = 0;
+}
 sub _stop() {
     Irssi::signal_stop();
 }
