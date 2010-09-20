@@ -76,7 +76,18 @@ sub prompt_additional_cmd {
     Irssi::signal_emit('change prompt', $str);
 }
 
+test_abstract_setup();
 Irssi::signal_register({'change prompt' => [qw/string/]});
 Irssi::signal_add('change prompt' => \&handle_change_prompt_sig);
 
 Irssi::command_bind('set_prompt' => \&prompt_additional_cmd);
+
+sub test_abstract_setup {
+    my $theme = Irssi::current_theme();
+    my $prompt = $theme->format_expand('{prompt}', 0);
+    if ($prompt !~ m/\$prompt_additional/) {
+        print "Prompt_Info: It looks like you haven't modified your theme"
+          . " include the \$prompt_additional expando.  You will not see"
+            . " any prompt info messages until you do.";
+    }
+}
