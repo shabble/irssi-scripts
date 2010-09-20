@@ -23,8 +23,15 @@ sub DEBUG () { 0 }
 
 # circular buffer to keep track of the last N keystrokes.
 my @key_buf;
+my $key_buf_timer;
+my $key_buf_enabled = 0;
+my $should_ignore = 0;
 
-my $mode = 0; # 0 is insert, 1 is command. no Ex for now.
+sub M_CMD() { 1 } # command mode
+sub M_INS() { 0 } # insert mode
+
+my $mode = M_INS;
+
 
 my $commands
   = {
@@ -56,7 +63,7 @@ my $commands
 
 sub cmd_jump_word {
     my ($params) = @_;
-    
+
 }
 
 sub cmd_insert {
@@ -65,9 +72,10 @@ sub cmd_insert {
 
     _input_pos($pos);
 
-    $mode = 0;
+    $mode = M_INS;
 
     _update_mode();
+
     _stop();
 }
 
@@ -91,7 +99,7 @@ sub cmd_move {
 sub vim_mode_cb {
     my ($sb_item, $get_size_only) = @_;
     my $mode_str = '';
-    if ($mode == 0) {
+    if ($mode == M_INS) {
         $mode_str = 'Insert';
     } else {
         $mode_str = '%_Command%_';
@@ -102,25 +110,84 @@ sub vim_mode_cb {
 
 sub got_key {
     my ($key) = @_;
-    _key_buf_add($key);
-    if ($mode == 0) {
-        # we're in insert mode.
-        if ($key == 27) { # esc
 
-            $mode = 1;
-            _update_mode();
-            Irssi::signal_stop();
-            return;
-        }
+# goals:
 
-        return;
-    } else {
+# * all keys should work normally in insert mode (including Arrow keys)
+# * we should be able to reliably detect a single press of the esc key and
+#     switch to command mode
+# *
+
+# whenever we see an escape, we need to be sure it's not part of a
+# longer escape sequence (eg ^[[A for arrowkeys or whatever)
+
+# when we see an escape (27), we start a timer for a short period, and
+# capture all additional keystrokes into a buffer.
+
+# once the timer expires, we examine the buffer to see if it's a plain escape
+# (hopefully time is short enough that we don't get user-repeated keypresses)
+# or an escape sequence, which we can then parse and do whatever with.
+
+# issues:
+
+# do the buffered commands get evaluated? (ie: do we sig_stop them?)
+#
+    return if ($should_ignore);
+
+    if ($key == 27) {
+        print "Esc seen, starting buffer";
+        $key_buf_enabled = 1;
+        $key_buf_timer
+          = Irssi::timeout_add_once(10, \&handle_key_buffer, undef);
+    }
+
+    if ($key_buf_enabled) {
+        push @key_buf, $key;
+        _stop();
+    }
+
+    if ($mode == M_CMD) {
         # command mode
         handle_command($key);
     }
-    print "Keys: ", join ', ', @key_buf;
 }
 
+sub handle_key_buffer {
+
+    Irssi::timeout_remove($key_buf_timer);
+    $key_buf_timer = undef;
+    # see what we've collected.
+    print "Key buffer contains: ", join(", ", @key_buf);
+
+    if (@key_buf == 1 && $key_buf[0] == 27) {
+
+        print "Command Mode";
+        $mode = M_CMD;
+        _update_mode();
+
+    } else {
+        # we need to identify what we got, and either replay it
+        # or pass it off to the command handler.
+        if ($mode == M_CMD) {
+            # command
+            my $key_str = join '', map { chr $_ } @key_buf;
+            if ($key_str =~ m/^\e\[([ABCD])/) {
+                print "Arrow key: $1";
+            } else {
+                print "Dunno what that is."
+            }
+        } else {
+            $should_ignore = 1;
+            for my $key (@key_buf) {
+                Irssi::signal_emit('gui key pressed', $key);
+            }
+            $should_ignore = 0;
+        }
+    }
+
+    @key_buf = ();
+    $key_buf_enabled = 0;
+}
 
 sub handle_command {
     my ($key) = @_;
@@ -130,23 +197,13 @@ sub handle_command {
         print "Going to execute command: ", $cmd->{command};
         $cmd->{func}->( $cmd->{params} );
     } else {
-        # some error handling.
+        _stop(); # disable everything else
     }
 }
-
-
 
 
 Irssi::signal_add_first 'gui key pressed' => \&got_key;
 Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
-
-sub _key_buf_add {
-    my ($key) = @_;
-    push @key_buf, $key;
-    if (@key_buf > 5) {
-        shift @key_buf;
-    }
-}
 
 sub _input {
     my ($data) = @_;
