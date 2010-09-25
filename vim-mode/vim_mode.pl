@@ -508,7 +508,7 @@ sub handle_command {
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
             my $input = _input();
-            my $cmdchars = Irssi::parse_special('$K');
+            my $cmdchars = Irssi::settings_get_str('cmdkeys');
 
             my $signal;
             if ($input =~ /^[\Q$cmdchars\E]/) {
