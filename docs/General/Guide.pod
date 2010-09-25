@@ -112,9 +112,8 @@ All scripts should contain a header as follows:
         license     => 'Public Domain',
     );
 
-The first two lines should be used in B<all> perl scripts, not just Irssi. They
-provide far greater error checking and diagnostics should you make a mistake in your
-code.
+The first two lines are optional, but strongly advised. They provide far greater
+error checking and diagnostics should you make a mistake in your code.
 
 The C<use vars qw($VERSION %IRSSI)> defines two global variables, which are then
 set below to the appropriate values.
