@@ -285,6 +285,7 @@ sub got_key {
 
     return if ($should_ignore);
 
+    # Esc key
     if ($key == 27) {
         print "Esc seen, starting buffer" if DEBUG;
         $esc_buf_enabled = 1;
@@ -295,6 +296,7 @@ sub got_key {
         $esc_buf_timer
           = Irssi::timeout_add_once(10, \&handle_esc_buffer, undef);
 
+    # Ctrl-C
     } elsif ($key == 3 && $mode == M_INS) {
         $mode = M_CMD;
         _update_mode();
