@@ -102,6 +102,11 @@ my $operators
   = {
      'c' => { func => \&cmd_operator_c },
      'd' => { func => \&cmd_operator_d },
+     # char movement, works like an operator
+     'f' => { func => \&cmd_movement_f },
+     't' => { func => \&cmd_movement_t },
+     'F' => { func => \&cmd_movement_F },
+     'T' => { func => \&cmd_movement_T },
     };
 
 # vi-moves like w,b; they move the cursor and may get combined with an
@@ -171,6 +176,53 @@ sub cmd_movement_l {
     $pos += $count;
     $pos = $length if $pos > $length;
     _input_pos($pos);
+}
+
+sub cmd_movement_f {
+    my ($count, $pos, $char) = @_;
+
+    $pos = _next_occurrence(_input(), $char, $count, $pos);
+    if ($pos != -1) {
+        _input_pos($pos);
+    }
+}
+sub cmd_movement_t {
+    my ($count, $pos, $char) = @_;
+
+    $pos = _next_occurrence(_input(), $char, $count, $pos);
+    if ($pos != -1) {
+        _input_pos($pos - 1);
+    }
+}
+sub cmd_movement_F {
+    my ($count, $pos, $char) = @_;
+
+    my $input = reverse _input();
+    $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
+    if ($pos != -1) {
+        _input_pos(length($input) - $pos - 1);
+    }
+}
+sub cmd_movement_T {
+    my ($count, $pos, $char) = @_;
+
+    my $input = reverse _input();
+    $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
+    if ($pos != -1) {
+        _input_pos(length($input) - $pos - 1 + 1);
+    }
+}
+# Find $count-th next occurrence of $char.
+sub _next_occurrence {
+    my ($input, $char, $count, $pos) = @_;
+
+    while ($count-- > 0) {
+        $pos = index $input, $char, $pos + 1;
+        if ($pos == -1) {
+            return -1;
+        }
+    }
+    return $pos;
 }
 
 sub cmd_movement_w {
@@ -407,6 +459,16 @@ sub handle_command {
         if ($char =~ m/[1-9]/ || ($numeric_prefix && $char =~ m/[0-9]/)) {
             print "Processing numeric prefix: $char" if DEBUG;
             handle_numeric_prefix($char);
+
+        # Special case for f,t,F,T as they take an additional argument
+        } elsif ($operator and
+                 ($operator eq 'f' or $operator eq 't' or
+                  $operator eq 'F' or $operator eq 'T')) {
+            $numeric_prefix = 1 if not $numeric_prefix;
+            $operators->{$operator}->{func}
+                      ->($numeric_prefix, _input_pos(), $char);
+            $operator = undef;
+            $numeric_prefix = undef;
 
         } elsif (exists $operators->{$char}) {
             print "Processing operator: $char" if DEBUG;
