@@ -7,8 +7,8 @@
 # * cursor word motion with: w, b
 # * delete at cursor: x
 # * Insert mode at pos: i
-# * Insert mode at end: I
-# * insert mode at start: A
+# * Insert mode at start: I
+# * insert mode at end: A
 
 # Installation:
 #
@@ -69,6 +69,7 @@ my $should_ignore = 0;
 my $pending_command;
 
 # argument handling.
+
 my @args_buf;
 my $collecting_args = 0; # if we're actively collecting them.
 my $args_type = A_NON;   # what type of args (constants above)
@@ -107,13 +108,13 @@ my $commands
               params => {pos => sub { _input_pos() }},
             },
 
-     'I' => { command => 'insert at end',
+     'A' => { command => 'insert at end',
               func => \&cmd_insert,
               args => { type => A_NON },
               params => {pos => sub { _input_len() }},
             },
 
-     'A' => { command => 'insert at start',
+     'I' => { command => 'insert at start',
               func => \&cmd_insert,
               args => { type => A_NON },
               params => { pos => sub { 0 } },
@@ -144,6 +145,11 @@ my $commands
                           'pos' => sub { _input_pos() }
                         },
             },
+     'd' => { command => 'delete',
+              func => \&cmd_delete,
+              args => { type => A_NUM,  num => 1 },
+              params => { 'pos' => sub { _input_pos() } },
+            },
 
      'x' => { command => 'delete char forward',
               func => \&cmd_delete_char,
@@ -152,22 +158,61 @@ my $commands
                           'pos' => sub { _input_pos() }
                         },
             },
-     ':' => { command => 'search/replace',
-              func => \&cmd_replace,
+     ':' => { command => 'Ex command',
+              func => \&cmd_ex_command,
               args => { type => A_RET },
-              params => { 'dir' => 'fwd',
-                          'pos' => sub { _input_pos() }
-                        },
-            }
+              params => { 'pos' => sub { _input_pos() } },
+            },
     };
 
+
+sub cmd_delete {
+    my ($params) = @_;
+    my @args = @{$params->{args}};
+    my $arg = $args[0] // '';
+
+    if ($arg eq '$') { # end of line
+    } elsif ($arg eq '^') { #start of line
+    } else {
+        # dunno
+    }
+}
 sub cmd_replace {
     my ($params) = @_;
 }
 
-sub cmd_ex_mode {
+sub cmd_ex_command {
     my ($params) = @_;
-    _set_prompt(":");
+    my $args = $params->{arg_buf};
+    my $arg_str = join '', @$args;
+    if ($arg_str =~ m|s/(.+)/(.*)/([ig]*)|) {
+        my ($search, $replace, $flags) = ($1, $2, $3);
+        print "Searching for $search, replace: $replace, flags; $flags"
+          if DEBUG;
+
+        my $rep_fun = sub { $replace };
+
+        my $line = _input();
+        my @re_flags = split '', $flags // '';
+
+        if (scalar grep { $_ eq 'i' } @re_flags) {
+            $search = '(?i)' . $search;
+        }
+
+        print "Search is $search";
+
+        my $re_pattern = qr/$search/;
+
+        if (scalar grep { $_ eq 'g' } @re_flags) {
+            $line =~ s/$re_pattern/$rep_fun->()/eg;
+        } else {
+            print "Single replace: $replace";
+            $line =~ s/$re_pattern/$rep_fun->()/e;
+        }
+
+        print "New line is: $line";
+        _input($line);
+    }
 }
 
 sub cmd_delete_char {
@@ -219,7 +264,8 @@ sub cmd_move {
     } else {
         push @buf, 67;
     }
-    _emulate_keystrokes(@buf);
+    my $count = $params->{prefix} // 1;
+    _emulate_keystrokes(@buf) for 1..$count;
 }
 
 sub vim_mode_cb {
@@ -307,8 +353,15 @@ sub collect_args {
 
     print "Collecting arguments" if DEBUG;
 
+    if ($key == 127) { # DEL key - remove last argument
+        print "Delete" if DEBUG;
+        pop @args_buf;
+        _set_prompt(':' . join '', @args_buf);
+        return;
+    }
+
     if ($args_type == A_NUM) {
-        push @args_buf, $key;
+        push @args_buf, chr $key;
 
         print "numbered args, expect: $args_num, got: " .scalar(@args_buf)
           if DEBUG;
@@ -322,7 +375,8 @@ sub collect_args {
         if ($key == 10) {
             dispatch_command($pending_command, @args_buf);
         } else {
-            push @args_buf, $key;
+            push @args_buf, chr $key;
+            _set_prompt(':' . join '', @args_buf);
         }
     }
 }
@@ -389,6 +443,9 @@ sub handle_command {
 sub dispatch_command {
     my ($cmd, @args) = @_;
     $collecting_args = 0;
+    $pending_command = undef;
+    @args_buf = ();
+    _set_prompt('');
 
     if (defined $numeric_prefix) {
         $cmd->{params}->{prefix} = $numeric_prefix;
@@ -398,6 +455,8 @@ sub dispatch_command {
 
     print "Dispatchign command with args: " . join(", ", @args) if DEBUG;
     $cmd->{params}->{arg_buf} = \@args;
+
+    # actually call the function
     $cmd->{func}->($cmd->{params} );
 }
 
@@ -456,3 +515,6 @@ sub _set_prompt {
     $msg = ' ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg);
 }
+# TODO:
+# 10gg -> go to window 10 (prefix.gg -> win <prefix>)
+
