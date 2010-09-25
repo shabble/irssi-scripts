@@ -246,9 +246,7 @@ sub cmd_insert {
 
     _input_pos($pos);
 
-    $mode = M_INS;
-
-    _update_mode();
+    _update_mode(M_INS);
 
     _stop();
 }
@@ -298,8 +296,7 @@ sub got_key {
 
     # Ctrl-C
     } elsif ($key == 3 && $mode == M_INS) {
-        $mode = M_CMD;
-        _update_mode();
+        _update_mode(M_CMD);
         _stop();
         return;
     }
@@ -326,8 +323,7 @@ sub handle_esc_buffer {
     if (@esc_buf == 1 && $esc_buf[0] == 27) {
 
         print "Enter Command Mode" if DEBUG;
-        $mode = M_CMD;
-        _update_mode();
+        _update_mode(M_CMD);
 
     } else {
         # we need to identify what we got, and either replay it
@@ -507,7 +503,9 @@ sub _stop() {
     Irssi::signal_stop();
 }
 
-sub _update_mode() {
+sub _update_mode {
+    my ($new_mode) = @_;
+    $mode = $new_mode;
     Irssi::statusbar_items_redraw("vim_mode");
 }
 
