@@ -44,6 +44,9 @@ $VERSION = "1.0.1";
    changed         => "20/9/2010"
   );
 
+
+# CONSTANTS
+
 sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
@@ -51,6 +54,8 @@ sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
+
+# GLOBAL VARIABLES
 
 #  buffer to keep track of the last N keystrokes following an Esc character.
 my @esc_buf;
@@ -279,6 +284,7 @@ sub cmd_ex_command {
 }
 
 
+# vi mode status item.
 sub vim_mode_cb {
     my ($sb_item, $get_size_only) = @_;
     my $mode_str = '';
