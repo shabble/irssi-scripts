@@ -284,6 +284,8 @@ sub vim_mode_cb {
     my $mode_str = '';
     if ($mode == M_INS) {
         $mode_str = 'Insert';
+    } elsif ($mode == M_EX) {
+        $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
     }
