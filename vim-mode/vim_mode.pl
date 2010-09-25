@@ -504,6 +504,22 @@ sub handle_command {
         } elsif ($char eq ':') {
             _update_mode(M_EX);
             _set_prompt(':');
+
+        # Enter key sends the current input line in command mode as well.
+        } elsif ($key == 10) {
+            my $input = _input();
+            my $cmdchars = Irssi::parse_special('$K');
+
+            my $signal;
+            if ($input =~ /^[\Q$cmdchars\E]/) {
+                $signal = 'send command';
+            } else {
+                $signal = 'send text';
+            }
+            Irssi::signal_emit $signal, $input, Irssi::active_server(),
+                                                Irssi::active_win()->{active};
+            _input('');
+            _update_mode(M_INS);
         }
     }
 
