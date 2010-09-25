@@ -4,7 +4,7 @@
 #
 # * Insert/Command mode. Escape enter command mode.
 # * cursor motion with: h, l
-# * cursor word motion with: w, b
+# * cursor word motion with: w, b, e
 # * delete at cursor: x
 # * Insert mode at pos: i
 # * Insert mode at start: I
@@ -47,11 +47,6 @@ $VERSION = "1.0.1";
 sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
-sub A_NUM() { 0 } # expects a specific number of args
-sub A_RET() { 1 } # expects a return to indicate end of args.
-sub A_NON() { 2 } # expects zero args.
-# TODO: do we need a A_FUN that calls a function to check if we've got all of them?
-
 sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
@@ -66,17 +61,14 @@ my $esc_buf_enabled = 0;
 # flag to allow us to emulate keystrokes without re-intercepting them
 my $should_ignore = 0;
 
-my $pending_command;
-
-# argument handling.
-
-my @args_buf;
-my $collecting_args = 0; # if we're actively collecting them.
-my $args_type = A_NON;   # what type of args (constants above)
-my $args_num = 0;        # how many args we expect
+# ex mode buffer
+my @ex_buf;
 
 # for commands like 10x
 my $numeric_prefix = undef;
+
+# vi operators like d, c, ..
+my $operator = undef;
 
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
@@ -100,91 +92,162 @@ unless (script_is_loaded('prompt_info')) {
 }
 
 
-my $commands
+# vi-operators like d, c; they don't move the cursor
+my $operators
   = {
-     'i' => { command => 'insert at cur',
-              func => \&cmd_insert,
-              args => { type => A_NON },
-              params => {pos => sub { _input_pos() }},
-            },
-
-     'A' => { command => 'insert at end',
-              func => \&cmd_insert,
-              args => { type => A_NON },
-              params => {pos => sub { _input_len() }},
-            },
-
-     'I' => { command => 'insert at start',
-              func => \&cmd_insert,
-              args => { type => A_NON },
-              params => { pos => sub { 0 } },
-            },
-
-     'h' => { command => 'move left',
-              func => \&cmd_move,
-              args => { type => A_NON },
-              params => { 'dir' => 'left' },
-            },
-     'l' => { command => 'move right',
-              func => \&cmd_move,
-              args => { type => A_NON },
-              params => { 'dir' => 'right' },
-            },
-
-     'w' => { command => 'move forward word',
-              func => \&cmd_jump_word,
-              args => { type => A_NON },
-              params => { 'dir' => 'fwd',
-                          'pos' => sub { _input_pos() }
-                        },
-            },
-     'b' => { command => 'move backward word',
-              func => \&cmd_jump_word,
-              args => { type => A_NON },
-              params => { 'dir' => 'back',
-                          'pos' => sub { _input_pos() }
-                        },
-            },
-     'd' => { command => 'delete',
-              func => \&cmd_delete,
-              args => { type => A_NUM,  num => 1 },
-              params => { 'pos' => sub { _input_pos() } },
-            },
-
-     'x' => { command => 'delete char forward',
-              func => \&cmd_delete_char,
-              args => { type => A_NON },
-              params => { 'dir' => 'fwd',
-                          'pos' => sub { _input_pos() }
-                        },
-            },
-     ':' => { command => 'Ex command',
-              func => \&cmd_ex_command,
-              args => { type => A_RET },
-              params => { 'pos' => sub { _input_pos() } },
-            },
+     'c' => { func => \&cmd_operator_c },
+     'd' => { func => \&cmd_operator_d },
     };
 
+# vi-moves like w,b; they move the cursor and may get combined with an
+# operator; also things like i/I are listed here, not entirely correct but
+# they work in a similar way
+my $movements
+  = {
+     # arrow like movement
+     'h' => { func => \&cmd_movement_h },
+     'l' => { func => \&cmd_movement_l },
+     #'j' => { func => \&cmd_movement_j },
+     #'k' => { func => \&cmd_movement_k },
+     # word movement
+     'w' => { func => \&cmd_movement_w },
+     'b' => { func => \&cmd_movement_b },
+     'e' => { func => \&cmd_movement_e },
+     # line movement
+     '0' => { func => \&cmd_movement_0 },
+     '$' => { func => \&cmd_movement_dollar },
+     # delete chars
+     'x' => { func => \&cmd_movement_x },
+     # insert mode
+     'i' => { func => \&cmd_movement_i },
+     'I' => { func => \&cmd_movement_I },
+     'A' => { func => \&cmd_movement_A },
+    };
 
-sub cmd_delete {
-    my ($params) = @_;
-    my @args = @{$params->{args}};
-    my $arg = $args[0] // '';
+sub cmd_operator_c {
+    my ($old_pos, $new_pos) = @_;
 
-    if ($arg eq '$') { # end of line
-    } elsif ($arg eq '^') { #start of line
+    cmd_operator_d($old_pos, $new_pos);
+    _update_mode(M_INS);
+}
+
+sub cmd_operator_d {
+    my ($old_pos, $new_pos) = @_;
+
+    my $length = $new_pos - $old_pos;
+    # We need a positive length and $old_pos must be smaller.
+    if ($length < 0) {
+        my $tmp = $old_pos;
+        $old_pos = $new_pos;
+        $new_pos = $tmp;
+        $length *= -1;
+    }
+
+    # Remove the selected string from the input.
+    my $input = _input();
+    substr $input, $old_pos, $length, '';
+    _input($input);
+
+    # Move the cursor at the right position.
+    _input_pos($old_pos);
+}
+
+sub cmd_movement_h {
+    my ($count, $pos) = @_;
+
+    $pos -= $count;
+    $pos = 0 if $pos < 0;
+    _input_pos($pos);
+}
+sub cmd_movement_l {
+    my ($count, $pos) = @_;
+
+    my $length = _input_len();
+    $pos += $count;
+    $pos = $length if $pos > $length;
+    _input_pos($pos);
+}
+
+sub cmd_movement_w {
+    my ($count, $pos) = @_;
+
+    my $input = _input();
+    while ($count-- > 0) {
+        $pos = index $input, ' ', $pos + 1;
+        if ($pos == -1) {
+            return cmd_movement_dollar();
+        }
+        $pos++;
+    }
+    _input_pos($pos);
+}
+sub cmd_movement_b {
+    my ($count, $pos) = @_;
+
+    my $input = reverse _input();
+    $pos = _end_of_word($input, $count, length($input) - $pos - 1);
+    if ($pos == -1) {
+        cmd_movement_0();
     } else {
-        # dunno
+        _input_pos(length($input) - $pos - 1);
     }
 }
-sub cmd_replace {
-    my ($params) = @_;
+sub cmd_movement_e {
+    my ($count, $pos) = @_;
+
+    $pos = _end_of_word(_input(), $count, $pos);
+    if ($pos == -1) {
+        cmd_movement_dollar();
+    } else {
+        _input_pos($pos);
+    }
+}
+# Go to the end of $count-th word, like vi's e.
+sub _end_of_word {
+    my ($input, $count, $pos) = @_;
+
+    # We are already at the end of one a word, ignore the following space so
+    # we can skip over it.
+    if (index $input, ' ', $pos + 1 == $pos + 1) {
+        $pos++;
+    }
+
+    while ($count-- > 0) {
+        $pos = index $input, ' ', $pos + 1;
+        if ($pos == -1) {
+            return -1;
+        }
+    }
+    return $pos - 1;
+}
+
+sub cmd_movement_0 {
+    _input_pos(0);
+}
+sub cmd_movement_dollar {
+    _input_pos(_input_len());
+}
+
+sub cmd_movement_x {
+    my ($count, $pos) = @_;
+
+    cmd_operator_d($pos, $pos + $count);
+}
+
+sub cmd_movement_i {
+    _update_mode(M_INS);
+}
+sub cmd_movement_I {
+    cmd_movement_0();
+    _update_mode(M_INS);
+}
+sub cmd_movement_A {
+    cmd_movement_dollar();
+    _update_mode(M_INS);
 }
 
 sub cmd_ex_command {
-    my ($params) = @_;
-    my $args = $params->{arg_buf};
-    my $arg_str = join '', @$args;
+    my $arg_str = join '', @ex_buf;
     if ($arg_str =~ m|s/(.+)/(.*)/([ig]*)|) {
         my ($search, $replace, $flags) = ($1, $2, $3);
         print "Searching for $search, replace: $replace, flags; $flags"
@@ -215,56 +278,6 @@ sub cmd_ex_command {
     }
 }
 
-sub cmd_delete_char {
-    my ($params) = @_;
-    my $pos = $params->{pos}->();
-    my $direction = $params->{dir};
-    print "Sending keystrokes for delete-char" if DEBUG;
-    _stop();
-    my @buf = (4);
-    _emulate_keystrokes(@buf);
-
-}
-
-sub cmd_jump_word {
-    my ($params) = @_;
-    my $pos = $params->{pos}->();
-    my $direction = $params->{dir};
-    _stop();
-    my @buf;
-    if ($direction eq 'fwd') {
-        push @buf, (27, 102);
-    } else {
-        push @buf, (27, 98);
-    }
-    _emulate_keystrokes(@buf);
-}
-
-sub cmd_insert {
-    my ($params) = @_;
-    my $pos = $params->{pos}->();
-
-    _input_pos($pos);
-
-    _update_mode(M_INS);
-
-    _stop();
-}
-
-sub cmd_move {
-    my ($params) = @_;
-    my $dir = $params->{dir};
-    my $current_pos = _input_pos();
-    _stop();
-    my @buf = (27, 91);
-    if ($dir eq 'left') {
-        push @buf, 68;
-    } else {
-        push @buf, 67;
-    }
-    my $count = $params->{prefix} // 1;
-    _emulate_keystrokes(@buf) for 1..$count;
-}
 
 sub vim_mode_cb {
     my ($sb_item, $get_size_only) = @_;
@@ -307,8 +320,7 @@ sub got_key {
         return;
     }
 
-    if ($mode == M_CMD) {
-        # command mode
+    if ($mode == M_CMD || $mode == M_EX) {
         handle_command($key);
     }
 }
@@ -346,39 +358,6 @@ sub handle_esc_buffer {
     $esc_buf_enabled = 0;
 }
 
-sub collect_args {
-    my $key = shift;
-
-    print "Collecting arguments" if DEBUG;
-
-    if ($key == 127) { # DEL key - remove last argument
-        print "Delete" if DEBUG;
-        pop @args_buf;
-        _set_prompt(':' . join '', @args_buf);
-        return;
-    }
-
-    if ($args_type == A_NUM) {
-        push @args_buf, chr $key;
-
-        print "numbered args, expect: $args_num, got: " .scalar(@args_buf)
-          if DEBUG;
-
-        if (scalar @args_buf == $args_num) {
-            dispatch_command($pending_command, @args_buf);
-        }
-    } elsif ($args_type == A_RET) {
-        print "ret terminated args. Key is $key" if DEBUG;
-
-        if ($key == 10) {
-            dispatch_command($pending_command, @args_buf);
-        } else {
-            push @args_buf, chr $key;
-            _set_prompt(':' . join '', @args_buf);
-        }
-    }
-}
-
 sub handle_numeric_prefix {
     my ($char) = @_;
     my $num = 0+$char;
@@ -394,68 +373,71 @@ sub handle_numeric_prefix {
 sub handle_command {
     my ($key) = @_;
 
-    if ($collecting_args) {
+    if ($mode == M_EX) {
+        # DEL key - remove last character
+        if ($key == 127) {
+            print "Delete" if DEBUG;
+            pop @ex_buf;
+            _set_prompt(':' . join '', @ex_buf);
 
-        collect_args($key);
-        _stop();
+        # Return key - execute command
+        } elsif ($key == 10) {
+            print "Run ex-mode command" if DEBUG;
+            cmd_ex_command();
+            _set_prompt('');
+            @ex_buf = ();
+            _update_mode(M_CMD);
+
+        # Append entered key
+        } else {
+            push @ex_buf, chr $key;
+            _set_prompt(':' . join '', @ex_buf);
+        }
 
     } else {
         my $char = chr($key);
-        if ($char =~ m/[0-9]/) {
+        if ($char =~ m/[1-9]/ || ($numeric_prefix && $char =~ m/[0-9]/)) {
             print "Processing numeric prefix: $char" if DEBUG;
             handle_numeric_prefix($char);
-            _stop();
-        } else {
-            print "Processing new command: $char" if DEBUG;
-            if (exists $commands->{$char}) {
 
-                my $cmd = $commands->{$char};
-                $args_type = $cmd->{args}->{type};
+        } elsif (exists $operators->{$char}) {
+            print "Processing operator: $char" if DEBUG;
 
-                if ($args_type == A_NON) {
-
-                    # we can dispatch straight away
-                    $pending_command = undef;
-                    dispatch_command($cmd);
-
-                } elsif ($args_type == A_NUM) {
-
-                    @args_buf = ();
-                    $args_num = $cmd->{args}->{num};
-                    $collecting_args = 1;
-                    $pending_command = $commands->{$char};
-                    _stop();
-                } elsif ($args_type == A_RET) {
-
-                    $collecting_args = 1;
-                    $pending_command = $commands->{$char};
-                    _stop();
-                }
+            # Abort operator if we already have one pending.
+            if ($operator) {
+                $operator = undef;
+            # Set new operator.
             } else {
-                _stop(); # disable everything else
+                $operator = $char;
             }
+
+        } elsif (exists $movements->{$char}) {
+            print "Processing movement command: $char" if DEBUG;
+
+            $numeric_prefix = 1 if not $numeric_prefix;
+
+            # Execute the movement (multiple times).
+            my $cur_pos = _input_pos();
+            $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+            my $new_pos = _input_pos();
+
+            # If we have an operator pending then run it on the handled text.
+            if ($operator) {
+                print "Processing operator: ", $operator if DEBUG;
+                $operators->{$operator}->{func}->($cur_pos, $new_pos);
+                $operator = undef;
+            }
+
+            $numeric_prefix = undef;
+
+        # Start Ex mode.
+        } elsif ($char eq ':') {
+            _update_mode(M_EX);
+            _set_prompt(':');
         }
     }
-}
 
-sub dispatch_command {
-    my ($cmd, @args) = @_;
-    $collecting_args = 0;
-    $pending_command = undef;
-    @args_buf = ();
-    _set_prompt('');
-
-    if (defined $numeric_prefix) {
-        $cmd->{params}->{prefix} = $numeric_prefix;
-        print "Commadn has numeric prefix: $numeric_prefix" if DEBUG;
-        $numeric_prefix = undef;
-    }
-
-    print "Dispatchign command with args: " . join(", ", @args) if DEBUG;
-    $cmd->{params}->{arg_buf} = \@args;
-
-    # actually call the function
-    $cmd->{func}->($cmd->{params} );
+    _stop();
 }
 
 sub vim_mode_init {
