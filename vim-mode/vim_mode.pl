@@ -6,6 +6,7 @@
 # * cursor motion with: h, l
 # * history motion with j,k (only supported on Irssi versions > 0.8.13)
 # * cursor word motion with: w, b, e
+# * change/delete: c d
 # * delete at cursor: x
 # * Insert mode at pos: i, a
 # * Insert mode at start: I
@@ -13,19 +14,18 @@
 # * yank and paste: y p P
 # * switch case: ~
 # * repeat change: .
+# * change/change/yank line: cc dd yy
 # * Combinations like in Vi, e.g. d5fx
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
 # * C,D = c$, d$,
 # * S = 0c$
-# * make 'dd' work.
 # * ^ (first non-whitespace on line)
 # * Fix I = ^i
 # * u = undo (how many levels, branching?!) redo?
 # * use irssi settings for some of the features (esp. debug)
 # * history movement should keep track of the 'active' input line and restore it
-# * make 'yy' work.
 
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
@@ -678,7 +678,19 @@ sub handle_command {
 
             # Abort operator if we already have one pending.
             if ($operator) {
+                # But allow cc/dd/yy.
+                if ($operator eq $char) {
+                    print "Processing operator: ", $operator, $char if DEBUG;
+                    my $pos = _input_pos();
+                    $operators->{$operator}->{func}->(0, _input_len(), '');
+                    # Restore position for yy.
+                    if ($char eq 'y') {
+                        _input_pos($pos);
+                    }
+                }
+                $numeric_prefix = undef;
                 $operator = undef;
+                $movement = undef;
             # Set new operator.
             } else {
                 $operator = $char;
