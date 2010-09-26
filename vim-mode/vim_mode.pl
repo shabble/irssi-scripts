@@ -14,6 +14,10 @@
 # * switch case: ~
 # * repeat change: .
 # * Combinations like in Vi, e.g. d5fx
+#
+# Known bugs:
+# * count with insert mode: 3iabc<esc> doesn't work
+# * repeat insert mode: iabc<esc>. only enters insert mode
 
 # Installation:
 #
