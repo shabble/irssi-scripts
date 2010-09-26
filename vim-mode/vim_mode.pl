@@ -604,11 +604,17 @@ sub got_key {
         $esc_buf_timer
           = Irssi::timeout_add_once(10, \&handle_esc_buffer, undef);
 
-    # Ctrl-C
-    } elsif ($key == 3 && $mode == M_INS) {
-        _update_mode(M_CMD);
-        _stop();
-        return;
+    } elsif ($mode == M_INS) {
+        if ($key == 3) { # Ctrl-C enter command mode
+            _update_mode(M_CMD);
+            _stop();
+            return;
+        } elsif ($key == 10) { # enter.
+            _commit_line(_input());
+            @undo_buffer = ();
+            $undo_index = undef;
+            _stop();
+        }
     }
 
     if ($esc_buf_enabled) {
@@ -811,22 +817,7 @@ sub handle_command {
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
-            my $input = _input();
-            my $cmdchars = Irssi::settings_get_str('cmdchars');
-
-            my $signal;
-            if ($input =~ /^[\Q$cmdchars\E]/) {
-                $signal = 'send command';
-            } else {
-                $signal = 'send text';
-            }
-            # TODO: don't try to send this signal unless server and win are
-            # defined (At least for 'send text' signals. There's no reason
-            # to send text to an empty window anyway(?)
-            Irssi::signal_emit $signal, $input, Irssi::active_server(),
-                                                Irssi::active_win()->{active};
-            _input('');
-            _update_mode(M_INS);
+            _commit_line(_input());
         }
     }
 
@@ -838,6 +829,28 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
 }
 
+sub _commit_line {
+    my ($line) = @_;
+
+    my $cmdchars = Irssi::settings_get_str('cmdchars');
+
+    my $signal;
+    if ($line =~ /^[\Q$cmdchars\E]/) {
+        $signal = 'send command';
+    } else {
+        $signal = 'send text';
+    }
+
+    print "Committing line as $signal" if DEBUG;
+
+    # TODO: don't try to send this signal unless server and win are
+    # defined (At least for 'send text' signals. There's no reason
+    # to send text to an empty window anyway(?)
+    Irssi::signal_emit $signal, $line, Irssi::active_server(),
+        Irssi::active_win()->{active};
+    _input('');
+    _update_mode(M_INS);
+}
 
 sub _input {
     my ($data) = @_;
