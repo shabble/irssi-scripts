@@ -73,12 +73,18 @@ my @ex_buf;
 
 # for commands like 10x
 my $numeric_prefix = undef;
-
 # vi operators like d, c, ..
 my $operator = undef;
-
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
+# last vi command, used by .
+my $last
+  = {
+     'char' => undef,
+     'numeric_prefix' => undef,
+     'operator' => undef,
+     'movement' => undef
+    };
 
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
@@ -155,6 +161,7 @@ my $movements
      'P' => { func => \&cmd_movement_P },
      # misc
      '~' => { func => \&cmd_movement_tilde },
+     '.' => {},
     };
 
 # special movements which take an additional key
@@ -651,6 +658,16 @@ sub handle_command {
         } elsif ($movement || exists $movements->{$char}) {
             print "Processing movement command: $char" if DEBUG;
 
+            # . repeats the last command.
+            if ($char eq '.' and !$movement and defined $last->{char}) {
+                $char = $last->{char};
+                $numeric_prefix = $last->{numeric_prefix};
+                $operator = $last->{operator};
+                $movement = $last->{movement};
+                print "Repeating: $numeric_prefix$operator$char ($movement)"
+                    if DEBUG;
+            }
+
             $numeric_prefix = 1 if not $numeric_prefix;
 
             # Execute the movement (multiple times).
@@ -672,10 +689,16 @@ sub handle_command {
             if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator if DEBUG;
                 $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
-                $operator = undef;
             }
 
+            # Store command, necessary for .
+            $last->{char} = $char;
+            $last->{numeric_prefix} = $numeric_prefix;
+            $last->{operator} = $operator;
+            $last->{movement} = $movement;
+
             $numeric_prefix = undef;
+            $operator = undef;
             $movement = undef;
 
         # Start Ex mode.
