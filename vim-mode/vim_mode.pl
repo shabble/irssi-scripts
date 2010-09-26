@@ -2,13 +2,14 @@
 #
 # Currently supported features:
 #
-# * Insert/Command mode. Escape enter command mode.
-# * cursor motion with: h, l
+# * Insert/Command mode. Escape enters command mode.
+# * cursor motion with: h, l, j, k
 # * cursor word motion with: w, b, e
 # * delete at cursor: x
 # * Insert mode at pos: i, a
 # * Insert mode at start: I
 # * insert mode at end: A
+# * Combinations like in Vi, e.g. d5fx
 
 # Installation:
 #
