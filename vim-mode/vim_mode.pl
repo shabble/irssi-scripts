@@ -702,34 +702,37 @@ sub handle_command {
                 $movement = $last->{movement};
             }
 
-            $numeric_prefix = 1 if not $numeric_prefix;
+            if (1) {
+                $numeric_prefix = 1 if not $numeric_prefix;
 
-            # Execute the movement (multiple times).
-            my $cur_pos = _input_pos();
-            if (not $movement) {
-                $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
-            } else {
-                # Use the real movement command (like t or f) for operator
-                # below.
-                $char = substr $movement, 0, 1;
-                $movements->{$char}->{func}
-                          ->($numeric_prefix, $cur_pos, substr $movement, 1);
+                # Execute the movement (multiple times).
+                my $cur_pos = _input_pos();
+                if (not $movement) {
+                    $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+                } else {
+                    # Use the real movement command (like t or f) for operator
+                    # below.
+                    $char = substr $movement, 0, 1;
+                    $movements->{$char}->{func}
+                              ->($numeric_prefix, $cur_pos, substr $movement, 1);
+                }
+                my $new_pos = _input_pos();
+
+                # If we have an operator pending then run it on the handled
+                # text. But only if the movement changed the position (this
+                # prevents problems with e.g. f when the search string doesn't
+                # exist).
+                if ($operator and $cur_pos != $new_pos) {
+                    print "Processing operator: ", $operator if DEBUG;
+                    $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
+                }
+
+                # Store command, necessary for .
+                $last->{char} = $char;
+                $last->{numeric_prefix} = $numeric_prefix;
+                $last->{operator} = $operator;
+                $last->{movement} = $movement;
             }
-            my $new_pos = _input_pos();
-
-            # If we have an operator pending then run it on the handled text.
-            # But only if the movement changed the position (this prevents
-            # problems with e.g. f when the search string doesn't exist).
-            if ($operator and $cur_pos != $new_pos) {
-                print "Processing operator: ", $operator if DEBUG;
-                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
-            }
-
-            # Store command, necessary for .
-            $last->{char} = $char;
-            $last->{numeric_prefix} = $numeric_prefix;
-            $last->{operator} = $operator;
-            $last->{movement} = $movement;
 
             $numeric_prefix = undef;
             $operator = undef;
