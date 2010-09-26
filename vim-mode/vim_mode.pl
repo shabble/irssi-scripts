@@ -3,7 +3,8 @@
 # Currently supported features:
 #
 # * Insert/Command mode. Escape enters command mode.
-# * cursor motion with: h, l, j, k
+# * cursor motion with: h, l
+# * history motion with j,k (only supported on Irssi versions > 0.8.13)
 # * cursor word motion with: w, b, e
 # * delete at cursor: x
 # * Insert mode at pos: i, a
@@ -231,6 +232,7 @@ sub cmd_movement_l {
 sub cmd_movement_j {
     my ($count, $pos) = @_;
 
+    return unless Irssi::version > 20090117;
     my @history = Irssi::active_win->get_history_lines();
 
     if (defined $history_index) {
@@ -253,6 +255,7 @@ sub cmd_movement_j {
 sub cmd_movement_k {
     my ($count, $pos) = @_;
 
+    return unless Irssi::version > 20090117;
     my @history = Irssi::active_win->get_history_lines();
 
     if (defined $history_index) {
