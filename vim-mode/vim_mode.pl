@@ -198,7 +198,7 @@ sub cmd_movement_j {
         _input('');
         _input_pos(0);
         $history_index = $#history + 1;
-    } else {
+    } elsif ($history_index >= 0) {
         _input($history[$history_index]);
         _input_pos(0);
     }
@@ -217,8 +217,10 @@ sub cmd_movement_k {
         $history_index = $#history;
     }
     print "History Index: $history_index" if DEBUG;
-    _input($history[$history_index]);
-    _input_pos(0);
+    if ($history_index >= 0) {
+        _input($history[$history_index]);
+        _input_pos(0);
+    }
 }
 
 sub cmd_movement_h {
