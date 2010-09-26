@@ -19,7 +19,6 @@
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
-# * S = 0c$
 # * ^ (first non-whitespace on line)
 # * Fix I = ^i
 # * u = undo (how many levels, branching?!) redo?
@@ -681,6 +680,13 @@ sub handle_command {
         # argument.
         if ($movement) {
             $movement .= $char;
+        }
+
+        # S is an alias for cc.
+        if (!$movement and !$operator and $char eq 'S') {
+            print "Changing S to cc" if DEBUG;
+            $char = 'c';
+            $operator = 'c';
         }
 
         if (!$movement && ($char =~ m/[1-9]/ ||
