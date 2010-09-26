@@ -202,8 +202,9 @@ sub cmd_operator_d {
 
     # Remove the selected string from the input.
     my $input = _input();
-    substr $input, $pos, $length, '';
+    $registers->{'"'} = substr $input, $pos, $length, '';
     _input($input);
+    print "Deleted: " . $registers->{'"'} if DEBUG;
 
     # Move the cursor at the right position.
     _input_pos($pos);
@@ -215,9 +216,8 @@ sub cmd_operator_y {
 
     # Extract the selected string and put it in the " register.
     my $input = _input();
-    my $string = substr $input, $pos, $length;
-    $registers->{'"'} = $string;
-    print "Yanked: $string" if DEBUG;
+    $registers->{'"'} = substr $input, $pos, $length;
+    print "Yanked: " . $registers->{'"'} if DEBUG;
 
     _input_pos($old_pos);
 }
