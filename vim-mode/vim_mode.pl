@@ -3,12 +3,12 @@
 # Currently supported features:
 #
 # * Insert/Command mode. Escape enters command mode.
-# * cursor motion with: h, l
-# * history motion with j,k (only supported on Irssi versions > 0.8.13)
-# * cursor word motion with: w, b, e
+# * cursor motion with: h l 0 ^ $
+# * history motion with j k
+# * cursor word motion with: w b e W B E
 # * change/delete: c d C D
 # * delete at cursor: x
-# * Insert mode at pos: i, a
+# * Insert mode at pos: i a
 # * Insert mode at start: I
 # * insert mode at end: A
 # * yank and paste: y p P
@@ -19,8 +19,6 @@
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
-# * ^ (first non-whitespace on line)
-# * Fix I = ^i
 # * u = undo (how many levels, branching?!) redo?
 # * use irssi settings for some of the features (esp. debug)
 # * history movement should keep track of the 'active' input line and restore it
@@ -76,7 +74,7 @@ sub M_EX () { 2 } # extended mode (after a :?)
 
 # GLOBAL VARIABLES
 
-#  buffer to keep track of the last N keystrokes following an Esc character.
+# buffer to keep track of the last N keystrokes following an Esc character.
 my @esc_buf;
 my $esc_buf_timer;
 my $esc_buf_enabled = 0;
