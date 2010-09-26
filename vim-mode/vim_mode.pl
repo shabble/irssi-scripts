@@ -14,7 +14,7 @@
 # * yank and paste: y p P
 # * switch case: ~
 # * repeat change: .
-# * change/change/yank line: cc dd yy
+# * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
 #
 # TODO:
