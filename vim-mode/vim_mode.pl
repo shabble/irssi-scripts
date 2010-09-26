@@ -119,6 +119,10 @@ my $history_input = undef;
 # position in input line
 my $history_pos = 0;
 
+# Undo/redo buffer.
+my @undo_buffer;
+my $undo_index = undef;
+
 sub script_is_loaded {
     my $name = shift;
     print "Checking if $name is loaded" if DEBUG;
@@ -184,6 +188,10 @@ my $movements
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
+     # undo
+     'u'    => { func => \&cmd_undo },
+     "\x12" => { func => \&cmd_redo },
+
     };
 
 # special movements which take an additional key
@@ -194,6 +202,15 @@ my $movements_multiple =
      'F' => undef,
      'T' => undef,
     };
+
+
+sub cmd_undo {
+    print "Undo!" if DEBUG;
+}
+
+sub cmd_redo {
+    print "Redo!" if DEBUG;
+}
 
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move) = @_;
