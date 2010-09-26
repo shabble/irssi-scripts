@@ -211,6 +211,21 @@ sub _get_pos_and_length {
 }
 
 
+sub cmd_movement_h {
+    my ($count, $pos) = @_;
+
+    $pos -= $count;
+    $pos = 0 if $pos < 0;
+    _input_pos($pos);
+}
+sub cmd_movement_l {
+    my ($count, $pos) = @_;
+
+    my $length = _input_len();
+    $pos += $count;
+    $pos = $length if $pos > $length;
+    _input_pos($pos);
+}
 # later history (down)
 sub cmd_movement_j {
     my ($count, $pos) = @_;
@@ -233,7 +248,6 @@ sub cmd_movement_j {
         _input_pos(0);
     }
 }
-
 # earlier history (up)
 sub cmd_movement_k {
     my ($count, $pos) = @_;
@@ -251,22 +265,6 @@ sub cmd_movement_k {
         _input($history[$history_index]);
         _input_pos(0);
     }
-}
-
-sub cmd_movement_h {
-    my ($count, $pos) = @_;
-
-    $pos -= $count;
-    $pos = 0 if $pos < 0;
-    _input_pos($pos);
-}
-sub cmd_movement_l {
-    my ($count, $pos) = @_;
-
-    my $length = _input_len();
-    $pos += $count;
-    $pos = $length if $pos > $length;
-    _input_pos($pos);
 }
 
 sub cmd_movement_f {
