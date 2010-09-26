@@ -430,7 +430,13 @@ sub _paste_at_position {
     my $string = $registers->{'"'} x $count;
 
     my $input = _input();
-    substr($input, $pos, 0) = $string;
+    # Check if we are not at the end of the line to prevent substr outside of
+    # string error.
+    if (length $input > $pos) {
+        substr($input, $pos, 0) = $string;
+    } else {
+        $input .= $string;
+    }
     _input($input);
 
     _input_pos($pos - 1 + length $string);
