@@ -59,7 +59,6 @@ sub M_EX () { 2 } # extended mode (after a :?)
 
 #  buffer to keep track of the last N keystrokes following an Esc character.
 my @esc_buf;
-my $esc_buf_idx = 0;
 my $esc_buf_timer;
 my $esc_buf_enabled = 0;
 
@@ -441,7 +440,7 @@ sub got_key {
     }
 
     if ($esc_buf_enabled) {
-        $esc_buf[$esc_buf_idx++] = $key;
+        push @esc_buf, $key;
         _stop();
         return;
     }
@@ -480,7 +479,6 @@ sub handle_esc_buffer {
     }
 
     @esc_buf = ();
-    $esc_buf_idx = 0;
     $esc_buf_enabled = 0;
 }
 
