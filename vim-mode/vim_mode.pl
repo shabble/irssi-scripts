@@ -73,6 +73,10 @@ sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
+# word and non-word regex
+my $word     = '[a-zA-Z0-9_]';
+my $non_word = '[^a-zA-Z0-9_\s]';
+
 
 # GLOBAL VARIABLES
 
@@ -396,15 +400,65 @@ sub _next_occurrence {
 
 sub cmd_movement_w {
     my ($count, $pos) = @_;
-    cmd_movement_W($count, $pos);
+
+    my $input = _input();
+    while ($count-- > 0) {
+        # Go to end of next word/non-word.
+        if (substr($input, $pos) =~ /^$word+/ or
+            substr($input, $pos) =~ /^$non_word+/) {
+            $pos += $+[0];
+        }
+        # And skip over any whitespace if necessary. This also happens when
+        # we're inside whitespace.
+        if (substr($input, $pos) =~ /^\s+/) {
+            $pos += $+[0];
+        }
+    }
+
+    _input_pos($pos);
 }
 sub cmd_movement_b {
     my ($count, $pos) = @_;
-    cmd_movement_B($count, $pos);
+
+    my $input = reverse _input();
+    $pos = length($input) - $pos - 1;
+    $pos = 0 if ($pos < 0);
+
+    $pos = _end_of_word($input, $count, $pos);
+    _input_pos(length($input) - $pos - 1);
 }
 sub cmd_movement_e {
     my ($count, $pos) = @_;
-    cmd_movement_E($count, $pos);
+
+    $pos = _end_of_word(_input(), $count, $pos);
+    _input_pos($pos);
+}
+# Go to the end of $count-th word, like vi's e.
+sub _end_of_word {
+    my ($input, $count, $pos) = @_;
+
+    while ($count-- > 0) {
+        my $skipped = 0;
+        # Skip over whitespace if in the middle of it or directly after the
+        # current word/non-word.
+        if (substr($input, $pos + 1) =~ /^\s+/) {
+            $pos += $+[0] + 1;
+            $skipped = 1;
+        }
+        # We are inside a word/non-word, skip to the end of it.
+        if (substr($input, $pos) =~ /^$word{2,}/ or
+            substr($input, $pos) =~ /^$non_word{2,}/) {
+            $pos += $+[0] - 1;
+        # We are the border of word/non-word. Skip to the end of the next one.
+        # But not if we've already jumped over whitespace because there could
+        # be only one word/non-word char after the whitespace.
+        } elsif (!$skipped and (substr($input, $pos) =~ /^$word($non_word+)/ or
+                                substr($input, $pos) =~ /^$non_word($word+)/)) {
+            $pos += $+[0] - 1;
+        }
+    }
+
+    return $pos;
 }
 sub cmd_movement_W {
     my ($count, $pos) = @_;
@@ -439,13 +493,13 @@ sub cmd_movement_E {
         _input_pos($pos);
     }
 }
-# Go to the end of $count-th word, like vi's e.
+# Go to the end of $count-th WORD, like vi's e.
 sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
 
     return $pos if $pos >= length($input);
 
-    # We are inside a word, skip to the end of it.
+    # We are inside a WORD, skip to the end of it.
     if (substr($input, $pos + 1) =~ /^\S+(\s)/) {
         $pos += $-[1];
         $count--;
