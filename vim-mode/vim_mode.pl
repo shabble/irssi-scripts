@@ -410,12 +410,11 @@ sub cmd_movement_W {
     my ($count, $pos) = @_;
 
     my $input = _input();
-    while ($count-- > 0) {
-        $pos = index $input, ' ', $pos + 1;
-        if ($pos == -1) {
+    while ($count-- > 0 and length($input) > $pos) {
+        if (substr($input, $pos + 1) !~ /\s+/) {
             return cmd_movement_dollar();
         }
-        $pos++;
+        $pos += $+[0] + 1;
     }
     _input_pos($pos);
 }
@@ -444,19 +443,19 @@ sub cmd_movement_E {
 sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
 
-    # We are already at the end of one a word, ignore the following space so
-    # we can skip over it.
-    if (index $input, ' ', $pos + 1 == $pos + 1) {
-        $pos++;
+    # We are inside a word, skip to the end of it.
+    if (substr($input, $pos + 1) =~ /^\S+(\s)/) {
+        $pos += $-[1];
+        $count--;
     }
 
     while ($count-- > 0) {
-        $pos = index $input, ' ', $pos + 1;
-        if ($pos == -1) {
+        if (substr($input, $pos) !~ /\s+\S+(\s+)/) {
             return -1;
         }
+        $pos += $-[1] - 1;
     }
-    return $pos - 1;
+    return $pos;
 }
 
 sub cmd_movement_0 {
