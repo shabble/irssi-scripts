@@ -137,6 +137,9 @@ my $movements
      'w' => { func => \&cmd_movement_w },
      'b' => { func => \&cmd_movement_b },
      'e' => { func => \&cmd_movement_e },
+     'W' => { func => \&cmd_movement_W },
+     'B' => { func => \&cmd_movement_B },
+     'E' => { func => \&cmd_movement_E },
      # line movement
      '0' => { func => \&cmd_movement_0 },
      '$' => { func => \&cmd_movement_dollar },
@@ -334,6 +337,18 @@ sub _next_occurrence {
 
 sub cmd_movement_w {
     my ($count, $pos) = @_;
+    cmd_movement_W($count, $pos);
+}
+sub cmd_movement_b {
+    my ($count, $pos) = @_;
+    cmd_movement_B($count, $pos);
+}
+sub cmd_movement_e {
+    my ($count, $pos) = @_;
+    cmd_movement_E($count, $pos);
+}
+sub cmd_movement_W {
+    my ($count, $pos) = @_;
 
     my $input = _input();
     while ($count-- > 0) {
@@ -345,21 +360,21 @@ sub cmd_movement_w {
     }
     _input_pos($pos);
 }
-sub cmd_movement_b {
+sub cmd_movement_B {
     my ($count, $pos) = @_;
 
     my $input = reverse _input();
-    $pos = _end_of_word($input, $count, length($input) - $pos - 1);
+    $pos = _end_of_WORD($input, $count, length($input) - $pos - 1);
     if ($pos == -1) {
         cmd_movement_0();
     } else {
         _input_pos(length($input) - $pos - 1);
     }
 }
-sub cmd_movement_e {
+sub cmd_movement_E {
     my ($count, $pos) = @_;
 
-    $pos = _end_of_word(_input(), $count, $pos);
+    $pos = _end_of_WORD(_input(), $count, $pos);
     if ($pos == -1) {
         cmd_movement_dollar();
     } else {
@@ -367,7 +382,7 @@ sub cmd_movement_e {
     }
 }
 # Go to the end of $count-th word, like vi's e.
-sub _end_of_word {
+sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
 
     # We are already at the end of one a word, ignore the following space so
