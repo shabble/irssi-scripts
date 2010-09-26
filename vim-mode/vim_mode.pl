@@ -20,8 +20,7 @@
 # /statusbar window add vim_mode to get the status.
 
 # NOTE: This is still under extreme development, and there's a whole bunch of
-# debugging output. Edit the script to remove all the print statements if it
-# bothers you.
+# debugging output. Edit the DEBUG constant to remove it if it bothers you.
 
 # Have fun!
 
@@ -384,18 +383,18 @@ sub cmd_ex_command {
             $search = '(?i)' . $search;
         }
 
-        print "Search is $search";
+        print "Search is $search" if DEBUG;
 
         my $re_pattern = qr/$search/;
 
         if (scalar grep { $_ eq 'g' } @re_flags) {
             $line =~ s/$re_pattern/$rep_fun->()/eg;
         } else {
-            print "Single replace: $replace";
+            print "Single replace: $replace" if DEBUG;
             $line =~ s/$re_pattern/$rep_fun->()/e;
         }
 
-        print "New line is: $line";
+        print "New line is: $line" if DEBUG;
         _input($line);
     }
 }
