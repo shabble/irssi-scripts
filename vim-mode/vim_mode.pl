@@ -228,11 +228,17 @@ sub cmd_movement_l {
     $pos = $length if $pos > $length;
     _input_pos($pos);
 }
+
 # later history (down)
 sub cmd_movement_j {
     my ($count, $pos) = @_;
 
-    return unless Irssi::version > 20090117;
+    if (Irssi::version < 20090117) {
+        # simulate a down-arrow
+        _emulate_keystrokes(0x1b, 0x5b, 0x42);
+        return;
+    }
+
     my @history = Irssi::active_win->get_history_lines();
 
     if (defined $history_index) {
@@ -255,7 +261,12 @@ sub cmd_movement_j {
 sub cmd_movement_k {
     my ($count, $pos) = @_;
 
-    return unless Irssi::version > 20090117;
+    if (Irssi::version < 20090117) {
+        # simulate an up-arrow
+        _emulate_keystrokes(0x1b, 0x5b, 0x41);
+        return;
+    }
+
     my @history = Irssi::active_win->get_history_lines();
 
     if (defined $history_index) {
