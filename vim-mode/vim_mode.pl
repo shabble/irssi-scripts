@@ -6,7 +6,7 @@
 # * cursor motion with: h, l
 # * history motion with j,k (only supported on Irssi versions > 0.8.13)
 # * cursor word motion with: w, b, e
-# * change/delete: c d
+# * change/delete: c d C D
 # * delete at cursor: x
 # * Insert mode at pos: i, a
 # * Insert mode at start: I
@@ -19,7 +19,6 @@
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
-# * C,D = c$, d$,
 # * S = 0c$
 # * ^ (first non-whitespace on line)
 # * Fix I = ^i
@@ -185,6 +184,9 @@ my $movements
      # paste
      'p' => { func => \&cmd_movement_p },
      'P' => { func => \&cmd_movement_P },
+     # to end of line
+     'C' => { func => \&cmd_movement_dollar },
+     'D' => { func => \&cmd_movement_dollar },
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
@@ -730,6 +732,12 @@ sub handle_command {
                     $movement = $last->{movement};
                 } elsif ($char eq '.') {
                     $skip = 1;
+                }
+                # C and D force the matching operator
+                if ($char eq 'C') {
+                    $operator = 'c';
+                } elsif ($char eq 'D') {
+                    $operator = 'd';
                 }
             }
 
