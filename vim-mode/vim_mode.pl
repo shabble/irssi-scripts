@@ -172,6 +172,7 @@ my $movements
      'E' => { func => \&cmd_movement_E },
      # line movement
      '0' => { func => \&cmd_movement_0 },
+     '^' => { func => \&cmd_movement_caret },
      '$' => { func => \&cmd_movement_dollar },
      # delete chars
      'x' => { func => \&cmd_movement_x },
@@ -457,6 +458,21 @@ sub _end_of_WORD {
 sub cmd_movement_0 {
     _input_pos(0);
 }
+sub cmd_movement_caret {
+    my $input = _input();
+    my $pos;
+    # No whitespace at all.
+    if ($input !~ m/^\s/) {
+        $pos = 0;
+    # Some non-whitesapece, go to first one.
+    } elsif ($input =~ m/[^\s]/) {
+        $pos = $-[0];
+    # Only whitespace, go to the end.
+    } else {
+        $pos = _input_len();
+    }
+    _input_pos($pos);
+}
 sub cmd_movement_dollar {
     _input_pos(_input_len());
 }
@@ -471,7 +487,7 @@ sub cmd_movement_i {
     _update_mode(M_INS);
 }
 sub cmd_movement_I {
-    cmd_movement_0();
+    cmd_movement_caret();
     _update_mode(M_INS);
 }
 sub cmd_movement_a {
