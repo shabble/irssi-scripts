@@ -183,7 +183,7 @@ my $movements
      'P' => { func => \&cmd_movement_P },
      # misc
      '~' => { func => \&cmd_movement_tilde },
-     '.' => { func => \&cmd_movement_dot },
+     '.' => {},
     };
 
 # special movements which take an additional key
@@ -504,10 +504,6 @@ sub cmd_movement_tilde {
     _input($input);
     _input_pos($pos + $count);
 }
-sub cmd_movement_dot {
-    # Does nothing. Necessary to prevent errors when pressing . before running
-    # any commands (at irssi startup).
-}
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
@@ -691,6 +687,8 @@ sub handle_command {
         } elsif ($movement || exists $movements->{$char}) {
             print "Processing movement command: $char" if DEBUG;
 
+            my $skip = 0;
+
             # . repeats the last command.
             if ($char eq '.' and !$movement and defined $last->{char}) {
                 $char = $last->{char};
@@ -700,9 +698,13 @@ sub handle_command {
                 }
                 $operator = $last->{operator};
                 $movement = $last->{movement};
+            } elsif ($char eq '.') {
+                $skip = 1;
             }
 
-            if (1) {
+            if ($skip) {
+                print "Skipping movement and operator." if DEBUG;
+            } else {
                 $numeric_prefix = 1 if not $numeric_prefix;
 
                 # Execute the movement (multiple times).
