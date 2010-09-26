@@ -75,6 +75,9 @@ my $numeric_prefix = undef;
 # vi operators like d, c, ..
 my $operator = undef;
 
+# vi movements, only used when a movement needs more than one key (like f t).
+my $movement = undef;
+
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
 
@@ -104,11 +107,6 @@ my $operators
   = {
      'c' => { func => \&cmd_operator_c },
      'd' => { func => \&cmd_operator_d },
-     # char movement, works like an operator
-     'f' => { func => \&cmd_movement_f },
-     't' => { func => \&cmd_movement_t },
-     'F' => { func => \&cmd_movement_F },
-     'T' => { func => \&cmd_movement_T },
     };
 
 # vi-moves like w,b; they move the cursor and may get combined with an
@@ -121,6 +119,11 @@ my $movements
      'l' => { func => \&cmd_movement_l },
      'j' => { func => \&cmd_movement_j },
      'k' => { func => \&cmd_movement_k },
+     # char movement, take an additional parameter and use $movement
+     'f' => { func => \&cmd_movement_f },
+     't' => { func => \&cmd_movement_t },
+     'F' => { func => \&cmd_movement_F },
+     'T' => { func => \&cmd_movement_T },
      # word movement
      'w' => { func => \&cmd_movement_w },
      'b' => { func => \&cmd_movement_b },
@@ -136,23 +139,37 @@ my $movements
      'A' => { func => \&cmd_movement_A },
     };
 
-sub cmd_operator_c {
-    my ($old_pos, $new_pos) = @_;
+# special movements which take an additional key
+my $movements_multiple =
+    {
+     'f' => undef,
+     't' => undef,
+     'F' => undef,
+     'T' => undef,
+    };
 
-    cmd_operator_d($old_pos, $new_pos);
+sub cmd_operator_c {
+    my ($old_pos, $new_pos, $move) = @_;
+
+    cmd_operator_d($old_pos, $new_pos, $move);
     _update_mode(M_INS);
 }
 
 sub cmd_operator_d {
-    my ($old_pos, $new_pos) = @_;
+    my ($old_pos, $new_pos, $move) = @_;
 
     my $length = $new_pos - $old_pos;
     # We need a positive length and $old_pos must be smaller.
     if ($length < 0) {
-        my $tmp = $old_pos;
         $old_pos = $new_pos;
-        $new_pos = $tmp;
         $length *= -1;
+    }
+
+    # w and x are the only movements which move one character after the
+    # deletion area (which is what we need), all other commands need one
+    # character more for correct deletion.
+    if ($move ne 'w' and $move ne 'x') {
+        $length += 1;
     }
 
     # Remove the selected string from the input.
@@ -330,7 +347,7 @@ sub cmd_movement_dollar {
 sub cmd_movement_x {
     my ($count, $pos) = @_;
 
-    cmd_operator_d($pos, $pos + $count);
+    cmd_operator_d($pos, $pos + $count, 'x');
 }
 
 sub cmd_movement_i {
@@ -498,21 +515,23 @@ sub handle_command {
 
     } else {
         my $char = chr($key);
-        if ($char =~ m/[1-9]/ || ($numeric_prefix && $char =~ m/[0-9]/)) {
+
+        # We need to treat $movements_multiple specially as they need another
+        # argument.
+        if ($movement) {
+            $movement .= $char;
+        }
+
+        if (!$movement && ($char =~ m/[1-9]/ ||
+                           ($numeric_prefix && $char =~ m/[0-9]/))) {
             print "Processing numeric prefix: $char" if DEBUG;
             handle_numeric_prefix($char);
 
-        # Special case for f,t,F,T as they take an additional argument
-        } elsif ($operator and
-                 ($operator eq 'f' or $operator eq 't' or
-                  $operator eq 'F' or $operator eq 'T')) {
-            $numeric_prefix = 1 if not $numeric_prefix;
-            $operators->{$operator}->{func}
-                      ->($numeric_prefix, _input_pos(), $char);
-            $operator = undef;
-            $numeric_prefix = undef;
+        } elsif (!$movement && exists $movements_multiple->{$char}) {
+            print "Processing movement: $char" if DEBUG;
+            $movement = $char;
 
-        } elsif (exists $operators->{$char}) {
+        } elsif (!$movement && exists $operators->{$char}) {
             print "Processing operator: $char" if DEBUG;
 
             # Abort operator if we already have one pending.
@@ -523,24 +542,33 @@ sub handle_command {
                 $operator = $char;
             }
 
-        } elsif (exists $movements->{$char}) {
+        } elsif ($movement || exists $movements->{$char}) {
             print "Processing movement command: $char" if DEBUG;
 
             $numeric_prefix = 1 if not $numeric_prefix;
 
             # Execute the movement (multiple times).
             my $cur_pos = _input_pos();
-            $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+            if (not $movement) {
+                $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+            } else {
+                # Use the real movement command (like t or f) for operator
+                # below.
+                $char = substr $movement, 0, 1;
+                $movements->{$char}->{func}
+                          ->($numeric_prefix, $cur_pos, substr $movement, 1);
+            }
             my $new_pos = _input_pos();
 
             # If we have an operator pending then run it on the handled text.
             if ($operator) {
                 print "Processing operator: ", $operator if DEBUG;
-                $operators->{$operator}->{func}->($cur_pos, $new_pos);
+                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
                 $operator = undef;
             }
 
             $numeric_prefix = undef;
+            $movement = undef;
 
         # Start Ex mode.
         } elsif ($char eq ':') {
