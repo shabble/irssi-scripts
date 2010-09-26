@@ -80,6 +80,12 @@ my $movement = undef;
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
 
+# vi registers, at the moment only the default yank register (") is used
+my $registers
+  = {
+     '"' => ''
+    };
+
 # index into the history list (for j,k)
 my $history_index = undef;
 
@@ -106,6 +112,7 @@ my $operators
   = {
      'c' => { func => \&cmd_operator_c },
      'd' => { func => \&cmd_operator_d },
+     'y' => { func => \&cmd_operator_y },
     };
 
 # vi-moves like w,b; they move the cursor and may get combined with an
@@ -137,6 +144,9 @@ my $movements
      'I' => { func => \&cmd_movement_I },
      'a' => { func => \&cmd_movement_a },
      'A' => { func => \&cmd_movement_A },
+     # paste
+     'p' => { func => \&cmd_movement_p },
+     'P' => { func => \&cmd_movement_P },
     };
 
 # special movements which take an additional key
@@ -154,8 +164,33 @@ sub cmd_operator_c {
     cmd_operator_d($old_pos, $new_pos, $move);
     _update_mode(M_INS);
 }
-
 sub cmd_operator_d {
+    my ($old_pos, $new_pos, $move) = @_;
+
+    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
+
+    # Remove the selected string from the input.
+    my $input = _input();
+    substr $input, $pos, $length, '';
+    _input($input);
+
+    # Move the cursor at the right position.
+    _input_pos($pos);
+}
+sub cmd_operator_y {
+    my ($old_pos, $new_pos, $move) = @_;
+
+    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
+
+    # Extract the selected string and put it in the " register.
+    my $input = _input();
+    my $string = substr $input, $pos, $length;
+    $registers->{'"'} = $string;
+    print "Yanked: $string" if DEBUG;
+
+    _input_pos($old_pos);
+}
+sub _get_pos_and_length {
     my ($old_pos, $new_pos, $move) = @_;
 
     my $length = $new_pos - $old_pos;
@@ -172,14 +207,9 @@ sub cmd_operator_d {
         $length += 1;
     }
 
-    # Remove the selected string from the input.
-    my $input = _input();
-    substr $input, $old_pos, $length, '';
-    _input($input);
-
-    # Move the cursor at the right position.
-    _input_pos($old_pos);
+    return ($old_pos, $length);
 }
+
 
 # later history (down)
 sub cmd_movement_j {
@@ -366,6 +396,28 @@ sub cmd_movement_a {
 sub cmd_movement_A {
     cmd_movement_dollar();
     _update_mode(M_INS);
+}
+
+sub cmd_movement_p {
+    my ($count, $pos) = @_;
+    _paste_at_position($count, $pos + 1);
+}
+sub cmd_movement_P {
+    my ($count, $pos) = @_;
+    _paste_at_position($count, $pos);
+}
+sub _paste_at_position {
+    my ($count, $pos) = @_;
+
+    return if not $registers->{'"'};
+
+    my $string = $registers->{'"'} x $count;
+
+    my $input = _input();
+    substr($input, $pos, 0) = $string;
+    _input($input);
+
+    _input_pos($pos - 1 + length $string);
 }
 
 sub cmd_ex_command {
