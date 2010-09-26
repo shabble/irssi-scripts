@@ -9,6 +9,7 @@
 # * Insert mode at pos: i, a
 # * Insert mode at start: I
 # * insert mode at end: A
+# * yank and paste: y p P
 # * Combinations like in Vi, e.g. d5fx
 
 # Installation:
