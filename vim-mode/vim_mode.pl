@@ -443,6 +443,8 @@ sub cmd_movement_E {
 sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
 
+    return $pos if $pos >= length($input);
+
     # We are inside a word, skip to the end of it.
     if (substr($input, $pos + 1) =~ /^\S+(\s)/) {
         $pos += $-[1];
