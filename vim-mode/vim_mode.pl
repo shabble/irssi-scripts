@@ -113,6 +113,10 @@ my $registers
 
 # index into the history list (for j,k)
 my $history_index = undef;
+# current line, necessary for j,k or the current input line gets destroyed
+my $history_input = undef;
+# position in input line
+my $history_pos = 0;
 
 sub script_is_loaded {
     my $name = shift;
@@ -283,8 +287,9 @@ sub cmd_movement_j {
     }
 
     if ($history_index > $#history) {
-        _input('');
-        _input_pos(0);
+        # Restore the input line.
+        _input($history_input);
+        _input_pos($history_pos);
         $history_index = $#history + 1;
     } elsif ($history_index >= 0) {
         _input($history[$history_index]);
@@ -308,6 +313,8 @@ sub cmd_movement_k {
         $history_index = 0 if $history_index < 0;
     } else {
         $history_index = $#history;
+        $history_input = _input();
+        $history_pos = _input_pos();
     }
     print "History Index: $history_index" if DEBUG;
     if ($history_index >= 0) {
