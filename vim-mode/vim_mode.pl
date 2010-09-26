@@ -12,6 +12,7 @@
 # * insert mode at end: A
 # * yank and paste: y p P
 # * switch case: ~
+# * repeat change: .
 # * Combinations like in Vi, e.g. d5fx
 
 # Installation:
