@@ -667,7 +667,9 @@ sub handle_command {
             my $new_pos = _input_pos();
 
             # If we have an operator pending then run it on the handled text.
-            if ($operator) {
+            # But only if the movement changed the position (this prevents
+            # problems with e.g. f when the search string doesn't exist).
+            if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator if DEBUG;
                 $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
                 $operator = undef;
