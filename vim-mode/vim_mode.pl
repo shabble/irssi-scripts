@@ -667,7 +667,6 @@ sub handle_command {
             _set_prompt(':');
 
         # Enter key sends the current input line in command mode as well.
-
         } elsif ($key == 10) {
             my $input = _input();
             my $cmdchars = Irssi::settings_get_str('cmdchars');
@@ -695,6 +694,7 @@ sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
 }
+
 
 sub _input {
     my ($data) = @_;
@@ -751,6 +751,6 @@ sub _set_prompt {
     $msg = ' ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg);
 }
+
 # TODO:
 # 10gg -> go to window 10 (prefix.gg -> win <prefix>)
-
