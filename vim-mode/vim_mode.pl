@@ -25,6 +25,7 @@
 # * u = undo (how many levels, branching?!) redo?
 # * use irssi settings for some of the features (esp. debug)
 # * history movement should keep track of the 'active' input line and restore it
+# * make 'yy' work.
 
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
