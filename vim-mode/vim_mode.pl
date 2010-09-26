@@ -78,6 +78,8 @@ my $operator = undef;
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
 
+# index into the history list (for j,k)
+my $history_index = undef;
 
 sub script_is_loaded {
     my $name = shift;
@@ -117,8 +119,8 @@ my $movements
      # arrow like movement
      'h' => { func => \&cmd_movement_h },
      'l' => { func => \&cmd_movement_l },
-     #'j' => { func => \&cmd_movement_j },
-     #'k' => { func => \&cmd_movement_k },
+     'j' => { func => \&cmd_movement_j },
+     'k' => { func => \&cmd_movement_k },
      # word movement
      'w' => { func => \&cmd_movement_w },
      'b' => { func => \&cmd_movement_b },
@@ -160,6 +162,46 @@ sub cmd_operator_d {
 
     # Move the cursor at the right position.
     _input_pos($old_pos);
+}
+
+# later history (down)
+sub cmd_movement_j {
+    my ($count, $pos) = @_;
+
+    my @history = Irssi::active_win->get_history_lines();
+
+    if (defined $history_index) {
+        $history_index += $count;
+        print "History Index: $history_index" if DEBUG;
+    } else {
+        $history_index = $#history;
+    }
+
+    if ($history_index > $#history) {
+        _input('');
+        _input_pos(0);
+        $history_index = $#history + 1;
+    } else {
+        _input($history[$history_index]);
+        _input_pos(0);
+    }
+}
+
+# earlier history (up)
+sub cmd_movement_k {
+    my ($count, $pos) = @_;
+
+    my @history = Irssi::active_win->get_history_lines();
+
+    if (defined $history_index) {
+        $history_index -= $count;
+        $history_index = 0 if $history_index < 0;
+    } else {
+        $history_index = $#history;
+    }
+    print "History Index: $history_index" if DEBUG;
+    _input($history[$history_index]);
+    _input_pos(0);
 }
 
 sub cmd_movement_h {
@@ -506,6 +548,7 @@ sub handle_command {
             _set_prompt(':');
 
         # Enter key sends the current input line in command mode as well.
+
         } elsif ($key == 10) {
             my $input = _input();
             my $cmdchars = Irssi::settings_get_str('cmdchars');
@@ -516,6 +559,9 @@ sub handle_command {
             } else {
                 $signal = 'send text';
             }
+            # TODO: don't try to send this signal unless server and win are
+            # defined (At least for 'send text' signals. There's no reason
+            # to send text to an empty window anyway(?)
             Irssi::signal_emit $signal, $input, Irssi::active_server(),
                                                 Irssi::active_win()->{active};
             _input('');
@@ -574,6 +620,9 @@ sub _stop() {
 sub _update_mode {
     my ($new_mode) = @_;
     $mode = $new_mode;
+    if ($mode == M_INS) {
+        $history_index = undef;
+    }
     Irssi::statusbar_items_redraw("vim_mode");
 }
 
