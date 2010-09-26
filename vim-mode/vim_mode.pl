@@ -662,11 +662,12 @@ sub handle_command {
             # . repeats the last command.
             if ($char eq '.' and !$movement and defined $last->{char}) {
                 $char = $last->{char};
-                $numeric_prefix = $last->{numeric_prefix};
+                # If . is given a count then it replaces original count.
+                if (not defined $numeric_prefix) {
+                    $numeric_prefix = $last->{numeric_prefix};
+                }
                 $operator = $last->{operator};
                 $movement = $last->{movement};
-                print "Repeating: $numeric_prefix$operator$char ($movement)"
-                    if DEBUG;
             }
 
             $numeric_prefix = 1 if not $numeric_prefix;
