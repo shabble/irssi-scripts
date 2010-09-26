@@ -15,6 +15,17 @@
 # * repeat change: .
 # * Combinations like in Vi, e.g. d5fx
 #
+# TODO:
+# * /,?,n to search through history (like history_search.pl)
+# * C,D = c$, d$,
+# * S = 0c$
+# * make 'dd' work.
+# * ^ (first non-whitespace on line)
+# * Fix I = ^i
+# * u = undo (how many levels, branching?!) redo?
+# * use irssi settings for some of the features (esp. debug)
+# * history movement should keep track of the 'active' input line and restore it
+
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
 # * repeat insert mode: iabc<esc>. only enters insert mode
