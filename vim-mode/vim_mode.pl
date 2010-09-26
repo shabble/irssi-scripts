@@ -3,7 +3,7 @@
 # Currently supported features:
 #
 # * Insert/Command mode. Escape enters command mode.
-# * cursor motion with: h, l
+# * cursor motion with: h l 0 ^ $
 # * history motion with j,k (only supported on Irssi versions > 0.8.13)
 # * cursor word motion with: w, b, e
 # * change/delete: c d C D
@@ -19,8 +19,6 @@
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
-# * ^ (first non-whitespace on line)
-# * Fix I = ^i
 # * u = undo (how many levels, branching?!) redo?
 # * use irssi settings for some of the features (esp. debug)
 # * history movement should keep track of the 'active' input line and restore it
