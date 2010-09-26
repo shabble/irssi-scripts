@@ -148,6 +148,7 @@ my $movements
      # arrow like movement
      'h' => { func => \&cmd_movement_h },
      'l' => { func => \&cmd_movement_l },
+     ' ' => { func => \&cmd_movement_space },
      'j' => { func => \&cmd_movement_j },
      'k' => { func => \&cmd_movement_k },
      # char movement, take an additional parameter and use $movement
@@ -256,6 +257,10 @@ sub cmd_movement_l {
     $pos += $count;
     $pos = $length if $pos > $length;
     _input_pos($pos);
+}
+sub cmd_movement_space {
+    my ($count, $pos) = @_;
+    cmd_movement_l($count, $pos);
 }
 
 # later history (down)
