@@ -8,6 +8,7 @@
 # * cursor word motion with: w b e W B E
 # * change/delete: c d C D
 # * delete at cursor: x
+# * replace at cursor: r
 # * Insert mode at pos: i a
 # * Insert mode at start: I
 # * insert mode at end: A
@@ -180,6 +181,8 @@ my $movements
      'I' => { func => \&cmd_movement_I },
      'a' => { func => \&cmd_movement_a },
      'A' => { func => \&cmd_movement_A },
+     # replace mode
+     'r' => { func => \&cmd_movement_r },
      # paste
      'p' => { func => \&cmd_movement_p },
      'P' => { func => \&cmd_movement_P },
@@ -202,6 +205,7 @@ my $movements_multiple =
      't' => undef,
      'F' => undef,
      'T' => undef,
+     'r' => undef,
     };
 
 
@@ -496,6 +500,15 @@ sub cmd_movement_a {
 sub cmd_movement_A {
     cmd_movement_dollar();
     _update_mode(M_INS);
+}
+
+sub cmd_movement_r {
+    my ($count, $pos, $char) = @_;
+
+    my $input = _input();
+    substr $input, $pos, 1, $char;
+    _input($input);
+    _input_pos($pos);
 }
 
 sub cmd_movement_p {
