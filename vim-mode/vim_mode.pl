@@ -718,17 +718,19 @@ sub handle_command {
 
             my $skip = 0;
 
-            # . repeats the last command.
-            if ($char eq '.' and !$movement and defined $last->{char}) {
-                $char = $last->{char};
-                # If . is given a count then it replaces original count.
-                if (not defined $numeric_prefix) {
-                    $numeric_prefix = $last->{numeric_prefix};
+            if (!$movement) {
+                # . repeats the last command.
+                if ($char eq '.' and defined $last->{char}) {
+                    $char = $last->{char};
+                    # If . is given a count then it replaces original count.
+                    if (not defined $numeric_prefix) {
+                        $numeric_prefix = $last->{numeric_prefix};
+                    }
+                    $operator = $last->{operator};
+                    $movement = $last->{movement};
+                } elsif ($char eq '.') {
+                    $skip = 1;
                 }
-                $operator = $last->{operator};
-                $movement = $last->{movement};
-            } elsif ($char eq '.') {
-                $skip = 1;
             }
 
             if ($skip) {
