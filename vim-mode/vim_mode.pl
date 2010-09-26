@@ -6,7 +6,7 @@
 # * cursor motion with: h, l
 # * cursor word motion with: w, b, e
 # * delete at cursor: x
-# * Insert mode at pos: i
+# * Insert mode at pos: i, a
 # * Insert mode at start: I
 # * insert mode at end: A
 
@@ -136,6 +136,7 @@ my $movements
      # insert mode
      'i' => { func => \&cmd_movement_i },
      'I' => { func => \&cmd_movement_I },
+     'a' => { func => \&cmd_movement_a },
      'A' => { func => \&cmd_movement_A },
     };
 
@@ -357,6 +358,10 @@ sub cmd_movement_i {
 }
 sub cmd_movement_I {
     cmd_movement_0();
+    _update_mode(M_INS);
+}
+sub cmd_movement_a {
+    cmd_movement_l(1, _input_pos());
     _update_mode(M_INS);
 }
 sub cmd_movement_A {
