@@ -162,7 +162,7 @@ my $movements
      'P' => { func => \&cmd_movement_P },
      # misc
      '~' => { func => \&cmd_movement_tilde },
-     '.' => {},
+     '.' => { func => \&cmd_movement_dot },
     };
 
 # special movements which take an additional key
@@ -475,6 +475,10 @@ sub cmd_movement_tilde {
 
     _input($input);
     _input_pos($pos + $count);
+}
+sub cmd_movement_dot {
+    # Does nothing. Necessary to prevent errors when pressing . before running
+    # any commands (at irssi startup).
 }
 
 sub cmd_ex_command {
