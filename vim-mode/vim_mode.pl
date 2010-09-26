@@ -760,11 +760,13 @@ sub handle_command {
                     $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
                 }
 
-                # Store command, necessary for .
-                $last->{char} = $char;
-                $last->{numeric_prefix} = $numeric_prefix;
-                $last->{operator} = $operator;
-                $last->{movement} = $movement;
+                # Store command, necessary for . But ignore movements only.
+                if ($operator) {
+                    $last->{char} = $char;
+                    $last->{numeric_prefix} = $numeric_prefix;
+                    $last->{operator} = $operator;
+                    $last->{movement} = $movement;
+                }
             }
 
             $numeric_prefix = undef;
