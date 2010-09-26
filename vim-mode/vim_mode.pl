@@ -54,8 +54,9 @@ use vars qw($VERSION %IRSSI);
 $VERSION = "1.0.1";
 %IRSSI =
   (
-   authors         => "shabble, rudis",
-   contact         => 'shabble+irssi@metavore.org, shabble@#irssi/Freenode, simon@ruderich.org',
+   authors         => "Tom Feist (shabble), Simon Ruderich (rudis)",
+   contact         => 'shabble+irssi@metavore.org, '
+                    . 'shabble@#irssi/Freenode, simon@ruderich.org',
    name            => "vim_mode",
    description     => "Give Irssi Vim-like commands for editing the inputline",
    license         => "Public Domain",
