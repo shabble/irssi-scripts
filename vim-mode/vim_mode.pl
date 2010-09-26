@@ -11,6 +11,7 @@
 # * Insert mode at start: I
 # * insert mode at end: A
 # * yank and paste: y p P
+# * switch case: ~
 # * Combinations like in Vi, e.g. d5fx
 
 # Installation:
@@ -149,6 +150,8 @@ my $movements
      # paste
      'p' => { func => \&cmd_movement_p },
      'P' => { func => \&cmd_movement_P },
+     # misc
+     '~' => { func => \&cmd_movement_tilde },
     };
 
 # special movements which take an additional key
@@ -431,6 +434,18 @@ sub _paste_at_position {
     _input($input);
 
     _input_pos($pos - 1 + length $string);
+}
+
+sub cmd_movement_tilde {
+    my ($count, $pos) = @_;
+
+    my $input = _input();
+    my $string = substr $input, $pos, $count;
+    $string =~ tr/a-zA-Z/A-Za-z/;
+    substr $input, $pos, $count, $string;
+
+    _input($input);
+    _input_pos($pos + $count);
 }
 
 sub cmd_ex_command {
