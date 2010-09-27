@@ -1029,18 +1029,26 @@ sub vim_mode_init {
     Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
 
-    Irssi::settings_add_bool('vim_mode', 'vim_mode_jj', 0);
+    Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
 
     setup_changed();
 }
 
 sub setup_changed {
-    if (Irssi::settings_get_bool('vim_mode_jj')) {
-        $imaps->{j} = { 'map'  => 'j',
-                        'func' => sub { _update_mode(M_CMD) }
-                      };
-    } else {
-        delete $imaps->{j};
+    my $value;
+
+    # TODO: okay for now, will cause problems when we have more imaps
+    $imaps = {};
+
+    $value = Irssi::settings_get_str('vim_mode_cmd_seq');
+    if ($value) {
+        if (length $value == 1) {
+            $imaps->{$value} = { 'map'  => $value,
+                                 'func' => sub { _update_mode(M_CMD) }
+                               };
+        } else {
+            print "Error: vim_mode_cmd_seq must be a single character";
+        }
     }
 }
 
