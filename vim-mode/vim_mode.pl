@@ -455,6 +455,10 @@ sub _end_of_word {
             $pos += $+[0] + 1;
             $skipped = 1;
         }
+        elsif (substr($input, $pos) =~ /^\s+/) {
+            $pos += $+[0];
+            $skipped = 1;
+        }
         # We are inside a word/non-word, skip to the end of it.
         if (substr($input, $pos) =~ /^$word{2,}/ or
             substr($input, $pos) =~ /^$non_word{2,}/) {
