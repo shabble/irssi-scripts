@@ -756,11 +756,9 @@ sub got_key {
             _update_mode(M_CMD);
             _stop();
             return;
+
         } elsif ($key == 10) { # enter.
-            _stop();
-            _commit_line(_input());
-            @undo_buffer = ();
-            $undo_index = undef;
+            _commit_line();
 
         } elsif ($input_buf_enabled and $imap) {
             print "Imap $imap active" if DEBUG;
@@ -776,6 +774,7 @@ sub got_key {
             _stop();
             $imap = undef;
             return;
+
         } elsif (exists $imaps->{chr($key)}) {
             print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
 
@@ -1026,8 +1025,7 @@ sub handle_command {
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
-            _stop();
-            _commit_line(_input());
+            _commit_line();
         }
 
         Irssi::statusbar_items_redraw("vim_mode");
@@ -1111,29 +1109,8 @@ sub _clear_undo_buffer {
 
 
 sub _commit_line {
-    my ($line) = @_;
-
-    my $cmdchars = Irssi::settings_get_str('cmdchars');
-
-    _input('');
     _update_mode(M_INS);
     _clear_undo_buffer();
-
-    return unless length $line; # ignore empty lines
-
-    my $server = Irssi::active_server();
-    my $win = Irssi::active_win();
-    my $witem = ref $win ? $win->{active} : undef;
-
-    my @context;
-    push @context, $server if defined $server;
-    push @context, $witem  if defined $witem;
-
-    if ($line =~ /^[\Q$cmdchars\E]/) {
-        Irssi::signal_emit 'send command', $line, @context;
-    } else {
-        Irssi::signal_emit 'send text', $line, @context;
-    }
 }
 
 sub _input {
