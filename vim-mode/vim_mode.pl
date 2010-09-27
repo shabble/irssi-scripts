@@ -1100,13 +1100,36 @@ sub _commit_line {
 
     return unless length $line; # ignore empty lines
 
+    my $server = Irssi::active_server();
+    my $win = Irssi::active_win();
+    my $witem = ref $win ? $win->{active} : undef;
+
+    my $context;
+    if (defined $witem) {
+        $context = $witem;
+    } elsif (defined $win) {
+        $context = $win;
+    } elsif (defined $server) {
+        $context = $server;
+    } else {
+        $context = undef;
+    }
+
     if ($line =~ /^[\Q$cmdchars\E]/) {
         print "Committing line as command" if DEBUG;
-        Irssi::command($line);
+        if (defined $context) {
+            $context->command($line);
+        } else {
+            Irssi::command($line);
+        }
 
     } else {
         print "Committing line as text" if DEBUG;
-        Irssi::command("/say $line");
+        if (defined $context) {
+            $context->command("/say $line");
+        } else {
+            Irssi::command("/say $line");
+        }
     }
 }
 
