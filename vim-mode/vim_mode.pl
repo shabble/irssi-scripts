@@ -46,6 +46,8 @@
 use strict;
 use warnings;
 
+use List::Util;
+
 use Irssi;
 use Irssi::TextUI;              # for sbar_items_redraw
 
@@ -601,6 +603,11 @@ sub _paste_at_position {
 sub cmd_movement_G {
     my ($count, $pos) = @_;
 
+    # If no count is given go to the last window (= highest refnum).
+    if (not $count) {
+        $count = List::Util::max(map { $_->{refnum} } Irssi::windows());
+    }
+
     my $window = Irssi::window_find_refnum($count);
     if ($window) {
         $window->set_active();
@@ -852,7 +859,11 @@ sub handle_command {
             if ($skip) {
                 print "Skipping movement and operator." if DEBUG;
             } else {
-                $numeric_prefix = 1 if not $numeric_prefix;
+                # Make sure count is at least 1, except for G which needs to
+                # handle undef specially.
+                if (not $numeric_prefix and $char ne 'G') {
+                    $numeric_prefix = 1;
+                }
 
                 # Execute the movement (multiple times).
                 my $cur_pos = _input_pos();
