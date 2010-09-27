@@ -83,9 +83,9 @@ my $non_word = '[^a-zA-Z0-9_\s]';
 # GLOBAL VARIABLES
 
 # buffer to keep track of the last N keystrokes following an Esc character.
-my @esc_buf;
-my $esc_buf_timer;
-my $esc_buf_enabled = 0;
+my @input_buf;
+my $input_buf_timer;
+my $input_buf_enabled = 0;
 
 # flag to allow us to emulate keystrokes without re-intercepting them
 my $should_ignore = 0;
@@ -724,13 +724,13 @@ sub got_key {
     # Esc key
     if ($key == 27) {
         print "Esc seen, starting buffer" if DEBUG;
-        $esc_buf_enabled = 1;
+        $input_buf_enabled = 1;
 
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
-        $esc_buf_timer
-          = Irssi::timeout_add_once(10, \&handle_esc_buffer, undef);
+        $input_buf_timer
+          = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
 
     } elsif ($mode == M_INS) {
         if ($key == 3) { # Ctrl-C enter command mode
@@ -745,8 +745,8 @@ sub got_key {
         }
     }
 
-    if ($esc_buf_enabled) {
-        push @esc_buf, $key;
+    if ($input_buf_enabled) {
+        push @input_buf, $key;
         _stop();
         return;
     }
@@ -756,14 +756,14 @@ sub got_key {
     }
 }
 
-sub handle_esc_buffer {
+sub handle_input_buffer {
 
-    Irssi::timeout_remove($esc_buf_timer);
-    $esc_buf_timer = undef;
+    Irssi::timeout_remove($input_buf_timer);
+    $input_buf_timer = undef;
     # see what we've collected.
-    print "Esc buffer contains: ", join(", ", @esc_buf) if DEBUG;
+    print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
 
-    if (@esc_buf == 1 && $esc_buf[0] == 27) {
+    if (@input_buf == 1 && $input_buf[0] == 27) {
 
         print "Enter Command Mode" if DEBUG;
         _update_mode(M_CMD);
@@ -780,19 +780,19 @@ sub handle_esc_buffer {
         # or pass it off to the command handler.
         if ($mode == M_CMD) {
             # command
-            my $key_str = join '', map { chr } @esc_buf;
+            my $key_str = join '', map { chr } @input_buf;
             if ($key_str =~ m/^\e\[([ABCD])/) {
                 print "Arrow key: $1" if DEBUG;
             } else {
                 print "Dunno what that is." if DEBUG;
             }
         } else {
-            _emulate_keystrokes(@esc_buf);
+            _emulate_keystrokes(@input_buf);
         }
     }
 
-    @esc_buf = ();
-    $esc_buf_enabled = 0;
+    @input_buf = ();
+    $input_buf_enabled = 0;
 }
 
 sub handle_numeric_prefix {
