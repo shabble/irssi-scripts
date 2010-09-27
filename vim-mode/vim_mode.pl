@@ -755,6 +755,13 @@ sub handle_esc_buffer {
         print "Enter Command Mode" if DEBUG;
         _update_mode(M_CMD);
 
+        # Reset every command mode related setting as a fallback in case
+        # something goes wrong.
+        $numeric_prefix = undef;
+        $operator = undef;
+        $movement = undef;
+        $register = '"';
+
     } else {
         # we need to identify what we got, and either replay it
         # or pass it off to the command handler.
