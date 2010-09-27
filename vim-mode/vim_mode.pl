@@ -1104,32 +1104,14 @@ sub _commit_line {
     my $win = Irssi::active_win();
     my $witem = ref $win ? $win->{active} : undef;
 
-    my $context;
-    if (defined $witem) {
-        $context = $witem;
-    } elsif (defined $win) {
-        $context = $win;
-    } elsif (defined $server) {
-        $context = $server;
-    } else {
-        $context = undef;
-    }
+    my @context;
+    push @context, $server if defined $server;
+    push @context, $witem  if defined $witem;
 
     if ($line =~ /^[\Q$cmdchars\E]/) {
-        print "Committing line as command" if DEBUG;
-        if (defined $context) {
-            $context->command($line);
-        } else {
-            Irssi::command($line);
-        }
-
+        Irssi::signal_emit 'send command', $line, @context;
     } else {
-        print "Committing line as text" if DEBUG;
-        if (defined $context) {
-            $context->command("/say $line");
-        } else {
-            Irssi::command("/say $line");
-        }
+        Irssi::signal_emit 'send command', $line, @context;
     }
 }
 
