@@ -718,10 +718,10 @@ sub got_key {
             _stop();
             return;
         } elsif ($key == 10) { # enter.
+            _stop();
             _commit_line(_input());
             @undo_buffer = ();
             $undo_index = undef;
-            _stop();
         }
     }
 
@@ -929,6 +929,7 @@ sub handle_command {
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
+            _stop();
             _commit_line(_input());
         }
 
@@ -941,6 +942,12 @@ sub handle_command {
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+}
+
+sub UNLOAD {
+    Irssi::signal_remove('gui key pressed' => \&got_key);
+    Irssi::statusbar_item_unregister ('vim_mode');
+
 }
 
 sub _add_undo_entry {
@@ -969,23 +976,18 @@ sub _commit_line {
 
     my $cmdchars = Irssi::settings_get_str('cmdchars');
 
-    my $signal;
-    if ($line =~ /^[\Q$cmdchars\E]/) {
-        $signal = 'send command';
-    } else {
-        $signal = 'send text';
-    }
-
-    print "Committing line as $signal" if DEBUG;
-
-    # TODO: don't try to send this signal unless server and win are
-    # defined (At least for 'send text' signals. There's no reason
-    # to send text to an empty window anyway(?)
-    Irssi::signal_emit $signal, $line, Irssi::active_server(),
-        Irssi::active_win()->{active};
     _input('');
     _update_mode(M_INS);
     _clear_undo_buffer();
+
+    if ($line =~ /^[\Q$cmdchars\E]/) {
+        print "Committing line as command" if DEBUG;
+        Irssi::command($line);
+
+    } else {
+        print "Committing line as text" if DEBUG;
+        Irssi::command("/say $line");
+    }
 }
 
 sub _input {
@@ -1032,7 +1034,7 @@ sub _emulate_keystrokes {
 }
 
 sub _stop() {
-    Irssi::signal_stop();
+    Irssi::signal_stop_by_name('gui key pressed');
 }
 
 sub _update_mode {
