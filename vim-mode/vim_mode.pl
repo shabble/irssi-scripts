@@ -187,6 +187,7 @@ my $movements
      '$' => { func => \&cmd_movement_dollar },
      # delete chars
      'x' => { func => \&cmd_movement_x },
+     'X' => { func => \&cmd_movement_X },
      # insert mode
      'i' => { func => \&cmd_movement_i },
      'I' => { func => \&cmd_movement_I },
@@ -274,10 +275,10 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
-    # w, x, h, l are the only movements which move one character after the
+    # w, x, X, h, l are the only movements which move one character after the
     # deletion area (which is what we need), all other commands need one
     # character more for correct deletion.
-    if ($move ne 'w' and $move ne 'x' and $move ne 'h' and $move ne 'l') {
+    if ($move ne 'w' and $move ne 'x' and $move ne 'X' and $move ne 'h' and $move ne 'l') {
         $length += 1;
     }
 
@@ -554,6 +555,15 @@ sub cmd_movement_x {
     my ($count, $pos) = @_;
 
     cmd_operator_d($pos, $pos + $count, 'x');
+}
+sub cmd_movement_X {
+    my ($count, $pos) = @_;
+
+    return if $pos == 0;
+
+    my $new = $pos - $count;
+    $new = 0 if $new < 0;
+    cmd_operator_d($pos, $new, 'X');
 }
 
 sub cmd_movement_i {
@@ -929,8 +939,8 @@ sub handle_command {
 
                 # Store command, necessary for . But ignore movements and
                 # registers.
-                if ($operator or $char eq 'x' or $char eq 'r' or
-                                 $char eq 'p' or $char eq 'P' or
+                if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r'
+                              or $char eq 'p' or $char eq 'P' or
                                  $char eq 'C' or $char eq 'D' or
                                  $char eq '~' or $char eq '"') {
                     $last->{char} = $char;
