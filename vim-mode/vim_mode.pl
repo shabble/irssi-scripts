@@ -75,9 +75,8 @@ sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
 # word and non-word regex
-my $word     = '[\w_]';
-my $non_word = '[^\w_\s]';
-
+my $word     = qr/[\w_]/o;
+my $non_word = qr/[^\w_\s]/o;
 
 # GLOBAL VARIABLES
 
@@ -1068,7 +1067,15 @@ sub setup_changed {
 
     $DEBUG_ENABLED = Irssi::settings_get_bool('vim_mode_debug');
 
-    $utf8 = Irssi::settings_get_bool('vim_mode_utf8');
+    my $new_utf8 = Irssi::settings_get_bool('vim_mode_utf8');
+
+    if ($new_utf8 != $utf8) {
+        # recompile the patterns when switching to/from utf-8
+        $word     = qr/[\w_]/o;
+        $non_word = qr/[^\w_\s]/o;
+    }
+
+    $utf8 = $new_utf8;
 }
 
 sub UNLOAD {
