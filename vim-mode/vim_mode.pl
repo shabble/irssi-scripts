@@ -221,6 +221,15 @@ my $movements_multiple =
 
 sub cmd_undo {
     print "Undo!" if DEBUG;
+    if ($undo_index > $#undo_buffer) {
+        $undo_index = $#undo_buffer;
+        print "No further undo.";
+    } elsif ($undo_index != $#undo_buffer) {
+        $undo_index++;
+    }
+    print "Undoing entry $undo_index of " . $#undo_buffer;
+    
+    _restore_undo_entry($undo_index);
 }
 
 sub cmd_redo {
@@ -934,6 +943,27 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
 }
 
+sub _add_undo_entry {
+    my ($line, $pos) = @_;
+    # add to the front of the buffer
+    print "adding $line to undo list";
+    unshift @undo_buffer, [$line, $pos];
+    $undo_index = 0;
+}
+
+sub _restore_undo_entry {
+    my $entry = $undo_buffer[$undo_index];
+    _input($entry->[0], 1);
+    _input_pos($entry->[1]);
+}
+
+sub _clear_undo_buffer {
+    print "Clearing undo buffer";
+    @undo_buffer = (['', 0]);
+    $undo_index = 0;
+}
+
+
 sub _commit_line {
     my ($line) = @_;
 
@@ -955,15 +985,23 @@ sub _commit_line {
         Irssi::active_win()->{active};
     _input('');
     _update_mode(M_INS);
+    _clear_undo_buffer();
 }
 
 sub _input {
-    my ($data) = @_;
+    my ($data, $ignore) = @_;
+
+    my $current_data = Irssi::parse_special('$L', 0, 0);
+
     if (defined $data) {
+        if (!$ignore && ($data ne $current_data)) {
+            _add_undo_entry($current_data, _input_pos());
+        }
         Irssi::gui_input_set($data);
     } else {
-        $data = Irssi::parse_special('$L', 0, 0)
+        $data = $current_data;
     }
+
     return $data;
 }
 
