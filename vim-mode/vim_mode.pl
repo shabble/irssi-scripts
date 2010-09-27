@@ -23,7 +23,6 @@
 # * /,?,n to search through history (like history_search.pl)
 # * u = undo (how many levels, branching?!) redo?
 # * use irssi settings for some of the features (esp. debug)
-# * history movement should keep track of the 'active' input line and restore it
 
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
@@ -83,10 +82,11 @@ my $non_word = '[^a-zA-Z0-9_\s]';
 
 # GLOBAL VARIABLES
 
-# buffer to keep track of the last N keystrokes following an Esc character.
-my @esc_buf;
-my $esc_buf_timer;
-my $esc_buf_enabled = 0;
+# buffer to keep track of the last N keystrokes, used for Esc detection and
+# insert mode mappings
+my @input_buf;
+my $input_buf_timer;
+my $input_buf_enabled = 0;
 
 # flag to allow us to emulate keystrokes without re-intercepting them
 my $should_ignore = 0;
@@ -106,17 +106,27 @@ my $last
      'char' => undef,
      'numeric_prefix' => undef,
      'operator' => undef,
-     'movement' => undef
+     'movement' => undef,
+     'register' => undef,
     };
 
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
 
-# vi registers, at the moment only the default yank register (") is used
+# current active register
+my $register = '"';
+
+# vi registers, " is the default register
 my $registers
   = {
      '"' => ''
     };
+
+# current imap still pending (first character entered)
+my $imap = undef;
+
+# maps for insert mode
+my $imaps = {};
 
 # index into the history list (for j,k)
 my $history_index = undef;
@@ -184,6 +194,7 @@ my $movements
      '$' => { func => \&cmd_movement_dollar },
      # delete chars
      'x' => { func => \&cmd_movement_x },
+     'X' => { func => \&cmd_movement_X },
      # insert mode
      'i' => { func => \&cmd_movement_i },
      'I' => { func => \&cmd_movement_I },
@@ -202,6 +213,7 @@ my $movements
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
+     '"' => { func => \&cmd_movement_register },
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
@@ -216,6 +228,7 @@ my $movements_multiple =
      'F' => undef,
      'T' => undef,
      'r' => undef,
+     '"' => undef,
     };
 
 
@@ -249,9 +262,9 @@ sub cmd_operator_d {
 
     # Remove the selected string from the input.
     my $input = _input();
-    $registers->{'"'} = substr $input, $pos, $length, '';
+    $registers->{$register} = substr $input, $pos, $length, '';
     _input($input);
-    print "Deleted: " . $registers->{'"'} if DEBUG;
+    print "Deleted into $register: " . $registers->{$register} if DEBUG;
 
     # Move the cursor at the right position.
     _input_pos($pos);
@@ -263,8 +276,8 @@ sub cmd_operator_y {
 
     # Extract the selected string and put it in the " register.
     my $input = _input();
-    $registers->{'"'} = substr $input, $pos, $length;
-    print "Yanked: " . $registers->{'"'} if DEBUG;
+    $registers->{$register} = substr $input, $pos, $length;
+    print "Yanked into $register: " . $registers->{$register} if DEBUG;
 
     _input_pos($old_pos);
 }
@@ -278,10 +291,10 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
-    # w, x, h, l are the only movements which move one character after the
+    # w, x, X, h, l are the only movements which move one character after the
     # deletion area (which is what we need), all other commands need one
     # character more for correct deletion.
-    if ($move ne 'w' and $move ne 'x' and $move ne 'h' and $move ne 'l') {
+    if ($move ne 'w' and $move ne 'x' and $move ne 'X' and $move ne 'h' and $move ne 'l') {
         $length += 1;
     }
 
@@ -459,6 +472,10 @@ sub _end_of_word {
             $pos += $+[0] + 1;
             $skipped = 1;
         }
+        elsif (substr($input, $pos) =~ /^\s+/) {
+            $pos += $+[0];
+            $skipped = 1;
+        }
         # We are inside a word/non-word, skip to the end of it.
         if (substr($input, $pos) =~ /^$word{2,}/ or
             substr($input, $pos) =~ /^$non_word{2,}/) {
@@ -555,6 +572,15 @@ sub cmd_movement_x {
 
     cmd_operator_d($pos, $pos + $count, 'x');
 }
+sub cmd_movement_X {
+    my ($count, $pos) = @_;
+
+    return if $pos == 0;
+
+    my $new = $pos - $count;
+    $new = 0 if $new < 0;
+    cmd_operator_d($pos, $new, 'X');
+}
 
 sub cmd_movement_i {
     _update_mode(M_INS);
@@ -592,9 +618,9 @@ sub cmd_movement_P {
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
-    return if not $registers->{'"'};
+    return if not $registers->{$register};
 
-    my $string = $registers->{'"'} x $count;
+    my $string = $registers->{$register} x $count;
 
     my $input = _input();
     # Check if we are not at the end of the line to prevent substr outside of
@@ -633,6 +659,13 @@ sub cmd_movement_tilde {
 
     _input($input);
     _input_pos($pos + $count);
+}
+
+sub cmd_movement_register {
+    my ($count, $pos, $char) = @_;
+
+    $register = $char;
+    print "Changing register to $register" if DEBUG;
 }
 
 sub cmd_ex_command {
@@ -678,8 +711,11 @@ sub vim_mode_cb {
         $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
-        if ($numeric_prefix or $operator or $movement) {
+        if ($register ne '"' or $numeric_prefix or $operator or $movement) {
             $mode_str .= ' (';
+            if ($register ne '"') {
+                $mode_str .= '"' . $register;
+            }
             if ($numeric_prefix) {
                 $mode_str .= $numeric_prefix;
             }
@@ -704,13 +740,13 @@ sub got_key {
     # Esc key
     if ($key == 27) {
         print "Esc seen, starting buffer" if DEBUG;
-        $esc_buf_enabled = 1;
+        $input_buf_enabled = 1;
 
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
-        $esc_buf_timer
-          = Irssi::timeout_add_once(10, \&handle_esc_buffer, undef);
+        $input_buf_timer
+          = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
 
     } elsif ($mode == M_INS) {
         if ($key == 3) { # Ctrl-C enter command mode
@@ -722,11 +758,39 @@ sub got_key {
             _commit_line(_input());
             @undo_buffer = ();
             $undo_index = undef;
+
+        } elsif ($input_buf_enabled and $imap) {
+            print "Imap $imap active" if DEBUG;
+            my $map = $imaps->{$imap};
+            if (chr($key) eq $map->{map}) {
+                $map->{func}();
+                # Clear the buffer so the imap is not printed.
+                @input_buf = ();
+            } else {
+                push @input_buf, $key;
+            }
+            flush_input_buffer();
+            _stop();
+            $imap = undef;
+            return;
+        } elsif (exists $imaps->{chr($key)}) {
+            print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
+
+            # start imap pending mode
+            $imap = chr($key);
+
+            $input_buf_enabled = 1;
+            push @input_buf, $key;
+            $input_buf_timer
+              = Irssi::timeout_add_once(500, \&flush_input_buffer, undef);
+
+            _stop();
+            return;
         }
     }
 
-    if ($esc_buf_enabled) {
-        push @esc_buf, $key;
+    if ($input_buf_enabled) {
+        push @input_buf, $key;
         _stop();
         return;
     }
@@ -736,36 +800,57 @@ sub got_key {
     }
 }
 
-sub handle_esc_buffer {
+sub handle_input_buffer {
 
-    Irssi::timeout_remove($esc_buf_timer);
-    $esc_buf_timer = undef;
+    Irssi::timeout_remove($input_buf_timer);
+    $input_buf_timer = undef;
     # see what we've collected.
-    print "Esc buffer contains: ", join(", ", @esc_buf) if DEBUG;
+    print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
 
-    if (@esc_buf == 1 && $esc_buf[0] == 27) {
+    if (@input_buf == 1 && $input_buf[0] == 27) {
 
         print "Enter Command Mode" if DEBUG;
         _update_mode(M_CMD);
+
+        # Reset every command mode related setting as a fallback in case
+        # something goes wrong.
+        $numeric_prefix = undef;
+        $operator = undef;
+        $movement = undef;
+        $register = '"';
 
     } else {
         # we need to identify what we got, and either replay it
         # or pass it off to the command handler.
         if ($mode == M_CMD) {
             # command
-            my $key_str = join '', map { chr } @esc_buf;
+            my $key_str = join '', map { chr } @input_buf;
             if ($key_str =~ m/^\e\[([ABCD])/) {
                 print "Arrow key: $1" if DEBUG;
             } else {
                 print "Dunno what that is." if DEBUG;
             }
         } else {
-            _emulate_keystrokes(@esc_buf);
+            _emulate_keystrokes(@input_buf);
         }
     }
 
-    @esc_buf = ();
-    $esc_buf_enabled = 0;
+    @input_buf = ();
+    $input_buf_enabled = 0;
+}
+
+sub flush_input_buffer {
+    Irssi::timeout_remove($input_buf_timer);
+    $input_buf_timer = undef;
+    # see what we've collected.
+    print "Input buffer flushed" if DEBUG;
+
+    _emulate_keystrokes(@input_buf);
+
+    @input_buf = ();
+    $input_buf_enabled = 0;
+
+    $imap = undef;
 }
 
 sub handle_numeric_prefix {
@@ -867,6 +952,7 @@ sub handle_command {
                     }
                     $operator = $last->{operator};
                     $movement = $last->{movement};
+                    $register = $last->{register};
                 } elsif ($char eq '.') {
                     $skip = 1;
                 }
@@ -909,18 +995,28 @@ sub handle_command {
                     $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
                 }
 
-                # Store command, necessary for . But ignore movements only.
-                if ($operator) {
+                # Store command, necessary for . But ignore movements and
+                # registers.
+                if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r'
+                              or $char eq 'p' or $char eq 'P' or
+                                 $char eq 'C' or $char eq 'D' or
+                                 $char eq '~' or $char eq '"') {
                     $last->{char} = $char;
                     $last->{numeric_prefix} = $numeric_prefix;
                     $last->{operator} = $operator;
                     $last->{movement} = $movement;
+                    $last->{register} = $register;
                 }
             }
 
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
+
+            if ($char ne '"' and $register ne '"') {
+                print 'Changing register to "' if DEBUG;
+                $register = '"';
+            }
 
         # Start Ex mode.
         } elsif ($char eq ':') {
@@ -941,7 +1037,22 @@ sub handle_command {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
+    Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+
+    Irssi::settings_add_bool('vim_mode', 'vim_mode_jj', 0);
+
+    setup_changed();
+}
+
+sub setup_changed {
+    if (Irssi::settings_get_bool('vim_mode_jj')) {
+        $imaps->{j} = { 'map'  => 'j',
+                        'func' => sub { _update_mode(M_CMD) }
+                      };
+    } else {
+        delete $imaps->{j};
+    }
 }
 
 sub UNLOAD {
@@ -1042,6 +1153,7 @@ sub _update_mode {
     $mode = $new_mode;
     if ($mode == M_INS) {
         $history_index = undef;
+        $register = '"';
     }
     Irssi::statusbar_items_redraw("vim_mode");
 }
