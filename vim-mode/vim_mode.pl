@@ -233,11 +233,11 @@ sub cmd_undo {
     print "Undo!" if DEBUG;
     if ($undo_index > $#undo_buffer) {
         $undo_index = $#undo_buffer;
-        print "No further undo.";
+        print "No further undo." if DEBUG;
     } elsif ($undo_index != $#undo_buffer) {
         $undo_index++;
     }
-    print "Undoing entry $undo_index of " . $#undo_buffer;
+    print "Undoing entry $undo_index of " . $#undo_buffer if DEBUG;
     
     _restore_undo_entry($undo_index);
 }
@@ -1070,7 +1070,7 @@ sub UNLOAD {
 sub _add_undo_entry {
     my ($line, $pos) = @_;
     # add to the front of the buffer
-    print "adding $line to undo list";
+    print "adding $line to undo list" if DEBUG;
     unshift @undo_buffer, [$line, $pos];
     $undo_index = 0;
 }
