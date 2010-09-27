@@ -68,8 +68,6 @@ $VERSION = "1.0.1";
 
 # CONSTANTS
 
-sub DEBUG () { 1 }
-#sub DEBUG () { 0 }
 
 sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
@@ -81,6 +79,10 @@ my $non_word = '[^a-zA-Z0-9_\s]';
 
 
 # GLOBAL VARIABLES
+
+my $DEBUG_ENABLED = 0;
+
+sub DEBUG { $DEBUG_ENABLED }
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
@@ -1041,6 +1043,7 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
 
     Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
+    Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
 
     setup_changed();
 }
@@ -1061,6 +1064,8 @@ sub setup_changed {
             print "Error: vim_mode_cmd_seq must be a single character";
         }
     }
+
+    $DEBUG_ENABLED = Irssi::settings_get_bool('vim_mode_debug');
 }
 
 sub UNLOAD {
@@ -1084,7 +1089,7 @@ sub _restore_undo_entry {
 }
 
 sub _clear_undo_buffer {
-    print "Clearing undo buffer";
+    print "Clearing undo buffer" if DEBUG;
     @undo_buffer = (['', 0]);
     $undo_index = 0;
 }
