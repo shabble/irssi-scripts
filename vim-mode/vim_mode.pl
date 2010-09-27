@@ -901,7 +901,10 @@ sub handle_command {
                 }
 
                 # Store command, necessary for . But ignore movements only.
-                if ($operator) {
+                if ($operator or $char eq 'x' or $char eq 'r' or
+                                 $char eq 'p' or $char eq 'P' or
+                                 $char eq 'C' or $char eq 'D' or
+                                 $char eq '~') {
                     $last->{char} = $char;
                     $last->{numeric_prefix} = $numeric_prefix;
                     $last->{operator} = $operator;
