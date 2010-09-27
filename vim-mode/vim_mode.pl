@@ -450,7 +450,9 @@ sub cmd_movement_b {
     $pos = 0 if ($pos < 0);
 
     $pos = _end_of_word($input, $count, $pos);
-    _input_pos(length($input) - $pos - 1);
+    $pos = length($input) - $pos - 1;
+    $pos = 0 if ($pos < 0);
+    _input_pos($pos);
 }
 sub cmd_movement_e {
     my ($count, $pos) = @_;
@@ -462,7 +464,7 @@ sub cmd_movement_e {
 sub _end_of_word {
     my ($input, $count, $pos) = @_;
 
-    while ($count-- > 0) {
+    while ($count-- > 0 and length($input) > $pos) {
         my $skipped = 0;
         # Skip over whitespace if in the middle of it or directly after the
         # current word/non-word.
