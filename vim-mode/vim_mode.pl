@@ -82,7 +82,8 @@ my $non_word = '[^a-zA-Z0-9_\s]';
 
 # GLOBAL VARIABLES
 
-# buffer to keep track of the last N keystrokes following an Esc character.
+# buffer to keep track of the last N keystrokes, used for Esc detection and
+# insert mode mappings
 my @input_buf;
 my $input_buf_timer;
 my $input_buf_enabled = 0;
@@ -120,6 +121,12 @@ my $registers
   = {
      '"' => ''
     };
+
+# current imap still pending (first character entered)
+my $imap = undef;
+
+# maps for insert mode
+my $imaps = {};
 
 # index into the history list (for j,k)
 my $history_index = undef;
@@ -742,6 +749,33 @@ sub got_key {
             @undo_buffer = ();
             $undo_index = undef;
             _stop();
+        } elsif ($input_buf_enabled and $imap) {
+            print "Imap $imap active" if DEBUG;
+            my $map = $imaps->{$imap};
+            if (chr($key) eq $map->{map}) {
+                $map->{func}();
+                # Clear the buffer so the imap is not printed.
+                @input_buf = ();
+            } else {
+                push @input_buf, $key;
+            }
+            flush_input_buffer();
+            _stop();
+            $imap = undef;
+            return;
+        } elsif (exists $imaps->{chr($key)}) {
+            print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
+
+            # start imap pending mode
+            $imap = chr($key);
+
+            $input_buf_enabled = 1;
+            push @input_buf, $key;
+            $input_buf_timer
+              = Irssi::timeout_add_once(500, \&flush_input_buffer, undef);
+
+            _stop();
+            return;
         }
     }
 
@@ -793,6 +827,20 @@ sub handle_input_buffer {
 
     @input_buf = ();
     $input_buf_enabled = 0;
+}
+
+sub flush_input_buffer {
+    Irssi::timeout_remove($input_buf_timer);
+    $input_buf_timer = undef;
+    # see what we've collected.
+    print "Input buffer flushed" if DEBUG;
+
+    _emulate_keystrokes(@input_buf);
+
+    @input_buf = ();
+    $input_buf_enabled = 0;
+
+    $imap = undef;
 }
 
 sub handle_numeric_prefix {
@@ -978,7 +1026,22 @@ sub handle_command {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
+    Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+
+    Irssi::settings_add_bool('vim_mode', 'vim_mode_jj', 0);
+
+    setup_changed();
+}
+
+sub setup_changed {
+    if (Irssi::settings_get_bool('vim_mode_jj')) {
+        $imaps->{j} = { 'map'  => 'j',
+                        'func' => sub { _update_mode(M_CMD) }
+                      };
+    } else {
+        delete $imaps->{j};
+    }
 }
 
 sub _commit_line {
