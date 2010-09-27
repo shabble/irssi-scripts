@@ -243,7 +243,7 @@ sub cmd_undo {
         $undo_index++;
     }
     print "Undoing entry $undo_index of " . $#undo_buffer;
-    
+
     _restore_undo_entry($undo_index);
 }
 
@@ -1103,6 +1103,8 @@ sub _commit_line {
     _input('');
     _update_mode(M_INS);
     _clear_undo_buffer();
+
+    return unless length $line; # ignore empty lines
 
     if ($line =~ /^[\Q$cmdchars\E]/) {
         print "Committing line as command" if DEBUG;
