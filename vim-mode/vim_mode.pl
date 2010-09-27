@@ -669,6 +669,19 @@ sub vim_mode_cb {
         $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
+        if ($numeric_prefix or $operator or $movement) {
+            $mode_str .= ' (';
+            if ($numeric_prefix) {
+                $mode_str .= $numeric_prefix;
+            }
+            if ($operator) {
+                $mode_str .= $operator;
+            }
+            if ($movement) {
+                $mode_str .= $movement;
+            }
+            $mode_str .= ')';
+        }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
 }
@@ -909,6 +922,8 @@ sub handle_command {
         } elsif ($key == 10) {
             _commit_line(_input());
         }
+
+        Irssi::statusbar_items_redraw("vim_mode");
     }
 
     _stop();
