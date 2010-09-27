@@ -817,17 +817,18 @@ sub handle_input_buffer {
     } else {
         # we need to identify what we got, and either replay it
         # or pass it off to the command handler.
-        if ($mode == M_CMD) {
-            # command
-            my $key_str = join '', map { chr } @input_buf;
-            if ($key_str =~ m/^\e\[([ABCD])/) {
-                print "Arrow key: $1" if DEBUG;
-            } else {
-                print "Dunno what that is." if DEBUG;
-            }
-        } else {
-            _emulate_keystrokes(@input_buf);
-        }
+        # if ($mode == M_CMD) {
+        #     # command
+        #     my $key_str = join '', map { chr } @input_buf;
+        #     if ($key_str =~ m/^\e\[([ABCD])/) {
+        #         print "Arrow key: $1" if DEBUG;
+        #     } else {
+        #         print "Dunno what that is." if DEBUG;
+        #     }
+        # } else {
+        #     _emulate_keystrokes(@input_buf);
+        # }
+        _emulate_keystrokes(@input_buf);
     }
 
     @input_buf = ();
@@ -862,6 +863,8 @@ sub handle_numeric_prefix {
 
 sub handle_command {
     my ($key) = @_;
+
+    my $should_stop = 1;
 
     if ($mode == M_EX) {
         # DEL key - remove last character
@@ -1025,13 +1028,14 @@ sub handle_command {
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
+            $should_stop = 0;
             _commit_line();
         }
 
         Irssi::statusbar_items_redraw("vim_mode");
     }
 
-    _stop();
+    _stop() if $should_stop;
 }
 
 sub vim_mode_init {
