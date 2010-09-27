@@ -151,12 +151,7 @@ sub script_is_loaded {
     return $retval;
 }
 
-unless (script_is_loaded('prompt_info')) {
-    die "This script requires 'prompt_info' in order to work. "
-      . "Please load it and try again";
-} else {
-    vim_mode_init();
-}
+vim_mode_init();
 
 
 # vi-operators like d, c; they don't move the cursor
@@ -1015,8 +1010,13 @@ sub handle_command {
 
         # Start Ex mode.
         } elsif ($char eq ':') {
-            _update_mode(M_EX);
-            _set_prompt(':');
+            if (not script_is_loaded('prompt_info')) {
+                print "This script requires the 'prompt_info' script to "
+                    . "support Ex mode. Please load it and try again.";
+            } else {
+                _update_mode(M_EX);
+                _set_prompt(':');
+            }
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
