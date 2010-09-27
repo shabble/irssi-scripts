@@ -17,7 +17,6 @@
 # * repeat change: .
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
-# * goto window: 5G
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
@@ -208,8 +207,6 @@ my $movements
      # to end of line
      'C' => { func => \&cmd_movement_dollar },
      'D' => { func => \&cmd_movement_dollar },
-     # change window
-     'G' => { func => \&cmd_movement_G },
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
@@ -638,20 +635,6 @@ sub _paste_at_position {
     _input_pos($pos - 1 + length $string);
 }
 
-sub cmd_movement_G {
-    my ($count, $pos) = @_;
-
-    # If no count is given go to the last window (= highest refnum).
-    if (not $count) {
-        $count = List::Util::max(map { $_->{refnum} } Irssi::windows());
-    }
-
-    my $window = Irssi::window_find_refnum($count);
-    if ($window) {
-        $window->set_active();
-    }
-}
-
 sub cmd_movement_tilde {
     my ($count, $pos) = @_;
 
@@ -700,6 +683,18 @@ sub cmd_ex_command {
 
         print "New line is: $line" if DEBUG;
         _input($line);
+
+    } elsif ($arg_str =~ m|b(?:uffer)?\s*(.+)$|) {
+        my $window;
+        my $buffer = $1;
+
+        if ($buffer =~ /^[0-9]+$/) {
+            $window = Irssi::window_find_refnum($buffer);
+        }
+
+        if ($window) {
+            $window->set_active();
+        }
     }
 }
 
@@ -965,9 +960,8 @@ sub handle_command {
             if ($skip) {
                 print "Skipping movement and operator." if DEBUG;
             } else {
-                # Make sure count is at least 1, except for G which needs to
-                # handle undef specially.
-                if (not $numeric_prefix and $char ne 'G') {
+                # Make sure count is at least 1.
+                if (not $numeric_prefix) {
                     $numeric_prefix = 1;
                 }
 
