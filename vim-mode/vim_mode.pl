@@ -1111,7 +1111,7 @@ sub _commit_line {
     if ($line =~ /^[\Q$cmdchars\E]/) {
         Irssi::signal_emit 'send command', $line, @context;
     } else {
-        Irssi::signal_emit 'send command', $line, @context;
+        Irssi::signal_emit 'send text', $line, @context;
     }
 }
 
