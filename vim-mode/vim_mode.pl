@@ -1218,7 +1218,7 @@ sub _set_prompt {
 sub _warn {
     my ($warning) = @_;
 
-    print "vim_mode: ", $warning;
+    print '%_vim_mode: ', $warning, '%_';
 }
 
 # TODO:
