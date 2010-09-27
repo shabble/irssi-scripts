@@ -1075,6 +1075,11 @@ sub setup_changed {
         $non_word = qr/[^\w_\s]/o;
     }
 
+    if ($new_utf8 and (!$^V or $^V lt v5.8.1)) {
+        _warn("Warning: UTF-8 isn't supported very well in perl < 5.8.1! " .
+              "Please disable vim_mode_utf8.");
+    }
+
     $utf8 = $new_utf8;
 }
 
