@@ -151,12 +151,7 @@ sub script_is_loaded {
     return $retval;
 }
 
-unless (script_is_loaded('prompt_info')) {
-    die "This script requires 'prompt_info' in order to work. "
-      . "Please load it and try again";
-} else {
-    vim_mode_init();
-}
+vim_mode_init();
 
 
 # vi-operators like d, c; they don't move the cursor
@@ -238,11 +233,12 @@ sub cmd_undo {
     print "Undo!" if DEBUG;
     if ($undo_index > $#undo_buffer) {
         $undo_index = $#undo_buffer;
-        print "No further undo.";
+        print "No further undo." if DEBUG;
     } elsif ($undo_index != $#undo_buffer) {
         $undo_index++;
     }
-    print "Undoing entry $undo_index of " . $#undo_buffer;
+
+    print "Undoing entry $undo_index of " . $#undo_buffer if DEBUG;
 
     _restore_undo_entry($undo_index);
 }
@@ -814,13 +810,6 @@ sub handle_input_buffer {
         print "Enter Command Mode" if DEBUG;
         _update_mode(M_CMD);
 
-        # Reset every command mode related setting as a fallback in case
-        # something goes wrong.
-        $numeric_prefix = undef;
-        $operator = undef;
-        $movement = undef;
-        $register = '"';
-
     } else {
         # we need to identify what we got, and either replay it
         # or pass it off to the command handler.
@@ -1022,8 +1011,13 @@ sub handle_command {
 
         # Start Ex mode.
         } elsif ($char eq ':') {
-            _update_mode(M_EX);
-            _set_prompt(':');
+            if (not script_is_loaded('prompt_info')) {
+                print "This script requires the 'prompt_info' script to "
+                    . "support Ex mode. Please load it and try again.";
+            } else {
+                _update_mode(M_EX);
+                _set_prompt(':');
+            }
 
         # Enter key sends the current input line in command mode as well.
         } elsif ($key == 10) {
@@ -1077,7 +1071,7 @@ sub UNLOAD {
 sub _add_undo_entry {
     my ($line, $pos) = @_;
     # add to the front of the buffer
-    print "adding $line to undo list";
+    print "adding $line to undo list" if DEBUG;
     unshift @undo_buffer, [$line, $pos];
     $undo_index = 0;
 }
@@ -1169,7 +1163,15 @@ sub _update_mode {
     if ($mode == M_INS) {
         $history_index = undef;
         $register = '"';
+    # Reset every command mode related status as a fallback in case something
+    # goes wrong.
+    } elsif ($mode == M_CMD) {
+        $numeric_prefix = undef;
+        $operator = undef;
+        $movement = undef;
+        $register = '"';
     }
+
     Irssi::statusbar_items_redraw("vim_mode");
 }
 
