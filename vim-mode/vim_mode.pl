@@ -106,13 +106,17 @@ my $last
      'char' => undef,
      'numeric_prefix' => undef,
      'operator' => undef,
-     'movement' => undef
+     'movement' => undef,
+     'register' => undef,
     };
 
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
 
-# vi registers, at the moment only the default yank register (") is used
+# current active register
+my $register = '"';
+
+# vi registers, " is the default register
 my $registers
   = {
      '"' => ''
@@ -202,6 +206,7 @@ my $movements
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
+     '"' => { func => \&cmd_movement_register },
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
@@ -216,6 +221,7 @@ my $movements_multiple =
      'F' => undef,
      'T' => undef,
      'r' => undef,
+     '"' => undef,
     };
 
 
@@ -240,9 +246,9 @@ sub cmd_operator_d {
 
     # Remove the selected string from the input.
     my $input = _input();
-    $registers->{'"'} = substr $input, $pos, $length, '';
+    $registers->{$register} = substr $input, $pos, $length, '';
     _input($input);
-    print "Deleted: " . $registers->{'"'} if DEBUG;
+    print "Deleted into $register: " . $registers->{$register} if DEBUG;
 
     # Move the cursor at the right position.
     _input_pos($pos);
@@ -254,8 +260,8 @@ sub cmd_operator_y {
 
     # Extract the selected string and put it in the " register.
     my $input = _input();
-    $registers->{'"'} = substr $input, $pos, $length;
-    print "Yanked: " . $registers->{'"'} if DEBUG;
+    $registers->{$register} = substr $input, $pos, $length;
+    print "Yanked into $register: " . $registers->{$register} if DEBUG;
 
     _input_pos($old_pos);
 }
@@ -583,9 +589,9 @@ sub cmd_movement_P {
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
-    return if not $registers->{'"'};
+    return if not $registers->{$register};
 
-    my $string = $registers->{'"'} x $count;
+    my $string = $registers->{$register} x $count;
 
     my $input = _input();
     # Check if we are not at the end of the line to prevent substr outside of
@@ -624,6 +630,13 @@ sub cmd_movement_tilde {
 
     _input($input);
     _input_pos($pos + $count);
+}
+
+sub cmd_movement_register {
+    my ($count, $pos, $char) = @_;
+
+    $register = $char;
+    print "Changing register to $register" if DEBUG;
 }
 
 sub cmd_ex_command {
@@ -669,8 +682,11 @@ sub vim_mode_cb {
         $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
-        if ($numeric_prefix or $operator or $movement) {
+        if ($register ne '"' or $numeric_prefix or $operator or $movement) {
             $mode_str .= ' (';
+            if ($register ne '"') {
+                $mode_str .= '"' . $register;
+            }
             if ($numeric_prefix) {
                 $mode_str .= $numeric_prefix;
             }
@@ -858,6 +874,7 @@ sub handle_command {
                     }
                     $operator = $last->{operator};
                     $movement = $last->{movement};
+                    $register = $last->{register};
                 } elsif ($char eq '.') {
                     $skip = 1;
                 }
@@ -900,21 +917,28 @@ sub handle_command {
                     $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
                 }
 
-                # Store command, necessary for . But ignore movements only.
+                # Store command, necessary for . But ignore movements and
+                # registers.
                 if ($operator or $char eq 'x' or $char eq 'r' or
                                  $char eq 'p' or $char eq 'P' or
                                  $char eq 'C' or $char eq 'D' or
-                                 $char eq '~') {
+                                 $char eq '~' or $char eq '"') {
                     $last->{char} = $char;
                     $last->{numeric_prefix} = $numeric_prefix;
                     $last->{operator} = $operator;
                     $last->{movement} = $movement;
+                    $last->{register} = $register;
                 }
             }
 
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
+
+            if ($char ne '"' and $register ne '"') {
+                print 'Changing register to "' if DEBUG;
+                $register = '"';
+            }
 
         # Start Ex mode.
         } elsif ($char eq ':') {
@@ -1005,6 +1029,7 @@ sub _update_mode {
     $mode = $new_mode;
     if ($mode == M_INS) {
         $history_index = undef;
+        $register = '"';
     }
     Irssi::statusbar_items_redraw("vim_mode");
 }
