@@ -17,6 +17,7 @@
 # * repeat change: .
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
+# * goto window: 5G
 #
 # TODO:
 # * /,?,n to search through history (like history_search.pl)
@@ -194,6 +195,8 @@ my $movements
      # to end of line
      'C' => { func => \&cmd_movement_dollar },
      'D' => { func => \&cmd_movement_dollar },
+     # change window
+     'G' => { func => \&cmd_movement_G },
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
@@ -593,6 +596,15 @@ sub _paste_at_position {
     _input($input);
 
     _input_pos($pos - 1 + length $string);
+}
+
+sub cmd_movement_G {
+    my ($count, $pos) = @_;
+
+    my $window = Irssi::window_find_refnum($count);
+    if ($window) {
+        $window->set_active();
+    }
 }
 
 sub cmd_movement_tilde {
