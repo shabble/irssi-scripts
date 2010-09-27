@@ -45,6 +45,7 @@
 use strict;
 use warnings;
 
+use Encode;
 use List::Util;
 
 use Irssi;
@@ -74,8 +75,8 @@ sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
 # word and non-word regex
-my $word     = '[a-zA-Z0-9_]';
-my $non_word = '[^a-zA-Z0-9_\s]';
+my $word     = '[\w_]';
+my $non_word = '[^\w_\s]';
 
 
 # GLOBAL VARIABLES
@@ -83,6 +84,9 @@ my $non_word = '[^a-zA-Z0-9_\s]';
 my $DEBUG_ENABLED = 0;
 
 sub DEBUG { $DEBUG_ENABLED }
+
+# use UTF-8 internally for string calculations/manipulations
+my $utf8 = 1;
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
@@ -1040,6 +1044,7 @@ sub vim_mode_init {
 
     Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
     Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
+    Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
 
     setup_changed();
 }
@@ -1062,6 +1067,8 @@ sub setup_changed {
     }
 
     $DEBUG_ENABLED = Irssi::settings_get_bool('vim_mode_debug');
+
+    $utf8 = Irssi::settings_get_bool('vim_mode_utf8');
 }
 
 sub UNLOAD {
@@ -1121,12 +1128,19 @@ sub _input {
     my ($data, $ignore) = @_;
 
     my $current_data = Irssi::parse_special('$L', 0, 0);
+    if ($utf8) {
+        $current_data = decode_utf8($current_data);
+    }
 
     if (defined $data) {
         if (!$ignore && ($data ne $current_data)) {
             _add_undo_entry($current_data, _input_pos());
         }
-        Irssi::gui_input_set($data);
+        if ($utf8) {
+            Irssi::gui_input_set(encode_utf8($data));
+        } else {
+            Irssi::gui_input_set($data);
+        }
     } else {
         $data = $current_data;
     }
