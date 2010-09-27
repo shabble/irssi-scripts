@@ -1017,8 +1017,8 @@ sub handle_command {
         # Start Ex mode.
         } elsif ($char eq ':') {
             if (not script_is_loaded('prompt_info')) {
-                print "This script requires the 'prompt_info' script to "
-                    . "support Ex mode. Please load it and try again.";
+                _warn("Warning: Ex mode requires the 'prompt_info' script. " .
+                      "Please load it and try again.");
             } else {
                 _update_mode(M_EX);
                 _set_prompt(':');
@@ -1061,7 +1061,7 @@ sub setup_changed {
                                  'func' => sub { _update_mode(M_CMD) }
                                };
         } else {
-            print "Error: vim_mode_cmd_seq must be a single character";
+            _warn("Error: vim_mode_cmd_seq must be a single character");
         }
     }
 
@@ -1208,6 +1208,12 @@ sub _set_prompt {
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg);
+}
+
+sub _warn {
+    my ($warning) = @_;
+
+    print "vim_mode: ", $warning;
 }
 
 # TODO:
