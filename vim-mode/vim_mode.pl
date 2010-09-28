@@ -686,14 +686,53 @@ sub cmd_ex_command {
 
     } elsif ($arg_str =~ m|b(?:uffer)?\s*(.+)$|) {
         my $window;
+        my $item;
         my $buffer = $1;
 
+        # Go to window number.
         if ($buffer =~ /^[0-9]+$/) {
             $window = Irssi::window_find_refnum($buffer);
+        # Go to previous window.
+        } elsif ($buffer eq '#') {
+            Irssi::command('window last');
+        # Go to best regex matching window.
+        } else {
+            my $regex = qr/\Q$buffer\E/;
+
+            my @matches;
+            foreach my $window (Irssi::windows()) {
+                # Matching window names.
+                if ($window->{name} =~ /$regex/) {
+                    my $ratio = ($+[0] - $-[0]) / length($window->{name});
+                    push @matches, { window => $window,
+                                     item => undef,
+                                     ratio => $ratio };
+                }
+                # Matching Window item names (= channels).
+                foreach my $item ($window->items()) {
+                    if ($item->{name} =~ /$regex/) {
+                        my $length = length($item->{name});
+                        $length-- if index($item->{name}, '#') == 0;
+                        push @matches, { window => $window,
+                                         item => $item,
+                                         ratio => ($+[0] - $-[0]) / $length };
+                    }
+                }
+            }
+
+            if (scalar @matches > 0) {
+                @matches = sort {$b->{ratio} <=> $a->{ratio}} @matches;
+
+                $window = $matches[0]->{window};
+                $item = $matches[0]->{item};
+            }
         }
 
         if ($window) {
             $window->set_active();
+            if ($item) {
+                $item->set_active();
+            }
         }
     }
 }
