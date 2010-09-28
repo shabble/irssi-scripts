@@ -676,7 +676,7 @@ sub cmd_movement_tilde {
 
     my $input = _input();
     my $string = substr $input, $pos, $count;
-    $string =~ tr/a-zA-Z/A-Za-z/;
+    $string =~ s/(.)/(uc($1) eq $1) ? lc($1) : uc($1)/ge;
     substr $input, $pos, $count, $string;
 
     _input($input);
