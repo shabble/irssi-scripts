@@ -18,6 +18,8 @@
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
 # * window selection: :b<num>, :b#, :b <match-str>
+#
+# * special registers: "* "+ (contain irssi's cut-buffer)
 
 # TODO:
 # * History:
@@ -61,6 +63,10 @@
 # in.
 
 # /statusbar window add vim_mode to get the status.
+
+# And the following to let :b name display a list of matching channels
+
+# /statusbar window add vim_windows
 
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
@@ -680,6 +686,12 @@ sub cmd_movement_tilde {
 sub cmd_movement_register {
     my ($count, $pos, $char) = @_;
 
+    # + and * contain both irssi's cut-buffer
+    if ($char eq '+' or $char eq '*') {
+        $registers->{'+'} = Irssi::parse_special('$U');
+        $registers->{'*'} = $registers->{'+'};
+    }
+
     $register = $char;
     print "Changing register to $register" if DEBUG;
 }
@@ -727,38 +739,10 @@ sub cmd_ex_command {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
-            my $regex = qr/\Q$buffer\E/;
-
-            my @matches;
-            foreach my $window (Irssi::windows()) {
-                # Matching window names.
-                if ($window->{name} =~ /$regex/) {
-                    my $ratio = ($+[0] - $-[0]) / length($window->{name});
-                    push @matches, { window => $window,
-                                     item => undef,
-                                     ratio => $ratio };
-                    print ":b $window->{name}: $ratio" if DEBUG;
-                }
-                # Matching Window item names (= channels).
-                foreach my $item ($window->items()) {
-                    if ($item->{name} =~ /$regex/) {
-                        my $length = length($item->{name});
-                        $length-- if index($item->{name}, '#') == 0;
-                        my $ratio = ($+[0] - $-[0]) / $length;
-                        push @matches, { window => $window,
-                                         item => $item,
-                                         ratio => $ratio };
-                        print ":b $window->{name} $item->{name}: $ratio"
-                            if DEBUG;
-                    }
-                }
-            }
-
-            if (scalar @matches > 0) {
-                @matches = sort {$b->{ratio} <=> $a->{ratio}} @matches;
-
-                $window = $matches[0]->{window};
-                $item = $matches[0]->{item};
+            my $matches = _matching_windows($buffer);
+            if (scalar @$matches > 0) {
+                $window = @$matches[0]->{window};
+                $item = @$matches[0]->{item};
             }
         }
 
@@ -769,6 +753,55 @@ sub cmd_ex_command {
             }
         }
     }
+}
+
+sub _matching_windows {
+    my ($buffer) = @_;
+
+    my $server;
+
+    if ($buffer =~ m{^(.+)/(.+)}) {
+        $server = $1;
+        $buffer = $2;
+    }
+
+    print ":b searching for channel $buffer" if DEBUG;
+    print ":b on server $server" if $server and DEBUG;
+
+    my @matches;
+    foreach my $window (Irssi::windows()) {
+        # Matching window names.
+        if ($window->{name} =~ /$buffer/i) {
+            my $ratio = ($+[0] - $-[0]) / length($window->{name});
+            push @matches, { window => $window,
+                               item => undef,
+                              ratio => $ratio,
+                               text => $window->{name} };
+            print ":b $window->{name}: $ratio" if DEBUG;
+        }
+        # Matching Window item names (= channels).
+        foreach my $item ($window->items()) {
+            # Wrong server.
+            if ($server and (!$item->{server} or
+                              $item->{server}->{chatnet} !~ /^$server/i)) {
+                next;
+            }
+            if ($item->{name} =~ /$buffer/i) {
+                my $length = length($item->{name});
+                $length-- if index($item->{name}, '#') == 0;
+                my $ratio = ($+[0] - $-[0]) / $length;
+                push @matches, { window => $window,
+                                   item => $item,
+                                  ratio => $ratio,
+                                   text => $item->{name} };
+                print ":b $window->{name} $item->{name}: $ratio" if DEBUG;
+            }
+        }
+    }
+
+    @matches = sort {$b->{ratio} <=> $a->{ratio}} @matches;
+
+    return \@matches;
 }
 
 
@@ -800,6 +833,26 @@ sub vim_mode_cb {
         }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
+}
+
+# :b window list item.
+sub b_windows_cb {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $windows = '';
+
+    # A little code duplication of cmd_ex_command()!
+    my $arg_str = join '', @ex_buf;
+    if ($arg_str =~ m|b(?:uffer)?\s*(.+)$|) {
+        my $buffer = $1;
+        if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
+            # Display matching windows.
+            my $matches = _matching_windows($buffer);
+            $windows = join ',', map { $_->{text} } @$matches;
+        }
+    }
+
+    $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
 
 
@@ -955,6 +1008,8 @@ sub handle_command {
             _set_prompt(':' . join '', @ex_buf);
         }
 
+        Irssi::statusbar_items_redraw("vim_windows");
+
     } else {
         my $char = chr($key);
 
@@ -1109,6 +1164,7 @@ sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
     Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+    Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
     Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
     Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
