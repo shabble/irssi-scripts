@@ -20,7 +20,7 @@
 # * window selection: :b<num>, :b#, :b <match-str>
 #
 # * special registers: "* "+ (contain irssi's cut-buffer)
-
+#
 # TODO:
 # * History:
 #   * /,?,n,N to search through history (like history_search.pl)
@@ -31,7 +31,7 @@
 #  * Tab completion of window(-item) names
 #  * non-sequential matches(?)
 #  * additional statusbar-item for showing matches
-
+#
 # * use irssi settings for some of the features
 #  * Done:
 #    * vim_mode_utf8 (use utf-8 toggle)
@@ -39,15 +39,15 @@
 #    * vim_mode_cmd_seq (char that when double-pressed enters cmd mode from ins)
 #  * Pending:
 #    * ???
-
+#
 # WONTFIX - things we're not ever likely to do
 # * Macros
-
+#
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
 # * repeat insert mode: iabc<esc>. only enters insert mode
 # * multi-line pastes
-
+#
 # Installation:
 #
 # Dependencies:
@@ -56,24 +56,48 @@
 #  http://github.com/shabble/shab-irssi-scripts/raw/master/prompt_info/prompt_info.pl
 #
 # and follow the instructions in the top of that file for installation instructions.
-
+#
 # Then, copy into scripts dir, /script load vim_mode.pl ...
 #
 # Use the following command to get a statusbar item that shows which mode you're
 # in.
-
+#
 # /statusbar window add vim_mode to get the status.
-
+#
 # And the following to let :b name display a list of matching channels
-
+#
 # /statusbar window add vim_windows
-
+#
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
 # http://github.com/shabble/shab-irssi-scripts/issues
 #
 # or contact rudi_s or shabble on irc.freenode.net (#irssi)
-
+#
+# LICENCE:
+#
+# Copyright (c) 2010 Tom Feist & Simon Ruderich
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+#
+#
 # Have fun!
 
 use strict;
