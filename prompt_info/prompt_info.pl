@@ -9,10 +9,30 @@
 #
 #    prompt = "[$*$prompt_additional] "
 #
-# Then add this script to your autorun directory (~/.irssi/scripts/autorun/)
+# Then place this script to your ~/.irssi/scripts directory (~/.irssi/scripts/)
+# and symlink it to the ~/.irssi/scripts/autorun directory (which may need to
+# be created first)
 #
-# You can modify your prompt content by using the '/set_prompt <string>' command,
-# or from scripts by Irssi:signal_emit('change prompt', $string);
+# You can also load it manually once the theme has been edited via
+#
+# /script load prompt_info.pl
+#
+# You will also need to reload your theme with the following command:
+#
+# /script exec Irssi::themes_reload()
+#
+# Once loaded, you can modify your prompt content by using the following command:
+#
+# /set_prompt <string>
+#
+# You can also use it from other scripts by issuing a signal as follows:
+#
+# Irssi:signal_emit('change prompt',
+#
+# report bugs / feature requests to http://github.com/shabble/irssi-scripts/issues
+#
+# NOTE: it does not appear to be possible to use colours in your prompt at present.
+# This is unlikely to change without source-code changes to Irssi itself.
 
 use strict;
 use warnings;
