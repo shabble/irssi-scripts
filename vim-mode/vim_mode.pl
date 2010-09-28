@@ -726,51 +726,10 @@ sub cmd_ex_command {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
-            my $server;
-
-            if ($buffer =~ m{^(.+)/(.+)}) {
-                $server = $1;
-                $buffer = $2;
-            }
-
-            print ":b searching for channel $buffer" if DEBUG;
-            print ":b on server $server" if $server and DEBUG;
-
-            my @matches;
-            foreach my $window (Irssi::windows()) {
-                # Matching window names.
-                if ($window->{name} =~ /$buffer/i) {
-                    my $ratio = ($+[0] - $-[0]) / length($window->{name});
-                    push @matches, { window => $window,
-                                     item => undef,
-                                     ratio => $ratio };
-                    print ":b $window->{name}: $ratio" if DEBUG;
-                }
-                # Matching Window item names (= channels).
-                foreach my $item ($window->items()) {
-                    # Wrong server.
-                    if ($server and (!$item->{server} or
-                                     $item->{server}->{chatnet} !~ /^$server/i)) {
-                        next;
-                    }
-                    if ($item->{name} =~ /$buffer/i) {
-                        my $length = length($item->{name});
-                        $length-- if index($item->{name}, '#') == 0;
-                        my $ratio = ($+[0] - $-[0]) / $length;
-                        push @matches, { window => $window,
-                                         item => $item,
-                                         ratio => $ratio };
-                        print ":b $window->{name} $item->{name}: $ratio"
-                            if DEBUG;
-                    }
-                }
-            }
-
-            if (scalar @matches > 0) {
-                @matches = sort {$b->{ratio} <=> $a->{ratio}} @matches;
-
-                $window = $matches[0]->{window};
-                $item = $matches[0]->{item};
+            my $matches = _matching_windows($buffer);
+            if (scalar @$matches > 0) {
+                $window = @$matches[0]->{window};
+                $item = @$matches[0]->{item};
             }
         }
 
@@ -781,6 +740,53 @@ sub cmd_ex_command {
             }
         }
     }
+}
+
+sub _matching_windows {
+    my ($buffer) = @_;
+
+    my $server;
+
+    if ($buffer =~ m{^(.+)/(.+)}) {
+        $server = $1;
+        $buffer = $2;
+    }
+
+    print ":b searching for channel $buffer" if DEBUG;
+    print ":b on server $server" if $server and DEBUG;
+
+    my @matches;
+    foreach my $window (Irssi::windows()) {
+        # Matching window names.
+        if ($window->{name} =~ /$buffer/i) {
+            my $ratio = ($+[0] - $-[0]) / length($window->{name});
+            push @matches, { window => $window,
+                               item => undef,
+                              ratio => $ratio };
+            print ":b $window->{name}: $ratio" if DEBUG;
+        }
+        # Matching Window item names (= channels).
+        foreach my $item ($window->items()) {
+            # Wrong server.
+            if ($server and (!$item->{server} or
+                              $item->{server}->{chatnet} !~ /^$server/i)) {
+                next;
+            }
+            if ($item->{name} =~ /$buffer/i) {
+                my $length = length($item->{name});
+                $length-- if index($item->{name}, '#') == 0;
+                my $ratio = ($+[0] - $-[0]) / $length;
+                push @matches, { window => $window,
+                                   item => $item,
+                                  ratio => $ratio };
+                print ":b $window->{name} $item->{name}: $ratio" if DEBUG;
+            }
+        }
+    }
+
+    @matches = sort {$b->{ratio} <=> $a->{ratio}} @matches;
+
+    return \@matches;
 }
 
 
