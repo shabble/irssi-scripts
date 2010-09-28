@@ -918,8 +918,10 @@ sub got_key {
         return;
     }
 
-    if ($mode == M_CMD || $mode == M_EX) {
-        handle_command($key);
+    if ($mode == M_CMD) {
+        handle_command_cmd($key);
+    } elsif ($mode == M_EX) {
+        handle_command_ex($key);
     }
 }
 
@@ -982,183 +984,185 @@ sub handle_numeric_prefix {
     }
 }
 
-sub handle_command {
+sub handle_command_cmd {
     my ($key) = @_;
 
     my $should_stop = 1;
 
-    if ($mode == M_EX) {
-        # DEL key - remove last character
-        if ($key == 127) {
-            print "Delete" if DEBUG;
-            pop @ex_buf;
-            _set_prompt(':' . join '', @ex_buf);
+    my $char = chr($key);
 
-        # Return key - execute command
-        } elsif ($key == 10) {
-            print "Run ex-mode command" if DEBUG;
-            cmd_ex_command();
-            _set_prompt('');
-            @ex_buf = ();
-            _update_mode(M_CMD);
+    # We need to treat $movements_multiple specially as they need another
+    # argument.
+    if ($movement) {
+        $movement .= $char;
+    }
 
-        # Append entered key
-        } else {
-            push @ex_buf, chr $key;
-            _set_prompt(':' . join '', @ex_buf);
-        }
+    # S is an alias for cc.
+    if (!$movement and !$operator and $char eq 'S') {
+        print "Changing S to cc" if DEBUG;
+        $char = 'c';
+        $operator = 'c';
+    }
 
-        Irssi::statusbar_items_redraw("vim_windows");
+    if (!$movement && ($char =~ m/[1-9]/ ||
+                       ($numeric_prefix && $char =~ m/[0-9]/))) {
+        print "Processing numeric prefix: $char" if DEBUG;
+        handle_numeric_prefix($char);
 
-    } else {
-        my $char = chr($key);
+    } elsif (!$movement && exists $movements_multiple->{$char}) {
+        print "Processing movement: $char" if DEBUG;
+        $movement = $char;
 
-        # We need to treat $movements_multiple specially as they need another
-        # argument.
-        if ($movement) {
-            $movement .= $char;
-        }
+    } elsif (!$movement && exists $operators->{$char}) {
+        print "Processing operator: $char" if DEBUG;
 
-        # S is an alias for cc.
-        if (!$movement and !$operator and $char eq 'S') {
-            print "Changing S to cc" if DEBUG;
-            $char = 'c';
-            $operator = 'c';
-        }
-
-        if (!$movement && ($char =~ m/[1-9]/ ||
-                           ($numeric_prefix && $char =~ m/[0-9]/))) {
-            print "Processing numeric prefix: $char" if DEBUG;
-            handle_numeric_prefix($char);
-
-        } elsif (!$movement && exists $movements_multiple->{$char}) {
-            print "Processing movement: $char" if DEBUG;
-            $movement = $char;
-
-        } elsif (!$movement && exists $operators->{$char}) {
-            print "Processing operator: $char" if DEBUG;
-
-            # Abort operator if we already have one pending.
-            if ($operator) {
-                # But allow cc/dd/yy.
-                if ($operator eq $char) {
-                    print "Processing operator: ", $operator, $char if DEBUG;
-                    my $pos = _input_pos();
-                    $operators->{$operator}->{func}->(0, _input_len(), '');
-                    # Restore position for yy.
-                    if ($char eq 'y') {
-                        _input_pos($pos);
-                    }
-                }
-                $numeric_prefix = undef;
-                $operator = undef;
-                $movement = undef;
-            # Set new operator.
-            } else {
-                $operator = $char;
-            }
-
-        } elsif ($movement || exists $movements->{$char}) {
-            print "Processing movement command: $char" if DEBUG;
-
-            my $skip = 0;
-
-            if (!$movement) {
-                # . repeats the last command.
-                if ($char eq '.' and defined $last->{char}) {
-                    $char = $last->{char};
-                    # If . is given a count then it replaces original count.
-                    if (not defined $numeric_prefix) {
-                        $numeric_prefix = $last->{numeric_prefix};
-                    }
-                    $operator = $last->{operator};
-                    $movement = $last->{movement};
-                    $register = $last->{register};
-                } elsif ($char eq '.') {
-                    $skip = 1;
-                }
-                # C and D force the matching operator
-                if ($char eq 'C') {
-                    $operator = 'c';
-                } elsif ($char eq 'D') {
-                    $operator = 'd';
+        # Abort operator if we already have one pending.
+        if ($operator) {
+            # But allow cc/dd/yy.
+            if ($operator eq $char) {
+                print "Processing operator: ", $operator, $char if DEBUG;
+                my $pos = _input_pos();
+                $operators->{$operator}->{func}->(0, _input_len(), '');
+                # Restore position for yy.
+                if ($char eq 'y') {
+                    _input_pos($pos);
                 }
             }
-
-            if ($skip) {
-                print "Skipping movement and operator." if DEBUG;
-            } else {
-                # Make sure count is at least 1.
-                if (not $numeric_prefix) {
-                    $numeric_prefix = 1;
-                }
-
-                # Execute the movement (multiple times).
-                my $cur_pos = _input_pos();
-                if (not $movement) {
-                    $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
-                } else {
-                    # Use the real movement command (like t or f) for operator
-                    # below.
-                    $char = substr $movement, 0, 1;
-                    $movements->{$char}->{func}
-                              ->($numeric_prefix, $cur_pos, substr $movement, 1);
-                }
-                my $new_pos = _input_pos();
-
-                # If we have an operator pending then run it on the handled
-                # text. But only if the movement changed the position (this
-                # prevents problems with e.g. f when the search string doesn't
-                # exist).
-                if ($operator and $cur_pos != $new_pos) {
-                    print "Processing operator: ", $operator if DEBUG;
-                    $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
-                }
-
-                # Store command, necessary for . But ignore movements and
-                # registers.
-                if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r'
-                              or $char eq 'p' or $char eq 'P' or
-                                 $char eq 'C' or $char eq 'D' or
-                                 $char eq '~' or $char eq '"') {
-                    $last->{char} = $char;
-                    $last->{numeric_prefix} = $numeric_prefix;
-                    $last->{operator} = $operator;
-                    $last->{movement} = $movement;
-                    $last->{register} = $register;
-                }
-            }
-
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
-
-            if ($char ne '"' and $register ne '"') {
-                print 'Changing register to "' if DEBUG;
-                $register = '"';
-            }
-
-        # Start Ex mode.
-        } elsif ($char eq ':') {
-            if (not script_is_loaded('prompt_info')) {
-                _warn("Warning: Ex mode requires the 'prompt_info' script. " .
-                      "Please load it and try again.");
-            } else {
-                _update_mode(M_EX);
-                _set_prompt(':');
-            }
-
-        # Enter key sends the current input line in command mode as well.
-        } elsif ($key == 10) {
-            $should_stop = 0;
-            _commit_line();
+        # Set new operator.
+        } else {
+            $operator = $char;
         }
 
-        Irssi::statusbar_items_redraw("vim_mode");
+    } elsif ($movement || exists $movements->{$char}) {
+        print "Processing movement command: $char" if DEBUG;
+
+        my $skip = 0;
+
+        if (!$movement) {
+            # . repeats the last command.
+            if ($char eq '.' and defined $last->{char}) {
+                $char = $last->{char};
+                # If . is given a count then it replaces original count.
+                if (not defined $numeric_prefix) {
+                    $numeric_prefix = $last->{numeric_prefix};
+                }
+                $operator = $last->{operator};
+                $movement = $last->{movement};
+                $register = $last->{register};
+            } elsif ($char eq '.') {
+                $skip = 1;
+            }
+            # C and D force the matching operator
+            if ($char eq 'C') {
+                $operator = 'c';
+            } elsif ($char eq 'D') {
+                $operator = 'd';
+            }
+        }
+
+        if ($skip) {
+            print "Skipping movement and operator." if DEBUG;
+        } else {
+            # Make sure count is at least 1.
+            if (not $numeric_prefix) {
+                $numeric_prefix = 1;
+            }
+
+            # Execute the movement (multiple times).
+            my $cur_pos = _input_pos();
+            if (not $movement) {
+                $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+            } else {
+                # Use the real movement command (like t or f) for operator
+                # below.
+                $char = substr $movement, 0, 1;
+                $movements->{$char}->{func}
+                            ->($numeric_prefix, $cur_pos, substr $movement, 1);
+            }
+            my $new_pos = _input_pos();
+
+            # If we have an operator pending then run it on the handled text.
+            # But only if the movement changed the position (this prevents
+            # problems with e.g. f when the search string doesn't exist).
+            if ($operator and $cur_pos != $new_pos) {
+                print "Processing operator: ", $operator if DEBUG;
+                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
+            }
+
+            # Store command, necessary for . But ignore movements and
+            # registers.
+            if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r' or
+                             $char eq 'p' or $char eq 'P' or $char eq 'C' or
+                             $char eq 'D' or $char eq '~' or $char eq '"') {
+                $last->{char} = $char;
+                $last->{numeric_prefix} = $numeric_prefix;
+                $last->{operator} = $operator;
+                $last->{movement} = $movement;
+                $last->{register} = $register;
+            }
+        }
+
+        $numeric_prefix = undef;
+        $operator = undef;
+        $movement = undef;
+
+        if ($char ne '"' and $register ne '"') {
+            print 'Changing register to "' if DEBUG;
+            $register = '"';
+        }
+
+    # Start Ex mode.
+    } elsif ($char eq ':') {
+        if (not script_is_loaded('prompt_info')) {
+            _warn("Warning: Ex mode requires the 'prompt_info' script. " .
+                    "Please load it and try again.");
+        } else {
+            _update_mode(M_EX);
+            _set_prompt(':');
+        }
+
+    # Enter key sends the current input line in command mode as well.
+    } elsif ($key == 10) {
+        $should_stop = 0;
+        _commit_line();
     }
+
+    Irssi::statusbar_items_redraw("vim_mode");
 
     _stop() if $should_stop;
 }
+
+sub handle_command_ex {
+    my ($key) = @_;
+
+    # DEL key - remove last character
+    if ($key == 127) {
+        print "Delete" if DEBUG;
+        pop @ex_buf;
+        _set_prompt(':' . join '', @ex_buf);
+
+    # Return key - execute command
+    } elsif ($key == 10) {
+        print "Run ex-mode command" if DEBUG;
+        cmd_ex_command();
+        _set_prompt('');
+        @ex_buf = ();
+        _update_mode(M_CMD);
+
+    # Append entered key
+    } else {
+        push @ex_buf, chr $key;
+        _set_prompt(':' . join '', @ex_buf);
+    }
+
+    Irssi::statusbar_items_redraw("vim_windows");
+
+    _stop();
+}
+
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
