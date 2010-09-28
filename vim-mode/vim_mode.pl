@@ -726,12 +726,11 @@ sub cmd_ex_command {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
-            my $regex = qr/\Q$buffer\E/;
 
             my @matches;
             foreach my $window (Irssi::windows()) {
                 # Matching window names.
-                if ($window->{name} =~ /$regex/) {
+                if ($window->{name} =~ /$buffer/i) {
                     my $ratio = ($+[0] - $-[0]) / length($window->{name});
                     push @matches, { window => $window,
                                      item => undef,
@@ -740,7 +739,7 @@ sub cmd_ex_command {
                 }
                 # Matching Window item names (= channels).
                 foreach my $item ($window->items()) {
-                    if ($item->{name} =~ /$regex/) {
+                    if ($item->{name} =~ /$buffer/i) {
                         my $length = length($item->{name});
                         $length-- if index($item->{name}, '#') == 0;
                         my $ratio = ($+[0] - $-[0]) / $length;
