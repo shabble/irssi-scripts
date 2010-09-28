@@ -18,6 +18,8 @@
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
 # * window selection: :b<num>, :b#, :b <match-str>
+#
+# * special registers: "* "+ (contain irssi's cut-buffer)
 
 # TODO:
 # * History:
@@ -682,6 +684,12 @@ sub cmd_movement_tilde {
 
 sub cmd_movement_register {
     my ($count, $pos, $char) = @_;
+
+    # + and * contain both irssi's cut-buffer
+    if ($char eq '+' or $char eq '*') {
+        $registers->{'+'} = Irssi::parse_special('$U');
+        $registers->{'*'} = $registers->{'+'};
+    }
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
