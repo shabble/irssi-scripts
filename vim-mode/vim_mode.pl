@@ -736,15 +736,19 @@ sub cmd_ex_command {
                     push @matches, { window => $window,
                                      item => undef,
                                      ratio => $ratio };
+                    print ":b $window->{name}: $ratio" if DEBUG;
                 }
                 # Matching Window item names (= channels).
                 foreach my $item ($window->items()) {
                     if ($item->{name} =~ /$regex/) {
                         my $length = length($item->{name});
                         $length-- if index($item->{name}, '#') == 0;
+                        my $ratio = ($+[0] - $-[0]) / $length;
                         push @matches, { window => $window,
                                          item => $item,
-                                         ratio => ($+[0] - $-[0]) / $length };
+                                         ratio => $ratio };
+                        print ":b $window->{name} $item->{name}: $ratio"
+                            if DEBUG;
                     }
                 }
             }
