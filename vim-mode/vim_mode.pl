@@ -243,6 +243,7 @@ my $movements
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
+     "\x04" => { func => \&_print_undo_buffer },
 
     };
 
@@ -260,16 +261,16 @@ my $movements_multiple =
 
 sub cmd_undo {
     print "Undo!" if DEBUG;
-    if ($undo_index > $#undo_buffer) {
-        $undo_index = $#undo_buffer;
-        print "No further undo." if DEBUG;
-    } elsif ($undo_index != $#undo_buffer) {
-        $undo_index++;
-    }
 
-    print "Undoing entry $undo_index of " . $#undo_buffer if DEBUG;
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
 
     _restore_undo_entry($undo_index);
+
+    if ($undo_index != $#undo_buffer) {
+        $undo_index++;
+    } else {
+        print "No further undo." if DEBUG;
+    }
 }
 
 sub cmd_redo {
@@ -1114,6 +1115,7 @@ sub vim_mode_init {
     Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
 
     setup_changed();
+    _reset_undo_buffer();
 }
 
 sub setup_changed {
@@ -1145,7 +1147,7 @@ sub setup_changed {
 
     if ($new_utf8 and (!$^V or $^V lt v5.8.1)) {
         _warn("Warning: UTF-8 isn't supported very well in perl < 5.8.1! " .
-              "Please disable vim_mode_utf8.");
+              "Please disable the vim_mode_utf8 setting.");
     }
 
     $utf8 = $new_utf8;
@@ -1171,29 +1173,59 @@ sub _restore_undo_entry {
     _input_pos($entry->[1]);
 }
 
-sub _clear_undo_buffer {
+sub _print_undo_buffer {
+
+    my $i = 0;
+    my @buf;
+    foreach my $entry (@undo_buffer) {
+        my $str = '';
+        if ($i == $undo_index) {
+            $str .= '* ';
+        } else {
+            $str .= '  ';
+        }
+        $str .= sprintf('%02d %s [%d]', $i, $entry->[0], $entry->[1]);
+        push @buf, $str;
+        $i++;
+    }
+    print "------ undo buffer ------";
+    print join("\n", @buf);
+    print "------------------ ------";
+
+}
+
+sub _reset_undo_buffer {
+    my ($line, $pos) = @_;
+    $line = _input()     unless defined $line;
+    $pos  = _input_pos() unless defined $pos;
+
     print "Clearing undo buffer" if DEBUG;
-    @undo_buffer = (['', 0]);
-    $undo_index = 0;
+    @undo_buffer = ([$line, $pos]);
+    $undo_index  = 0;
 }
 
 
 sub _commit_line {
     _update_mode(M_INS);
-    _clear_undo_buffer();
+    _reset_undo_buffer('', 0);
 }
 
 sub _input {
-    my ($data, $ignore) = @_;
+    my ($data, $ignore_undo) = @_;
 
     my $current_data = Irssi::parse_special('$L', 0, 0);
+
     if ($utf8) {
         $current_data = decode_utf8($current_data);
     }
 
     if (defined $data) {
-        if (!$ignore && ($data ne $current_data)) {
-            _add_undo_entry($current_data, _input_pos());
+        if (!$ignore_undo && ($data ne $current_data)) {
+            if ($undo_index != 0) { # ???
+                _reset_undo_buffer($current_data, _input_pos());
+            } else {
+                _add_undo_entry($current_data, _input_pos());
+            }
         }
         if ($utf8) {
             Irssi::gui_input_set(encode_utf8($data));
