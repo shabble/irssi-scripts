@@ -96,8 +96,8 @@ $VERSION = "1.0.1";
                     . 'rudi_s@#irssi/Freenode',
    name            => "vim_mode",
    description     => "Give Irssi Vim-like commands for editing the inputline",
-   license         => "Public Domain",
-   changed         => "20/9/2010"
+   license         => "MIT",
+   changed         => "28/9/2010"
   );
 
 
