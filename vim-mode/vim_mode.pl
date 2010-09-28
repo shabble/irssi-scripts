@@ -62,6 +62,10 @@
 
 # /statusbar window add vim_mode to get the status.
 
+# And the following to let :b name display a list of matching channels
+
+# /statusbar window add vim_windows
+
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
 # http://github.com/shabble/shab-irssi-scripts/issues
@@ -762,7 +766,8 @@ sub _matching_windows {
             my $ratio = ($+[0] - $-[0]) / length($window->{name});
             push @matches, { window => $window,
                                item => undef,
-                              ratio => $ratio };
+                              ratio => $ratio,
+                               text => $window->{name} };
             print ":b $window->{name}: $ratio" if DEBUG;
         }
         # Matching Window item names (= channels).
@@ -778,7 +783,8 @@ sub _matching_windows {
                 my $ratio = ($+[0] - $-[0]) / $length;
                 push @matches, { window => $window,
                                    item => $item,
-                                  ratio => $ratio };
+                                  ratio => $ratio,
+                                   text => $item->{name} };
                 print ":b $window->{name} $item->{name}: $ratio" if DEBUG;
             }
         }
@@ -818,6 +824,26 @@ sub vim_mode_cb {
         }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
+}
+
+# :b window list item.
+sub b_windows_cb {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $windows = '';
+
+    # A little code duplication of cmd_ex_command()!
+    my $arg_str = join '', @ex_buf;
+    if ($arg_str =~ m|b(?:uffer)?\s*(.+)$|) {
+        my $buffer = $1;
+        if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
+            # Display matching windows.
+            my $matches = _matching_windows($buffer);
+            $windows = join ',', map { $_->{text} } @$matches;
+        }
+    }
+
+    $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
 
 
@@ -973,6 +999,8 @@ sub handle_command {
             _set_prompt(':' . join '', @ex_buf);
         }
 
+        Irssi::statusbar_items_redraw("vim_windows");
+
     } else {
         my $char = chr($key);
 
@@ -1127,6 +1155,7 @@ sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
     Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+    Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
     Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
     Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
