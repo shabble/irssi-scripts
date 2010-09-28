@@ -726,6 +726,15 @@ sub cmd_ex_command {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
+            my $server;
+
+            if ($buffer =~ m{^(.+)/(.+)}) {
+                $server = $1;
+                $buffer = $2;
+            }
+
+            print ":b searching for channel $buffer" if DEBUG;
+            print ":b on server $server" if $server and DEBUG;
 
             my @matches;
             foreach my $window (Irssi::windows()) {
@@ -739,6 +748,11 @@ sub cmd_ex_command {
                 }
                 # Matching Window item names (= channels).
                 foreach my $item ($window->items()) {
+                    # Wrong server.
+                    if ($server and (!$item->{server} or
+                                     $item->{server}->{chatnet} !~ /^$server/i)) {
+                        next;
+                    }
                     if ($item->{name} =~ /$buffer/i) {
                         my $length = length($item->{name});
                         $length-- if index($item->{name}, '#') == 0;
