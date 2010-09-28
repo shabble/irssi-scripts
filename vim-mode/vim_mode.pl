@@ -17,27 +17,56 @@
 # * repeat change: .
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
-#
+# * window selection: :b<num>, :b#, :b <match-str>
+
 # TODO:
-# * /,?,n to search through history (like history_search.pl)
-# * u = undo (how many levels, branching?!) redo?
-# * use irssi settings for some of the features (esp. debug)
+# * History:
+#   * /,?,n,N to search through history (like history_search.pl)
+# * Undo:
+#   * u = undo (how many levels, branching?!)
+#   * C-r = redo
+# * Window switching (:b)
+#  * Tab completion of window(-item) names
+#  * non-sequential matches(?)
+#  * additional statusbar-item for showing matches
+
+# * use irssi settings for some of the features
+#  * Done:
+#    * vim_mode_utf8 (use utf-8 toggle)
+#    * vim_mode_debug (debug prints)
+#    * vim_mode_cmd_seq (char that when double-pressed enters cmd mode from ins)
+#  * Pending:
+#    * ???
+
+# WONTFIX - things we're not ever likely to do
+# * Macros
 
 # Known bugs:
 # * count with insert mode: 3iabc<esc> doesn't work
 # * repeat insert mode: iabc<esc>. only enters insert mode
+# * multi-line pastes
 
 # Installation:
 #
-# The usual, stick in scripts dir, /script load vim_mode.pl ...
+# Dependencies:
+#
+# For proper :ex mode support, requires the installation of prompt_info.pl
+#  http://github.com/shabble/shab-irssi-scripts/raw/master/prompt_info/prompt_info.pl
+#
+# and follow the instructions in the top of that file for installation instructions.
+
+# Then, copy into scripts dir, /script load vim_mode.pl ...
 #
 # Use the following command to get a statusbar item that shows which mode you're
-# in. Annoying vi bleeping not yet supported :)
+# in.
 
 # /statusbar window add vim_mode to get the status.
 
-# NOTE: This is still under extreme development, and there's a whole bunch of
-# debugging output. Edit the DEBUG constant to remove it if it bothers you.
+# NOTE: This script is still under heavy development, and there may be bugs.
+# Please submit reproducible sequences to the bug-tracker at:
+# http://github.com/shabble/shab-irssi-scripts/issues
+#
+# or contact rudi_s or shabble on irc.freenode.net (#irssi)
 
 # Have fun!
 
