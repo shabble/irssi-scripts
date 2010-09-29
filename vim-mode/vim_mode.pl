@@ -374,10 +374,11 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
-    # w, x, X, h, l are the only movements which move one character after the
-    # deletion area (which is what we need), all other commands need one
+    # w, W, x, X, h, l are the only movements which move one character after
+    # the deletion area (which is what we need), all other commands need one
     # character more for correct deletion.
-    if ($move ne 'w' and $move ne 'x' and $move ne 'X' and $move ne 'h' and $move ne 'l') {
+    if ($move ne 'w' and $move ne 'W' and $move ne 'x' and $move ne 'X' and
+                                          $move ne 'h' and $move ne 'l') {
         $length += 1;
     }
 
