@@ -756,7 +756,7 @@ sub cmd_movement_register {
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
-    if ($arg_str =~ m|s/(.+)/(.*)/([ig]*)|) {
+    if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
         my ($search, $replace, $flags) = ($1, $2, $3);
         print "Searching for $search, replace: $replace, flags; $flags"
           if DEBUG;
@@ -784,7 +784,7 @@ sub cmd_ex_command {
         print "New line is: $line" if DEBUG;
         _input($line);
 
-    } elsif ($arg_str =~ m|b(?:uffer)?\s*(.+)$|) {
+    } elsif ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
         my $window;
         my $item;
         my $buffer = $1;
