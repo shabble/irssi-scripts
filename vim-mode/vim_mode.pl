@@ -825,7 +825,9 @@ sub cmd_ex_command {
     } elsif ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
         my @regs;
         if ($1) {
-            @regs = split //, $1 =~ s/\s+//g;
+            my $regs = $1;
+            $regs =~ s/\s+//g;
+            @regs = split //, $regs;
         } else {
             @regs = keys %$registers;
         }
