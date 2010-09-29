@@ -820,6 +820,21 @@ sub cmd_ex_command {
                 $item->set_active();
             }
         }
+
+    # :reg[isters] {arg} and :di[splay] {arg}
+    } elsif ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
+        my @regs;
+        if ($1) {
+            @regs = split //, $1 =~ s/\s+//g;
+        } else {
+            @regs = keys %$registers;
+        }
+        my $window = Irssi::active_win;
+        foreach my $key (sort @regs) {
+            if (defined $registers->{$key}) {
+                $window->print("register $key: $registers->{$key}");
+            }
+        }
     }
 }
 
