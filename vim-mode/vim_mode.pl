@@ -1307,7 +1307,7 @@ sub _add_undo_entry {
     # check it's not a dupe of the list head
     my $head = $undo_buffer[0];
     if ($line eq $head->[0] && $pos == $head->[1]) {
-        print "Not adding duplicate to undo list";
+        print "Not adding duplicate to undo list" if DEBUG;
     } else {
         print "adding $line to undo list" if DEBUG;
         # add to the front of the buffer
