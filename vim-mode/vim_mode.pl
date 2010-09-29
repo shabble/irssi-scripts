@@ -390,7 +390,7 @@ sub cmd_movement_l {
 
     my $length = _input_len();
     $pos += $count;
-    $pos = $length if $pos > $length;
+    $pos = $length - 1 if $pos > $length - 1;
     _input_pos($pos);
 }
 sub cmd_movement_space {
@@ -642,7 +642,7 @@ sub cmd_movement_caret {
     _input_pos($pos);
 }
 sub cmd_movement_dollar {
-    _input_pos(_input_len());
+    _input_pos(_input_len() - 1);
 }
 
 sub cmd_movement_x {
@@ -682,7 +682,13 @@ sub cmd_movement_I {
 sub cmd_movement_a {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_movement_l(1, _input_pos());
+    # Move after current character. Can't use cmd_movement_l() because we need
+    # to mover after last character at the end of the line.
+    my $length = _input_len();
+    $pos += $count;
+    $pos = $length if $pos > $length;
+    _input_pos($pos);
+
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
@@ -692,7 +698,8 @@ sub cmd_movement_a {
 sub cmd_movement_A {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_movement_dollar();
+    _input_pos(_input_len());
+
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
