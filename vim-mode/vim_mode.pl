@@ -180,11 +180,16 @@ my $mode = M_INS;
 # current active register
 my $register = '"';
 
-# vi registers, " is the default register
+# vi registers
 my $registers
   = {
-     '"' => ''
+     '"' => '', # default register
+     '+' => '', # contains irssi's cut buffer
+     '*' => '', # same
     };
+foreach my $char ('a' .. 'z') {
+    $registers->{$char} = '';
+}
 
 # current imap still pending (first character entered)
 my $imap = undef;
@@ -743,6 +748,11 @@ sub cmd_movement_tilde {
 
 sub cmd_movement_register {
     my ($count, $pos, $repeat, $char) = @_;
+
+    if (not exists $registers->{$char}) {
+        print "Wrong register $char, ignoring." if DEBUG;
+        return;
+    }
 
     # + and * contain both irssi's cut-buffer
     if ($char eq '+' or $char eq '*') {
