@@ -324,7 +324,8 @@ sub cmd_operator_c {
         }
     }
 
-    cmd_operator_d($old_pos, $new_pos, $move, $repeat);
+    cmd_operator_d($old_pos, $new_pos, $move, $repeat, 1);
+
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
@@ -332,7 +333,7 @@ sub cmd_operator_c {
     }
 }
 sub cmd_operator_d {
-    my ($old_pos, $new_pos, $move, $repeat) = @_;
+    my ($old_pos, $new_pos, $move, $repeat, $change) = @_;
 
     my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
 
@@ -348,8 +349,9 @@ sub cmd_operator_d {
     }
     _input($input);
 
-    # Prevent moving after the text when we delete the last character.
-    $pos-- if $pos == length($input);
+    # Prevent moving after the text when we delete the last character. But not
+    # when changing (C).
+    $pos-- if $pos == length($input) and !$change;
 
     # Move the cursor at the right position.
     _input_pos($pos);
