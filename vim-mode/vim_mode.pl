@@ -1245,9 +1245,15 @@ sub UNLOAD {
 
 sub _add_undo_entry {
     my ($line, $pos) = @_;
-    # add to the front of the buffer
-    print "adding $line to undo list" if DEBUG;
-    unshift @undo_buffer, [$line, $pos];
+    # check it's not a dupe of the list head
+    my $head = $undo_buffer[0];
+    if ($line eq $head->[0] && $pos == $head->[1]) {
+        print "Not adding duplicate to undo list";
+    } else {
+        print "adding $line to undo list" if DEBUG;
+        # add to the front of the buffer
+        unshift @undo_buffer, [$line, $pos];
+    }
     $undo_index = 0;
 }
 
@@ -1268,7 +1274,11 @@ sub _print_undo_buffer {
         } else {
             $str .= '  ';
         }
-        $str .= sprintf('%02d %s [%d]', $i, $entry->[0], $entry->[1]);
+        my ($line, $pos) = @$entry;
+        substr($line, $pos, 0) = '*';
+        # substr($line, $pos+3, 0) = '%_';
+
+        $str .= sprintf('%02d %s [%d]', $i, $line, $pos);
         push @buf, $str;
         $i++;
     }
@@ -1306,9 +1316,12 @@ sub _input {
     if (defined $data) {
         if (!$ignore_undo && ($data ne $current_data)) {
             if ($undo_index != 0) { # ???
+                print "Resetting undo buffer" if DEBUG;
                 _reset_undo_buffer($current_data, _input_pos());
             } else {
-                _add_undo_entry($current_data, _input_pos());
+                my $pos = _input_pos();
+                print "Adding debug entry: $current_data $pos" if DEBUG;
+                _add_undo_entry($current_data, $pos);
             }
         }
         if ($utf8) {
@@ -1332,9 +1345,11 @@ sub _input_pos {
     my $cur_pos = Irssi::gui_input_get_pos();
 
     if (defined $pos) {
+        print "Input pos being set from $cur_pos to $pos" if DEBUG;
         Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
     } else {
         $pos = $cur_pos;
+        print "Input pos retrieved as $pos" if DEBUG;
     }
 
     return $pos;
