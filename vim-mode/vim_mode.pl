@@ -340,6 +340,9 @@ sub cmd_operator_d {
     }
     _input($input);
 
+    # Prevent moving after the text when we delete the last character.
+    $pos-- if $pos == length($input);
+
     # Move the cursor at the right position.
     _input_pos($pos);
 }
