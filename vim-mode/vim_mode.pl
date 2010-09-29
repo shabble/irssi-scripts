@@ -326,9 +326,15 @@ sub cmd_operator_d {
 
     # Remove the selected string from the input.
     my $input = _input();
-    $registers->{$register} = substr $input, $pos, $length, '';
+    my $string = substr $input, $pos, $length, '';
+    if ($register =~ /[A-Z]/) {
+        $registers->{lc $register} .= $string;
+        print "Deleted into $register: ", $registers->{lc $register} if DEBUG;
+    } else {
+        $registers->{$register} = $string;
+        print "Deleted into $register: ", $registers->{$register} if DEBUG;
+    }
     _input($input);
-    print "Deleted into $register: " . $registers->{$register} if DEBUG;
 
     # Move the cursor at the right position.
     _input_pos($pos);
@@ -340,8 +346,14 @@ sub cmd_operator_y {
 
     # Extract the selected string and put it in the " register.
     my $input = _input();
-    $registers->{$register} = substr $input, $pos, $length;
-    print "Yanked into $register: " . $registers->{$register} if DEBUG;
+    my $string = substr $input, $pos, $length;
+    if ($register =~ /[A-Z]/) {
+        $registers->{lc $register} .= $string;
+        print "Yanked into $register: ", $registers->{lc $register} if DEBUG;
+    } else {
+        $registers->{$register} = $string;
+        print "Yanked into $register: ", $registers->{$register} if DEBUG;
+    }
 
     _input_pos($old_pos);
 }
@@ -749,7 +761,7 @@ sub cmd_movement_tilde {
 sub cmd_movement_register {
     my ($count, $pos, $repeat, $char) = @_;
 
-    if (not exists $registers->{$char}) {
+    if (not exists $registers->{$char} and not exists $registers->{lc $char}) {
         print "Wrong register $char, ignoring." if DEBUG;
         return;
     }
