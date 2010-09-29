@@ -314,13 +314,17 @@ sub cmd_redo {
 }
 
 sub cmd_operator_c {
-    my ($old_pos, $new_pos, $move) = @_;
+    my ($old_pos, $new_pos, $move, $repeat) = @_;
 
     cmd_operator_d($old_pos, $new_pos, $move);
-    _update_mode(M_INS);
+    if (!$repeat) {
+        _update_mode(M_INS);
+    } else {
+        _insert_buffer(1);
+    }
 }
 sub cmd_operator_d {
-    my ($old_pos, $new_pos, $move) = @_;
+    my ($old_pos, $new_pos, $move, $repeat) = @_;
 
     my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
 
@@ -340,7 +344,7 @@ sub cmd_operator_d {
     _input_pos($pos);
 }
 sub cmd_operator_y {
-    my ($old_pos, $new_pos, $move) = @_;
+    my ($old_pos, $new_pos, $move, $repeat) = @_;
 
     my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
 
@@ -1139,7 +1143,7 @@ sub handle_command_cmd {
             if ($operator eq $char) {
                 print "Processing operator: ", $operator, $char if DEBUG;
                 my $pos = _input_pos();
-                $operators->{$operator}->{func}->(0, _input_len(), '');
+                $operators->{$operator}->{func}->(0, _input_len(), '', 0);
                 # Restore position for yy.
                 if ($char eq 'y') {
                     _input_pos($pos);
@@ -1211,7 +1215,8 @@ sub handle_command_cmd {
             # problems with e.g. f when the search string doesn't exist).
             if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator if DEBUG;
-                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char);
+                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char,
+                                                  $repeat);
             }
 
             # Store command, necessary for . But ignore movements and
