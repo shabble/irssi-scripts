@@ -316,7 +316,7 @@ sub cmd_redo {
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move, $repeat) = @_;
 
-    cmd_operator_d($old_pos, $new_pos, $move);
+    cmd_operator_d($old_pos, $new_pos, $move, $repeat);
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
