@@ -130,7 +130,7 @@ sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
-# word and non-word regex
+# word and non-word regex, when modifiying also update them in setup_changed()
 my $word     = qr/[\w_]/o;
 my $non_word = qr/[^\w_\s]/o;
 
