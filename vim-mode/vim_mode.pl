@@ -1370,6 +1370,17 @@ sub _stop() {
 
 sub _update_mode {
     my ($new_mode) = @_;
+
+    # In insert mode we are "between" characters, in command mode "on top" of
+    # keys. When leaving insert mode we have to move on key left to accomplish
+    # that.
+    if ($mode == M_INS and $new_mode == M_CMD) {
+        my $pos = _input_pos();
+        if ($pos != 0) {
+            _input_pos($pos - 1);
+        }
+    }
+
     $mode = $new_mode;
     if ($mode == M_INS) {
         $history_index = undef;
