@@ -44,8 +44,6 @@
 # * Macros
 #
 # Known bugs:
-# * count with insert mode: 3iabc<esc> doesn't work
-# * repeat insert mode: iabc<esc>. only enters insert mode
 # * multi-line pastes
 #
 # Installation:
@@ -151,6 +149,9 @@ my @input_buf;
 my $input_buf_timer;
 my $input_buf_enabled = 0;
 
+# insert mode repeat buffer, used to repeat (.) last insert
+my @insert_buf;
+
 # flag to allow us to emulate keystrokes without re-intercepting them
 my $should_ignore = 0;
 
@@ -166,11 +167,11 @@ my $movement = undef;
 # last vi command, used by .
 my $last
   = {
-     'char' => undef,
+     'char' => 'i', # = i to support . when loading the script
      'numeric_prefix' => undef,
      'operator' => undef,
      'movement' => undef,
-     'register' => undef,
+     'register' => '"',
     };
 
 # what Vi mode we're in. We start in insert mode.
@@ -361,14 +362,14 @@ sub _get_pos_and_length {
 
 
 sub cmd_movement_h {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     $pos -= $count;
     $pos = 0 if $pos < 0;
     _input_pos($pos);
 }
 sub cmd_movement_l {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     my $length = _input_len();
     $pos += $count;
@@ -376,13 +377,13 @@ sub cmd_movement_l {
     _input_pos($pos);
 }
 sub cmd_movement_space {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
     cmd_movement_l($count, $pos);
 }
 
 # later history (down)
 sub cmd_movement_j {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
         # simulate a down-arrow
@@ -411,7 +412,7 @@ sub cmd_movement_j {
 }
 # earlier history (up)
 sub cmd_movement_k {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
         # simulate an up-arrow
@@ -437,7 +438,7 @@ sub cmd_movement_k {
 }
 
 sub cmd_movement_f {
-    my ($count, $pos, $char) = @_;
+    my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
     if ($pos != -1) {
@@ -445,7 +446,7 @@ sub cmd_movement_f {
     }
 }
 sub cmd_movement_t {
-    my ($count, $pos, $char) = @_;
+    my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
     if ($pos != -1) {
@@ -453,7 +454,7 @@ sub cmd_movement_t {
     }
 }
 sub cmd_movement_F {
-    my ($count, $pos, $char) = @_;
+    my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
     $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
@@ -462,7 +463,7 @@ sub cmd_movement_F {
     }
 }
 sub cmd_movement_T {
-    my ($count, $pos, $char) = @_;
+    my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
     $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
@@ -484,7 +485,7 @@ sub _next_occurrence {
 }
 
 sub cmd_movement_w {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
     while ($count-- > 0) {
@@ -503,7 +504,7 @@ sub cmd_movement_w {
     _input_pos($pos);
 }
 sub cmd_movement_b {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     my $input = reverse _input();
     $pos = length($input) - $pos - 1;
@@ -515,7 +516,7 @@ sub cmd_movement_b {
     _input_pos($pos);
 }
 sub cmd_movement_e {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     $pos = _end_of_word(_input(), $count, $pos);
     _input_pos($pos);
@@ -552,7 +553,7 @@ sub _end_of_word {
     return $pos;
 }
 sub cmd_movement_W {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
     while ($count-- > 0 and length($input) > $pos) {
@@ -564,7 +565,7 @@ sub cmd_movement_W {
     _input_pos($pos);
 }
 sub cmd_movement_B {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     my $input = reverse _input();
     $pos = _end_of_WORD($input, $count, length($input) - $pos - 1);
@@ -575,7 +576,7 @@ sub cmd_movement_B {
     }
 }
 sub cmd_movement_E {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     $pos = _end_of_WORD(_input(), $count, $pos);
     if ($pos == -1) {
@@ -628,12 +629,12 @@ sub cmd_movement_dollar {
 }
 
 sub cmd_movement_x {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     cmd_operator_d($pos, $pos + $count, 'x');
 }
 sub cmd_movement_X {
-    my ($count, $pos) = @_;
+    my ($count, $pos, $repeat) = @_;
 
     return if $pos == 0;
 
@@ -643,44 +644,53 @@ sub cmd_movement_X {
 }
 
 sub cmd_movement_i {
-    _update_mode(M_INS);
+    my ($count, $pos, $repeat) = @_;
+
+    if (!$repeat) {
+        _update_mode(M_INS);
+    } else {
+        _insert_buffer($count);
+    }
 }
 sub cmd_movement_I {
+    my ($count, $pos, $repeat) = @_;
+
     cmd_movement_caret();
-    _update_mode(M_INS);
+    if (!$repeat) {
+        _update_mode(M_INS);
+    } else {
+        _insert_buffer($count);
+    }
 }
 sub cmd_movement_a {
+    my ($count, $pos, $repeat) = @_;
+
     cmd_movement_l(1, _input_pos());
-    _update_mode(M_INS);
+    if (!$repeat) {
+        _update_mode(M_INS);
+    } else {
+        _insert_buffer($count);
+    }
 }
 sub cmd_movement_A {
+    my ($count, $pos, $repeat) = @_;
+
     cmd_movement_dollar();
-    _update_mode(M_INS);
+    if (!$repeat) {
+        _update_mode(M_INS);
+    } else {
+        _insert_buffer($count);
+    }
 }
-
-sub cmd_movement_r {
-    my ($count, $pos, $char) = @_;
-
-    my $input = _input();
-    substr $input, $pos, 1, $char;
-    _input($input);
-    _input_pos($pos);
+# Add @insert_buf to _input() at the current cursor position.
+sub _insert_buffer {
+    my ($count) = @_;
+    _insert_at_position(join('', @insert_buf), $count, _input_pos());
 }
+sub _insert_at_position {
+    my ($string, $count, $pos) = @_;
 
-sub cmd_movement_p {
-    my ($count, $pos) = @_;
-    _paste_at_position($count, $pos + 1);
-}
-sub cmd_movement_P {
-    my ($count, $pos) = @_;
-    _paste_at_position($count, $pos);
-}
-sub _paste_at_position {
-    my ($count, $pos) = @_;
-
-    return if not $registers->{$register};
-
-    my $string = $registers->{$register} x $count;
+    $string = $string x $count;
 
     my $input = _input();
     # Check if we are not at the end of the line to prevent substr outside of
@@ -695,8 +705,32 @@ sub _paste_at_position {
     _input_pos($pos - 1 + length $string);
 }
 
-sub cmd_movement_tilde {
+sub cmd_movement_r {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    my $input = _input();
+    substr $input, $pos, 1, $char;
+    _input($input);
+    _input_pos($pos);
+}
+
+sub cmd_movement_p {
+    my ($count, $pos, $repeat) = @_;
+    _paste_at_position($count, $pos + 1);
+}
+sub cmd_movement_P {
+    my ($count, $pos, $repeat) = @_;
+    _paste_at_position($count, $pos);
+}
+sub _paste_at_position {
     my ($count, $pos) = @_;
+
+    return if not $registers->{$register};
+    _insert_at_position($registers->{$register}, $count, $pos);
+}
+
+sub cmd_movement_tilde {
+    my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
     my $string = substr $input, $pos, $count;
@@ -708,7 +742,7 @@ sub cmd_movement_tilde {
 }
 
 sub cmd_movement_register {
-    my ($count, $pos, $char) = @_;
+    my ($count, $pos, $repeat, $char) = @_;
 
     # + and * contain both irssi's cut-buffer
     if ($char eq '+' or $char eq '*') {
@@ -933,6 +967,15 @@ sub got_key {
 
             _stop();
             return;
+
+        # Pressing delete resets insert mode repetition.
+        # TODO: maybe allow it
+        } elsif ($key == 127) {
+            @insert_buf = ();
+        # All other entered characters need to be stored to allow repeat of
+        # insert mode. Ignore delete and ctrl characters.
+        } elsif ($key > 31) {
+            push @insert_buf, chr($key);
         }
     }
 
@@ -976,6 +1019,10 @@ sub handle_input_buffer {
         #     _emulate_keystrokes(@input_buf);
         # }
         _emulate_keystrokes(@input_buf);
+
+        # Clear insert buffer, pressing "special" keys (like arrow keys)
+        # resets it.
+        @insert_buf = ();
     }
 
     @input_buf = ();
@@ -1064,6 +1111,7 @@ sub handle_command_cmd {
         print "Processing movement command: $char" if DEBUG;
 
         my $skip = 0;
+        my $repeat = 0;
 
         if (!$movement) {
             # . repeats the last command.
@@ -1076,7 +1124,9 @@ sub handle_command_cmd {
                 $operator = $last->{operator};
                 $movement = $last->{movement};
                 $register = $last->{register};
+                $repeat = 1;
             } elsif ($char eq '.') {
+                print '. pressed but $last->{char} not set' if DEBUG;
                 $skip = 1;
             }
             # C and D force the matching operator
@@ -1098,13 +1148,15 @@ sub handle_command_cmd {
             # Execute the movement (multiple times).
             my $cur_pos = _input_pos();
             if (not $movement) {
-                $movements->{$char}->{func}->($numeric_prefix, $cur_pos);
+                $movements->{$char}->{func}
+                          ->($numeric_prefix, $cur_pos, $repeat);
             } else {
                 # Use the real movement command (like t or f) for operator
                 # below.
                 $char = substr $movement, 0, 1;
                 $movements->{$char}->{func}
-                            ->($numeric_prefix, $cur_pos, substr $movement, 1);
+                          ->($numeric_prefix, $cur_pos, $repeat,
+                             substr $movement, 1);
             }
             my $new_pos = _input_pos();
 
@@ -1120,7 +1172,9 @@ sub handle_command_cmd {
             # registers.
             if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r' or
                              $char eq 'p' or $char eq 'P' or $char eq 'C' or
-                             $char eq 'D' or $char eq '~' or $char eq '"') {
+                             $char eq 'D' or $char eq '~' or $char eq '"' or
+                             $char eq 'i' or $char eq 'I' or $char eq 'a' or
+                             $char eq 'A') {
                 $last->{char} = $char;
                 $last->{numeric_prefix} = $numeric_prefix;
                 $last->{operator} = $operator;
@@ -1129,7 +1183,12 @@ sub handle_command_cmd {
             }
         }
 
-        $numeric_prefix = undef;
+        # Reset the count unless we go into insert mode, _update_mode() needs
+        # to know it when leaving insert mode to support insert with counts
+        # (like 3i).
+        if ($repeat or ($char ne 'i' and $char ne 'I' and $char ne 'a' and $char ne 'A')) {
+            $numeric_prefix = undef;
+        }
         $operator = undef;
         $movement = undef;
 
@@ -1371,20 +1430,33 @@ sub _stop() {
 sub _update_mode {
     my ($new_mode) = @_;
 
-    # In insert mode we are "between" characters, in command mode "on top" of
-    # keys. When leaving insert mode we have to move on key left to accomplish
-    # that.
     if ($mode == M_INS and $new_mode == M_CMD) {
-        my $pos = _input_pos();
-        if ($pos != 0) {
-            _input_pos($pos - 1);
+        # Support counts with insert modes, like 3i.
+        if ($numeric_prefix and $numeric_prefix > 1) {
+            _insert_buffer($numeric_prefix - 1);
+            $numeric_prefix = undef;
+
+        # In insert mode we are "between" characters, in command mode "on top"
+        # of keys. When leaving insert mode we have to move on key left to
+        # accomplish that.
+        } else {
+            my $pos = _input_pos();
+            if ($pos != 0) {
+                _input_pos($pos - 1);
+            }
         }
+    # Change mode to i to support insert mode repetition. This doesn't affect
+    # commands like i/a/I/A because handle_command_cmd() sets $last->{char}.
+    # It's necessary when pressing enter.
+    } elsif ($mode == M_CMD and $new_mode == M_INS) {
+        $last->{char} = 'i';
     }
 
     $mode = $new_mode;
     if ($mode == M_INS) {
         $history_index = undef;
         $register = '"';
+        @insert_buf = ();
     # Reset every command mode related status as a fallback in case something
     # goes wrong.
     } elsif ($mode == M_CMD) {
