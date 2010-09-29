@@ -397,7 +397,7 @@ sub cmd_movement_l {
 
     my $length = _input_len();
     $pos += $count;
-    $pos = $length - 1 if $pos > $length - 1;
+    $pos = _fix_input_pos($pos, $length);
     _input_pos($pos);
 }
 sub cmd_movement_space {
@@ -525,6 +525,7 @@ sub cmd_movement_w {
         }
     }
 
+    $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
 }
 sub cmd_movement_b {
@@ -542,7 +543,9 @@ sub cmd_movement_b {
 sub cmd_movement_e {
     my ($count, $pos, $repeat) = @_;
 
-    $pos = _end_of_word(_input(), $count, $pos);
+    my $input = _input();
+    $pos = _end_of_word($input, $count, $pos);
+    $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
 }
 # Go to the end of $count-th word, like vi's e.
@@ -574,6 +577,11 @@ sub _end_of_word {
         }
     }
 
+    # Necessary for correct deletion at the end of the line.
+    if (length $input == $pos + 1) {
+        $pos++;
+    }
+
     return $pos;
 }
 sub cmd_movement_W {
@@ -586,6 +594,7 @@ sub cmd_movement_W {
         }
         $pos += $+[0] + 1;
     }
+    $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
 }
 sub cmd_movement_B {
@@ -644,12 +653,14 @@ sub cmd_movement_caret {
         $pos = $-[0];
     # Only whitespace, go to the end.
     } else {
-        $pos = _input_len();
+        $pos = _fix_input_pos(_input_len(), length $input);
     }
     _input_pos($pos);
 }
 sub cmd_movement_dollar {
-    _input_pos(_input_len() - 1);
+    my $input = _input();
+    my $length = length $input;
+    _input_pos(_fix_input_pos($length, $length));
 }
 
 sub cmd_movement_x {
@@ -788,6 +799,22 @@ sub cmd_movement_register {
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
+}
+
+# Adapt the input position depending if an operator is active or not.
+sub _fix_input_pos {
+    my ($pos, $length) = @_;
+
+    # Allow moving past the last character when an operator is active to allow
+    # correct handling of last character in line.
+    if ($operator) {
+        $pos = $length if $pos > $length;
+    # Otherwise forbid it.
+    } else {
+        $pos = $length - 1 if $pos > $length - 1;
+    }
+
+    return $pos;
 }
 
 sub cmd_ex_command {
