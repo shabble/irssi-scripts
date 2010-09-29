@@ -316,6 +316,14 @@ sub cmd_redo {
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move, $repeat) = @_;
 
+    # Changing a word or WORD doesn't delete the last space before a word.
+    if ($move eq 'w' or $move eq 'W') {
+        my $input = _input();
+        if (substr($input, $new_pos - 1, 1) =~ /\s/) {
+            $new_pos--;
+        }
+    }
+
     cmd_operator_d($old_pos, $new_pos, $move, $repeat);
     if (!$repeat) {
         _update_mode(M_INS);
