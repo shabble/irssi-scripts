@@ -51,7 +51,7 @@
 # Dependencies:
 #
 # For proper :ex mode support, requires the installation of prompt_info.pl
-#  http://github.com/shabble/shab-irssi-scripts/raw/master/prompt_info/prompt_info.pl
+#  http://github.com/shabble/irssi-scripts/raw/master/prompt_info/prompt_info.pl
 #
 # and follow the instructions in the top of that file for installation instructions.
 #
@@ -68,7 +68,7 @@
 #
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
-# http://github.com/shabble/shab-irssi-scripts/issues
+# http://github.com/shabble/irssi-scripts/issues
 #
 # or contact rudi_s or shabble on irc.freenode.net (#irssi)
 #
