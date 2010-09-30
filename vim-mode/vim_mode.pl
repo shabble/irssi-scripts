@@ -298,15 +298,15 @@ my $movements_multiple =
 sub cmd_undo {
     print "Undo!" if DEBUG;
 
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
-
-    _restore_undo_entry($undo_index);
-
     if ($undo_index != $#undo_buffer) {
         $undo_index++;
     } else {
         print "No further undo." if DEBUG;
     }
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
+
+    _restore_undo_entry($undo_index);
+
 }
 
 sub cmd_redo {
@@ -1236,8 +1236,12 @@ sub handle_command_cmd {
                 $numeric_prefix = 1;
             }
 
-            # Execute the movement (multiple times).
             my $cur_pos = _input_pos();
+
+            _add_undo_entry(_input(), $cur_pos) unless $char eq 'u';
+
+            # Execute the movement (multiple times).
+
             if (not $movement) {
                 $movements->{$char}->{func}
                           ->($numeric_prefix, $cur_pos, $repeat);
@@ -1400,8 +1404,11 @@ sub _add_undo_entry {
     my $head = $undo_buffer[0];
     if ($line eq $head->[0] && $pos == $head->[1]) {
         print "Not adding duplicate to undo list" if DEBUG;
+    } elsif ($line eq $head->[0]) {
+        print "Updating position of undo list head" if DEBUG;
+        $undo_buffer[0]->[1] = $pos;
     } else {
-        print "adding $line to undo list" if DEBUG;
+        print "adding $line ($pos) to undo list" if DEBUG;
         # add to the front of the buffer
         unshift @undo_buffer, [$line, $pos];
     }
@@ -1410,7 +1417,7 @@ sub _add_undo_entry {
 
 sub _restore_undo_entry {
     my $entry = $undo_buffer[$undo_index];
-    _input($entry->[0], 1);
+    _input($entry->[0]);
     _input_pos($entry->[1]);
 }
 
@@ -1456,7 +1463,7 @@ sub _commit_line {
 }
 
 sub _input {
-    my ($data, $ignore_undo) = @_;
+    my ($data) = @_;
 
     my $current_data = Irssi::parse_special('$L', 0, 0);
 
@@ -1465,16 +1472,6 @@ sub _input {
     }
 
     if (defined $data) {
-        if (!$ignore_undo && ($data ne $current_data)) {
-            if ($undo_index != 0) { # ???
-                print "Resetting undo buffer" if DEBUG;
-                _reset_undo_buffer($current_data, _input_pos());
-            } else {
-                my $pos = _input_pos();
-                print "Adding debug entry: $current_data $pos" if DEBUG;
-                _add_undo_entry($current_data, $pos);
-            }
-        }
         if ($utf8) {
             Irssi::gui_input_set(encode_utf8($data));
         } else {
@@ -1494,6 +1491,12 @@ sub _input_len {
 sub _input_pos {
     my ($pos) = @_;
     my $cur_pos = Irssi::gui_input_get_pos();
+    my $dpos = defined $pos?$pos:'undef';
+    my @call = caller(1);
+    my $cfunc = $call[3];
+    $cfunc =~ s/^.*?::([^:]+)$/$1/;
+    print "pos called from line: $call[2] sub: $cfunc pos: $dpos, cur_pos: $cur_pos"
+      if DEBUG;
 
     if (defined $pos) {
         print "Input pos being set from $cur_pos to $pos" if DEBUG;
