@@ -838,7 +838,7 @@ sub cmd_ex_command {
         my $rep_fun = sub { $replace };
 
         my $line = _input();
-        my @re_flags = split '', $flags // '';
+        my @re_flags = split '', defined $flags:$flags:'';
 
         if (scalar grep { $_ eq 'i' } @re_flags) {
             $search = '(?i)' . $search;
