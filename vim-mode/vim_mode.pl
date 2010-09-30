@@ -308,28 +308,28 @@ my $movements_multiple =
 sub cmd_undo {
     print "Undo!" if DEBUG;
 
+    _restore_undo_entry($undo_index);
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
     if ($undo_index != $#undo_buffer) {
         $undo_index++;
     } else {
         print "No further undo." if DEBUG;
     }
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
 
-    _restore_undo_entry($undo_index);
 
 }
 
 sub cmd_redo {
     print "Redo!" if DEBUG;
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
+
+    _restore_undo_entry($undo_index);
 
     if ($undo_index != 0) {
         $undo_index--;
     } else {
         print "No further Redo." if DEBUG;
     }
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
-
-    _restore_undo_entry($undo_index);
 }
 
 sub cmd_operator_c {
@@ -1300,7 +1300,7 @@ sub handle_command_cmd {
 
             # save an undo checkpoint here.
 
-            if ($char ne 'u' && $char ne "\x12"
+            if ($char ne 'u' && $char ne "\x12" && $char ne "\x04"
                 && $char ne 'j' && $char ne 'k') {
 
                 # TODO: why do histpry entries still show up in undo
