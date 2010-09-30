@@ -186,6 +186,7 @@ my $registers
      '"' => '', # default register
      '+' => '', # contains irssi's cut buffer
      '*' => '', # same
+     '_' => '', # black hole register, always empty
     };
 foreach my $char ('a' .. 'z') {
     $registers->{$char} = '';
@@ -802,6 +803,11 @@ sub cmd_movement_register {
         return;
     }
 
+    # make sure black hole register is always empty
+    if ($char eq '_') {
+        $registers->{_} = '';
+    }
+
     # + and * contain both irssi's cut-buffer
     if ($char eq '+' or $char eq '*') {
         $registers->{'+'} = Irssi::parse_special('$U');
@@ -1126,6 +1132,9 @@ sub flush_input_buffer {
     # see what we've collected.
     print "Input buffer flushed" if DEBUG;
 
+    # Add the characters to @insert_buf so they can be repeated.
+    push @insert_buf, map chr, @input_buf;
+
     _emulate_keystrokes(@input_buf);
 
     @input_buf = ();
@@ -1395,6 +1404,7 @@ sub setup_changed {
 sub UNLOAD {
     Irssi::signal_remove('gui key pressed' => \&got_key);
     Irssi::statusbar_item_unregister ('vim_mode');
+    Irssi::statusbar_item_unregister ('vim_windows');
 
 }
 
