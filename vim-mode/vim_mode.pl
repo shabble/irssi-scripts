@@ -286,6 +286,7 @@ my $movements
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
      '"' => { func => \&cmd_movement_register },
+     "\x1e" => { func => \&cmd_movement_ctrl_6 },
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
@@ -867,6 +868,11 @@ sub cmd_movement_register {
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
+}
+
+sub cmd_movement_ctrl_6 {
+    # like :b#
+    Irssi::command('window last');
 }
 
 # Adapt the input position depending if an operator is active or not.
