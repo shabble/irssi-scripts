@@ -312,6 +312,15 @@ sub cmd_undo {
 
 sub cmd_redo {
     print "Redo!" if DEBUG;
+
+    if ($undo_index != 0) {
+        $undo_index--;
+    } else {
+        print "No further Redo." if DEBUG;
+    }
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
+
+    _restore_undo_entry($undo_index);
 }
 
 sub cmd_operator_c {
@@ -1247,7 +1256,16 @@ sub handle_command_cmd {
 
             my $cur_pos = _input_pos();
 
-            _add_undo_entry(_input(), $cur_pos) unless $char eq 'u';
+            # save an undo checkpoint here.
+
+            if ($char ne 'u' && $char ne "\x12"
+                && $char ne 'j' && $char ne 'k') {
+
+                # TODO: why do histpry entries still show up in undo
+                # buffer? Is avoiding the commands here insufficient?
+
+                _add_undo_entry(_input(), $cur_pos);
+            }
 
             # Execute the movement (multiple times).
 
@@ -1411,18 +1429,18 @@ sub UNLOAD {
 sub _add_undo_entry {
     my ($line, $pos) = @_;
     # check it's not a dupe of the list head
-    my $head = $undo_buffer[0];
-    if ($line eq $head->[0] && $pos == $head->[1]) {
+    my $current = $undo_buffer[$undo_index];
+    if ($line eq $current->[0] && $pos == $current->[1]) {
         print "Not adding duplicate to undo list" if DEBUG;
-    } elsif ($line eq $head->[0]) {
-        print "Updating position of undo list head" if DEBUG;
-        $undo_buffer[0]->[1] = $pos;
+    } elsif ($line eq $current->[0]) {
+        print "Updating position of undo list at $undo_index" if DEBUG;
+        $undo_buffer[$undo_index]->[1] = $pos;
     } else {
         print "adding $line ($pos) to undo list" if DEBUG;
         # add to the front of the buffer
         unshift @undo_buffer, [$line, $pos];
+        $undo_index = 0;
     }
-    $undo_index = 0;
 }
 
 sub _restore_undo_entry {
@@ -1501,19 +1519,19 @@ sub _input_len {
 sub _input_pos {
     my ($pos) = @_;
     my $cur_pos = Irssi::gui_input_get_pos();
-    my $dpos = defined $pos?$pos:'undef';
-    my @call = caller(1);
-    my $cfunc = $call[3];
-    $cfunc =~ s/^.*?::([^:]+)$/$1/;
-    print "pos called from line: $call[2] sub: $cfunc pos: $dpos, cur_pos: $cur_pos"
-      if DEBUG;
+    # my $dpos = defined $pos?$pos:'undef';
+    # my @call = caller(1);
+    # my $cfunc = $call[3];
+    # $cfunc =~ s/^.*?::([^:]+)$/$1/;
+    # print "pos called from line: $call[2] sub: $cfunc pos: $dpos, cur_pos: $cur_pos"
+    #   if DEBUG;
 
     if (defined $pos) {
-        print "Input pos being set from $cur_pos to $pos" if DEBUG;
+        #print "Input pos being set from $cur_pos to $pos" if DEBUG;
         Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
     } else {
         $pos = $cur_pos;
-        print "Input pos retrieved as $pos" if DEBUG;
+        #print "Input pos retrieved as $pos" if DEBUG;
     }
 
     return $pos;
