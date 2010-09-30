@@ -18,7 +18,7 @@
 # * repeat ftFT: ; ,
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
-# * window selection: :b<num>, :b#, :b <match-str>
+# * window selection: :b<num>, :b#, :b <match-str> :bn :bp
 #
 # * special registers: "* "+ (contain irssi's cut-buffer)
 #
@@ -914,7 +914,13 @@ sub cmd_ex_command {
 
         print "New line is: $line" if DEBUG;
         _input($line);
-
+    # :bn
+    } elsif ($arg_str eq 'bn') {
+        Irssi::command('window next');
+    # :bp
+    } elsif ($arg_str eq 'bp') {
+        Irssi::command('window previous');
+    # :b[buffer] {args}
     } elsif ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
         my $window;
         my $item;
