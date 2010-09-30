@@ -30,7 +30,6 @@
 # * Window switching (:b)
 #  * Tab completion of window(-item) names
 #  * non-sequential matches(?)
-#  * additional statusbar-item for showing matches
 #
 # * use irssi settings for some of the features
 #  * Done:
