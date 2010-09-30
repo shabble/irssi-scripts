@@ -926,7 +926,7 @@ sub _matching_windows {
                                item => undef,
                               ratio => $win_ratio,
                                text => $window->{name} };
-            print ":b $window->{name}: $ratio" if DEBUG;
+            print ":b $window->{name}: $win_ratio" if DEBUG;
         }
         # Matching Window item names (= channels).
         foreach my $item ($window->items()) {
@@ -943,7 +943,7 @@ sub _matching_windows {
                                    item => $item,
                                   ratio => $item_ratio,
                                    text => $item->{name} };
-                print ":b $window->{name} $item->{name}: $ratio" if DEBUG;
+                print ":b $window->{name} $item->{name}: $item_ratio" if DEBUG;
             }
         }
     }
