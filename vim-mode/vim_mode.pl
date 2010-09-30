@@ -1421,6 +1421,7 @@ sub vim_mode_init {
     Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
     Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
     Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
+    Irssi::settings_add_int('vim_mode', 'vim_mode_max_undo_lines', 50);
 
     setup_changed();
     _reset_undo_buffer();
@@ -1483,6 +1484,7 @@ sub _add_undo_entry {
         unshift @undo_buffer, [$line, $pos];
         $undo_index = 0;
     }
+    my $max = Irssi::settings_get_int('vim_mode_max_undo_lines');
 }
 
 sub _restore_undo_entry {
