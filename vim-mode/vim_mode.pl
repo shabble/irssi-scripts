@@ -174,6 +174,12 @@ my $last
      'movement' => undef,
      'register' => '"',
     };
+# last ftFT movement, used by ; and ,
+my $last_ftFT
+  = {
+     type => undef, # f, t, F or T
+     char => undef,
+    };
 
 # what Vi mode we're in. We start in insert mode.
 my $mode = M_INS;
@@ -247,6 +253,8 @@ my $movements
      't' => { func => \&cmd_movement_t },
      'F' => { func => \&cmd_movement_F },
      'T' => { func => \&cmd_movement_T },
+     ';' => { func => \&cmd_movement_semicolon },
+     ',' => { func => \&cmd_movement_comma },
      # word movement
      'w' => { func => \&cmd_movement_w },
      'b' => { func => \&cmd_movement_b },
@@ -481,6 +489,8 @@ sub cmd_movement_f {
     if ($pos != -1) {
         _input_pos($pos);
     }
+
+    $last_ftFT = { type => 'f', char => $char };
 }
 sub cmd_movement_t {
     my ($count, $pos, $repeat, $char) = @_;
@@ -489,6 +499,8 @@ sub cmd_movement_t {
     if ($pos != -1) {
         _input_pos($pos - 1);
     }
+
+    $last_ftFT = { type => 't', char => $char };
 }
 sub cmd_movement_F {
     my ($count, $pos, $repeat, $char) = @_;
@@ -498,6 +510,8 @@ sub cmd_movement_F {
     if ($pos != -1) {
         _input_pos(length($input) - $pos - 1);
     }
+
+    $last_ftFT = { type => 'F', char => $char };
 }
 sub cmd_movement_T {
     my ($count, $pos, $repeat, $char) = @_;
@@ -507,6 +521,8 @@ sub cmd_movement_T {
     if ($pos != -1) {
         _input_pos(length($input) - $pos - 1 + 1);
     }
+
+    $last_ftFT = { type => 'T', char => $char };
 }
 # Find $count-th next occurrence of $char.
 sub _next_occurrence {
@@ -795,6 +811,31 @@ sub cmd_movement_tilde {
     _input($input);
     _input_pos($pos + $count);
 }
+
+sub cmd_movement_semicolon {
+    my ($count, $pos, $repeat) = @_;
+
+    return if not defined $last_ftFT;
+
+    $movements->{$last_ftFT->{type}}
+              ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+}
+sub cmd_movement_comma {
+    my ($count, $pos, $repeat) = @_;
+
+    return if not defined $last_ftFT;
+
+    # Change direction.
+    my $save = $last_ftFT->{type};
+    my $type = $save;
+    $type =~ tr/ftFT/FTft/;
+
+    $movements->{$type}
+              ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+    # Restore type as the move functions overwrites it.
+    $last_ftFT->{type} = $save;
+}
+
 
 sub cmd_movement_register {
     my ($count, $pos, $repeat, $char) = @_;
