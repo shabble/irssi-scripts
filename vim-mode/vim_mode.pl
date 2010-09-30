@@ -958,6 +958,9 @@ sub cmd_ex_command {
                 $active_window->print("register $key: $registers->{$key}");
             }
         }
+    # :ls and :buffers
+    } elsif ($arg_str eq 'ls' or $arg_str eq 'buffers') {
+        Irssi::command('window list');
     }
 }
 
