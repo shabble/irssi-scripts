@@ -1402,7 +1402,6 @@ sub handle_command_ex {
     } elsif ($key == 10) {
         print "Run ex-mode command" if DEBUG;
         cmd_ex_command();
-        _set_prompt('');
         @ex_buf = ();
         _update_mode(M_CMD);
 
@@ -1621,6 +1620,9 @@ sub _update_mode {
     # It's necessary when pressing enter.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{char} = 'i';
+    # Make sure prompt is cleared when leaving ex mode.
+    } elsif ($mode == M_EX and $new_mode != M_EX) {
+        _set_prompt('');
     }
 
     $mode = $new_mode;
