@@ -106,6 +106,7 @@ use List::Util;
 
 use Irssi;
 use Irssi::TextUI;              # for sbar_items_redraw
+use Irssi::Irc;                 # necessary for 0.8.14
 
 
 use vars qw($VERSION %IRSSI);
