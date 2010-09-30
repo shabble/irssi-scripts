@@ -186,6 +186,7 @@ my $registers
      '"' => '', # default register
      '+' => '', # contains irssi's cut buffer
      '*' => '', # same
+     '_' => '', # black hole register, always empty
     };
 foreach my $char ('a' .. 'z') {
     $registers->{$char} = '';
@@ -800,6 +801,11 @@ sub cmd_movement_register {
     if (not exists $registers->{$char} and not exists $registers->{lc $char}) {
         print "Wrong register $char, ignoring." if DEBUG;
         return;
+    }
+
+    # make sure black hole register is always empty
+    if ($char eq '_') {
+        $registers->{_} = '';
     }
 
     # + and * contain both irssi's cut-buffer
