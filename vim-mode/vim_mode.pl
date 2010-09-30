@@ -6,7 +6,7 @@
 # * cursor motion with: h l 0 ^ $
 # * history motion with j k
 # * cursor word motion with: w b e W B E
-# * change/delete: c d C D
+# * change/delete: c d C D s
 # * delete at cursor: x
 # * replace at cursor: r
 # * Insert mode at pos: i a
@@ -1218,6 +1218,12 @@ sub handle_command_cmd {
         $movement .= $char;
     }
 
+    # s is an alias for cl.
+    if (!$movement and !$operator and $char eq 's') {
+        print "Changing s to cl" if DEBUG;
+        $char = 'l';
+        $operator = 'c';
+    }
     # S is an alias for cc.
     if (!$movement and !$operator and $char eq 'S') {
         print "Changing S to cc" if DEBUG;
