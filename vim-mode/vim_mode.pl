@@ -6,7 +6,7 @@
 # * cursor motion with: h l 0 ^ $
 # * history motion with j k
 # * cursor word motion with: w b e W B E
-# * change/delete: c d C D
+# * change/delete: c d C D s
 # * delete at cursor: x
 # * replace at cursor: r
 # * Insert mode at pos: i a
@@ -15,9 +15,10 @@
 # * yank and paste: y p P
 # * switch case: ~
 # * repeat change: .
+# * repeat ftFT: ; ,
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
-# * window selection: :b<num>, :b#, :b <match-str>
+# * window selection: :b<num>, :b#, :b <match-str> :bn :bp
 #
 # * special registers: "* "+ (contain irssi's cut-buffer)
 #
@@ -30,7 +31,6 @@
 # * Window switching (:b)
 #  * Tab completion of window(-item) names
 #  * non-sequential matches(?)
-#  * additional statusbar-item for showing matches
 #
 # * use irssi settings for some of the features
 #  * Done:
@@ -914,7 +914,13 @@ sub cmd_ex_command {
 
         print "New line is: $line" if DEBUG;
         _input($line);
-
+    # :bn
+    } elsif ($arg_str eq 'bn') {
+        Irssi::command('window next');
+    # :bp
+    } elsif ($arg_str eq 'bp') {
+        Irssi::command('window previous');
+    # :b[buffer] {args}
     } elsif ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
         my $window;
         my $item;
@@ -958,6 +964,9 @@ sub cmd_ex_command {
                 $active_window->print("register $key: $registers->{$key}");
             }
         }
+    # :ls and :buffers
+    } elsif ($arg_str eq 'ls' or $arg_str eq 'buffers') {
+        Irssi::command('window list');
     }
 }
 
@@ -1219,6 +1228,12 @@ sub handle_command_cmd {
         $movement .= $char;
     }
 
+    # s is an alias for cl.
+    if (!$movement and !$operator and $char eq 's') {
+        print "Changing s to cl" if DEBUG;
+        $char = 'l';
+        $operator = 'c';
+    }
     # S is an alias for cc.
     if (!$movement and !$operator and $char eq 'S') {
         print "Changing S to cc" if DEBUG;
@@ -1396,7 +1411,6 @@ sub handle_command_ex {
     } elsif ($key == 10) {
         print "Run ex-mode command" if DEBUG;
         cmd_ex_command();
-        _set_prompt('');
         @ex_buf = ();
         _update_mode(M_CMD);
 
@@ -1617,6 +1631,9 @@ sub _update_mode {
     # It's necessary when pressing enter.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{char} = 'i';
+    # Make sure prompt is cleared when leaving ex mode.
+    } elsif ($mode == M_EX and $new_mode != M_EX) {
+        _set_prompt('');
     }
 
     $mode = $new_mode;
