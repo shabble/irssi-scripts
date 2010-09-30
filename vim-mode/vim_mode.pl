@@ -15,6 +15,7 @@
 # * yank and paste: y p P
 # * switch case: ~
 # * repeat change: .
+# * repeat ftFT: ; ,
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
 # * window selection: :b<num>, :b#, :b <match-str>
