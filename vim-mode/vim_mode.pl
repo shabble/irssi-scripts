@@ -1126,6 +1126,9 @@ sub flush_input_buffer {
     # see what we've collected.
     print "Input buffer flushed" if DEBUG;
 
+    # Add the characters to @insert_buf so they can be repeated.
+    push @insert_buf, map chr, @input_buf;
+
     _emulate_keystrokes(@input_buf);
 
     @input_buf = ();
