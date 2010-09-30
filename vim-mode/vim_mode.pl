@@ -895,10 +895,10 @@ sub cmd_ex_command {
         } else {
             @regs = keys %$registers;
         }
-        my $window = Irssi::active_win;
+        my $active_window = Irssi::active_win;
         foreach my $key (sort @regs) {
             if (defined $registers->{$key}) {
-                $window->print("register $key: $registers->{$key}");
+                $active_window->print("register $key: $registers->{$key}");
             }
         }
     }
