@@ -921,10 +921,10 @@ sub _matching_windows {
     foreach my $window (Irssi::windows()) {
         # Matching window names.
         if ($window->{name} =~ /$buffer/i) {
-            my $ratio = ($+[0] - $-[0]) / length($window->{name});
+            my $win_ratio = ($+[0] - $-[0]) / length($window->{name});
             push @matches, { window => $window,
                                item => undef,
-                              ratio => $ratio,
+                              ratio => $win_ratio,
                                text => $window->{name} };
             print ":b $window->{name}: $ratio" if DEBUG;
         }
@@ -938,10 +938,10 @@ sub _matching_windows {
             if ($item->{name} =~ /$buffer/i) {
                 my $length = length($item->{name});
                 $length-- if index($item->{name}, '#') == 0;
-                my $ratio = ($+[0] - $-[0]) / $length;
+                my $item_ratio = ($+[0] - $-[0]) / $length;
                 push @matches, { window => $window,
                                    item => $item,
-                                  ratio => $ratio,
+                                  ratio => $item_ratio,
                                    text => $item->{name} };
                 print ":b $window->{name} $item->{name}: $ratio" if DEBUG;
             }
