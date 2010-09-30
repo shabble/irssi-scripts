@@ -1391,6 +1391,7 @@ sub setup_changed {
 sub UNLOAD {
     Irssi::signal_remove('gui key pressed' => \&got_key);
     Irssi::statusbar_item_unregister ('vim_mode');
+    Irssi::statusbar_item_unregister ('vim_windows');
 
 }
 
