@@ -165,6 +165,8 @@ aliases = {
   xxx = "/dump Irssi::bindings()";
   showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
   botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
+  vim = "script load vim_mode.pl";
+  unvim = "/script unload vim_mode";
 };
 
 statusbar = {
@@ -229,6 +231,7 @@ statusbar = {
         act = { priority = "10"; };
         more = { priority = "-1"; alignment = "right"; };
         barend = { priority = "100"; alignment = "right"; };
+        vim_mode = { };
       };
     };
 
@@ -285,6 +288,7 @@ settings = {
     autoinstall_custom_prompt = "yes";
     mass_hilight_action = "/echo $nick";
     mass_hilight_threshold = "0";
+    vim_mode_debug = "yes";
   };
   "fe-common/core" = { bell_beeps = "yes"; };
   "irc/core" = { ctcp_userinfo_reply = ""; };
