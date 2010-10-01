@@ -294,7 +294,7 @@ my $movements
      "\x1e" => { func => \&cmd_movement_ctrl_6 },
      # undo
      'u'    => { func => \&cmd_undo },
-     "\x12" => { func => \&cmd_redo },
+     "\x12" => { func => \&cmd_redo }, # ctrl-r
     };
 
 # special movements which take an additional key
