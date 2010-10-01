@@ -90,6 +90,11 @@
 # prompt_info.pl script.
 #
 #
+# Known bugs:
+#
+# * count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+#
+#
 # TODO:
 # * History:
 #   * /,?,n,N to search through history (like history_search.pl)
