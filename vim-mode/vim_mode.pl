@@ -18,7 +18,7 @@
 # * repeat ftFT: ; ,
 # * change/change/yank line: cc dd yy S
 # * Combinations like in Vi, e.g. d5fx
-# * window selection: :b<num>, :b#, :b <match-str> :bn :bp
+# * window selection: :b<num>, :b#, :b <match-str> :bn :bp Ctrl-W j/k
 #
 # * special registers: "* "+ (contain irssi's cut-buffer)
 #
@@ -287,11 +287,13 @@ my $movements
      "\x15" => { func => \&cmd_movement_ctrl_u }, # half screen up
      "\x06" => { func => \&cmd_movement_ctrl_f }, # screen down
      "\x02" => { func => \&cmd_movement_ctrl_b }, # screen up
+     # window switching
+     "\x17" => { func => \&cmd_movement_ctrl_w },
+     "\x1e" => { func => \&cmd_movement_ctrl_6 },
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
      '"' => { func => \&cmd_movement_register },
-     "\x1e" => { func => \&cmd_movement_ctrl_6 },
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo }, # ctrl-r
@@ -306,6 +308,7 @@ my $movements_multiple =
      'T' => undef,
      'r' => undef,
      '"' => undef,
+     "\x17" => undef, # ctrl-w
     };
 
 
@@ -905,6 +908,19 @@ sub cmd_movement_register {
     print "Changing register to $register" if DEBUG;
 }
 
+sub cmd_movement_ctrl_w {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    if ($char eq 'j') {
+        while ($count -- > 0) {
+            Irssi::command('window down');
+        }
+    } elsif ($char eq 'k') {
+        while ($count -- > 0) {
+            Irssi::command('window up');
+        }
+    }
+}
 sub cmd_movement_ctrl_6 {
     # like :b#
     Irssi::command('window last');
