@@ -600,19 +600,7 @@ sub cmd_movement_w {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
-    while ($count-- > 0) {
-        # Go to end of next word/non-word.
-        if (substr($input, $pos) =~ /^$word+/ or
-            substr($input, $pos) =~ /^$non_word+/) {
-            $pos += $+[0];
-        }
-        # And skip over any whitespace if necessary. This also happens when
-        # we're inside whitespace.
-        if (substr($input, $pos) =~ /^\s+/) {
-            $pos += $+[0];
-        }
-    }
-
+    $pos = _beginning_of_word($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
 }
@@ -635,6 +623,25 @@ sub cmd_movement_e {
     $pos = _end_of_word($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
+}
+# Go to the beginning of $count-th word, like vi's w.
+sub _beginning_of_word {
+    my ($input, $count, $pos) = @_;
+
+    while ($count-- > 0) {
+        # Go to end of next word/non-word.
+        if (substr($input, $pos) =~ /^$word+/ or
+            substr($input, $pos) =~ /^$non_word+/) {
+            $pos += $+[0];
+        }
+        # And skip over any whitespace if necessary. This also happens when
+        # we're inside whitespace.
+        if (substr($input, $pos) =~ /^\s+/) {
+            $pos += $+[0];
+        }
+    }
+
+    return $pos;
 }
 # Go to the end of $count-th word, like vi's e.
 sub _end_of_word {
