@@ -741,6 +741,13 @@ sub cmd_movement_E {
 sub _beginning_of_WORD {
     my ($input, $count, $pos) = @_;
 
+    # Necessary for correct movement between two words with only one
+    # whitespace.
+    if (substr($input, $pos) =~ /^\s\S/) {
+        $pos++;
+        $count--;
+    }
+
     while ($count-- > 0 and length($input) > $pos) {
         if (substr($input, $pos + 1) !~ /\s+/) {
             return length($input);
