@@ -48,6 +48,7 @@
 #                      :buffer {args} (same as :b)
 #                      :bn - switch to next window
 #                      :bp - switch to previous window
+# * Close window:      :bd
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
@@ -1133,6 +1134,9 @@ sub cmd_ex_command {
     # :bp
     } elsif ($arg_str eq 'bp') {
         Irssi::command('window previous');
+    # :bd
+    } elsif ($arg_str eq 'bd') {
+        Irssi::command('window close');
     # :b[buffer] {args}
     } elsif ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
         my $window;
