@@ -297,6 +297,9 @@ my $movements
      'W' => { func => \&cmd_movement_W },
      'B' => { func => \&cmd_movement_B },
      'E' => { func => \&cmd_movement_E },
+     # text-objects
+     'i_' => { func => \&cmd_movement_i_ },
+     'a_' => { func => \&cmd_movement_a_ },
      # line movement
      '0' => { func => \&cmd_movement_0 },
      '^' => { func => \&cmd_movement_caret },
@@ -766,6 +769,19 @@ sub _end_of_WORD {
         $pos += $-[1] - 1;
     }
     return $pos;
+}
+
+sub cmd_movement_i_ {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    _warn("i_ not implemented yet");
+    return;
+}
+sub cmd_movement_a_ {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    _warn("a_ not implemented yet");
+    return;
 }
 
 sub cmd_movement_0 {
@@ -1438,7 +1454,9 @@ sub handle_command_cmd {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
 
-    } elsif (!$movement && exists $movements_multiple->{$char}) {
+    # text-objects (i a) are simulated with $movement
+    } elsif (!$movement && (exists $movements_multiple->{$char}
+                            or $operator and ($char eq 'i' or $char eq 'a'))) {
         print "Processing movement: $char" if DEBUG;
         $movement = $char;
 
@@ -1527,6 +1545,10 @@ sub handle_command_cmd {
                 # Use the real movement command (like t or f) for operator
                 # below.
                 $char = substr $movement, 0, 1;
+                # i_ and a_ represent text-objects.
+                if ($char eq 'i' or $char eq 'a') {
+                    $char .= '_';
+                }
                 $return = $movements->{$char}->{func}
                                     ->($numeric_prefix, $cur_pos, $repeat,
                                        substr $movement, 1);
