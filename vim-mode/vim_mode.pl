@@ -16,7 +16,7 @@
 #   can be used as well).
 # * Cursor motion: h l 0 ^ $ <space> f t F T
 # * History motion: j k
-# * Cursor word motion: w b e W B E
+# * Cursor word motion: w b ge e W gE B E
 # * Yank and paste: y p P
 # * Change and delete: c d
 # * Delete at cursor: x X
@@ -320,6 +320,7 @@ my $movements
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
      '"' => { func => \&cmd_movement_register },
+     'g' => { func => \&cmd_movement_g }, # g does many things
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo }, # ctrl-r
@@ -334,6 +335,7 @@ my $movements_multiple =
      'T' => undef,
      'r' => undef,
      '"' => undef,
+     'g' => undef,
      "\x17" => undef, # ctrl-w
     };
 
@@ -964,6 +966,32 @@ sub cmd_movement_register {
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
+}
+
+sub cmd_movement_g {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    my $input = _input();
+    # ge
+    if ($char eq 'e') {
+        $input = reverse $input;
+        $pos = length($input) - $pos - 1;
+        $pos = 0 if ($pos < 0);
+
+        $pos = _beginning_of_word($input, $count, $pos);
+        $pos = length($input) - $pos - 1;
+        $pos = 0 if ($pos < 0);
+        _input_pos($pos);
+    # gE
+    } elsif ($char eq 'E') {
+        $input = reverse $input;
+        $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
+        if ($pos == -1) {
+            cmd_movement_0();
+        } else {
+            _input_pos(length($input) - $pos - 1);
+        }
+    }
 }
 
 sub cmd_movement_ctrl_w {
