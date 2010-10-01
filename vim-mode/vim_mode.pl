@@ -1053,7 +1053,7 @@ sub cmd_movement_g {
     } elsif ($char eq 'E') {
         $input = reverse $input;
         $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
-        if ($pos == -1) {
+        if ($pos == -1 or length($input) - $pos - 1 == -1) {
             cmd_movement_0();
         } else {
             _input_pos(length($input) - $pos - 1);
