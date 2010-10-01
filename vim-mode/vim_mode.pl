@@ -1,52 +1,83 @@
 # A script to emulate some of the vi(m) features for the Irssi inputline.
 #
-# Currently supported features:
+# NOTE: This script is still under heavy development, and there may be bugs.
+# Please submit reproducible sequences to the bug-tracker at:
+# http://github.com/shabble/irssi-scripts/issues
 #
-# * Insert/Command mode. Escape enters command mode.
-# * cursor motion with: h l 0 ^ $
-# * history motion with j k
-# * cursor word motion with: w b e W B E
-# * change/delete: c d C D s
-# * delete at cursor: x
-# * replace at cursor: r
-# * Insert mode at pos: i a
-# * Insert mode at start: I
-# * insert mode at end: A
-# * yank and paste: y p P
-# * switch case: ~
-# * repeat change: .
-# * repeat ftFT: ; ,
-# * change/change/yank line: cc dd yy S
-# * Combinations like in Vi, e.g. d5fx
-# * window selection: :b<num>, :b#, :b <match-str> :bn :bp Ctrl-W j/k
+# or contact rudi_s or shabble on irc.freenode.net (#irssi)
 #
-# * special registers: "* "+ (contain irssi's cut-buffer)
 #
-# TODO:
-# * History:
-#   * /,?,n,N to search through history (like history_search.pl)
-# * Undo:
-#   * u = undo (how many levels, branching?!)
-#   * C-r = redo
-# * Window switching (:b)
-#  * Tab completion of window(-item) names
-#  * non-sequential matches(?)
+# Features:
 #
-# * use irssi settings for some of the features
-#  * Done:
-#    * vim_mode_utf8 (use utf-8 toggle)
-#    * vim_mode_debug (debug prints)
-#    * vim_mode_cmd_seq (char that when double-pressed enters cmd mode from ins)
-#  * Pending:
-#    * ???
+# It supports most commonly used command mode features:
 #
-# WONTFIX - things we're not ever likely to do
-# * Macros
+# * Insert/Command mode. Escape and Ctrl-C enter command mode.
+#   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
+#   can be used as well).
+# * Cursor motion: h l 0 ^ $ <space> f t F T
+# * History motion: j k
+# * Cursor word motion: w b e W B E
+# * Yank and paste: y p P
+# * Change and delete: c d
+# * Delete at cursor: x X
+# * Replace at cursor: r
+# * Insert mode: i a I A
+# * Switch case: ~
+# * Repeat change: .
+# * Repeat ftFT: ; ,
+# * Registers: "a-"z "" "* "+ "_ (black hole)
+#   Appending to register with "A-"Z
+#   "" is the default yank/delete register.
+#   The special registers "* "+ contain both irssi's cut-buffer.
+# * Line-wise shortcuts: dd cc yy
+# * Shortcuts: s S C D
+# * Scroll the scrollback buffer: Ctrl-D Ctrl-U Ctrl-F Ctrl-B
+# * Switch to last active window: Ctrl-6/Ctrl-^
+# * Switch split windows: Ctrl-W j Ctrl-W k
+# * Undo/Redo: u Ctrl-R
 #
-# Known bugs:
-# * multi-line pastes
+# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>
+# Repeat also supports counts.
+#
+# Ex-mode supports (activated by : in command mode) the following commands:
+#
+# * Switching buffers: :b <num> - switch to channel number
+#                      :b#      - switch to last channel
+#                      :b <partial-channel-name>
+#                      :b <partial-server>/<partial-channel>
+#                      :buffer {args} (same as :b)
+#                      :bn - switch to next window
+#                      :bp - switch to previous window
+# * Display windows:   :ls :buffers
+# * Display registers: :reg[isters] :di[splay] {args}
+# * Display undolist:  :undol[ist] (mostly used for debugging)
+#
+# The following irssi settings are available:
+#
+# * vim_mode_utf8: support UTF-8 characters, default on
+# * vim_mode_debug: enable debug output, default off
+# * vim_mode_cmd_seq: char that when double-pressed simulates <esc>
+#
+# The following statusbar items are available:
+#
+# * vim_mode: displays current mode
+# * vim_windows: displays windows selected with :b
+#
 #
 # Installation:
+#
+# As always copy the script into .irssi/scripts and load it with
+#     /script load # vim_mode.pl
+#
+# Use the following command to get a statusbar item that shows which mode
+# you're in.
+#
+#     /statusbar window add vim_mode
+#
+# And the following to let :b name display a list of matching channels
+#
+#     /statusbar window add vim_windows
+#
 #
 # Dependencies:
 #
@@ -55,22 +86,19 @@
 #
 # and follow the instructions in the top of that file for installation instructions.
 #
-# Then, copy into scripts dir, /script load vim_mode.pl ...
+# If you don't need Ex-mode, you can run vim_mode.pl without the
+# prompt_info.pl script.
 #
-# Use the following command to get a statusbar item that shows which mode you're
-# in.
 #
-# /statusbar window add vim_mode to get the status.
+# TODO:
+# * History:
+#   * /,?,n,N to search through history (like history_search.pl)
+# * Window switching (:b)
+#  * Tab completion of window(-item) names
+#  * non-sequential matches(?)
 #
-# And the following to let :b name display a list of matching channels
-#
-# /statusbar window add vim_windows
-#
-# NOTE: This script is still under heavy development, and there may be bugs.
-# Please submit reproducible sequences to the bug-tracker at:
-# http://github.com/shabble/irssi-scripts/issues
-#
-# or contact rudi_s or shabble on irc.freenode.net (#irssi)
+# WONTFIX - things we're not ever likely to do
+# * Macros
 #
 # LICENCE:
 #
@@ -93,7 +121,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-#
 #
 #
 # Have fun!
@@ -126,12 +153,11 @@ $VERSION = "1.0.1";
 
 # CONSTANTS
 
-
 sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
-# word and non-word regex, when modifiying also update them in setup_changed()
+# word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
 my $non_word = qr/[^\w_\s]/o;
 
