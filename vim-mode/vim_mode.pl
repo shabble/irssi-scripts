@@ -337,6 +337,24 @@ my $movements_multiple =
      "\x17" => undef, # ctrl-w
     };
 
+# "movements" which can be repeated (additional to operators of course).
+my $movements_repeatable
+  = {
+     'x' => undef,
+     'X' => undef,
+     'r' => undef,
+     'p' => undef,
+     'P' => undef,
+     'C' => undef,
+     'D' => undef,
+     '~' => undef,
+     '"' => undef,
+     'i' => undef,
+     'a' => undef,
+     'I' => undef,
+     'A' => undef,
+    };
+
 
 sub cmd_undo {
     print "Undo!" if DEBUG;
@@ -1435,13 +1453,8 @@ sub handle_command_cmd {
                                                   $repeat);
             }
 
-            # Store command, necessary for . But ignore movements and
-            # registers.
-            if ($operator or $char eq 'x' or $char eq 'X' or $char eq 'r' or
-                             $char eq 'p' or $char eq 'P' or $char eq 'C' or
-                             $char eq 'D' or $char eq '~' or $char eq '"' or
-                             $char eq 'i' or $char eq 'I' or $char eq 'a' or
-                             $char eq 'A') {
+            # Store command, necessary for .
+            if ($operator or exists $movements_repeatable->{$char}) {
                 $last->{char} = $char;
                 $last->{numeric_prefix} = $numeric_prefix;
                 $last->{operator} = $operator;
