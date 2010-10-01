@@ -282,15 +282,19 @@ my $movements
      # to end of line
      'C' => { func => \&cmd_movement_dollar },
      'D' => { func => \&cmd_movement_dollar },
+     # scrolling
+     "\x04" => { func => \&cmd_movement_ctrl_d }, # half screen down
+     "\x15" => { func => \&cmd_movement_ctrl_u }, # half screen up
+     "\x06" => { func => \&cmd_movement_ctrl_f }, # screen down
+     "\x02" => { func => \&cmd_movement_ctrl_b }, # screen up
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
      '"' => { func => \&cmd_movement_register },
+     "\x1e" => { func => \&cmd_movement_ctrl_6 },
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
-     "\x04" => { func => \&_print_undo_buffer },
-
     };
 
 # special movements which take an additional key
@@ -809,6 +813,38 @@ sub _paste_at_position {
     _insert_at_position($registers->{$register}, $count, $pos);
 }
 
+sub cmd_movement_ctrl_d {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    # no count = half of screen
+    if (not defined $count) {
+        $count = $window->{height} / 2;
+    }
+    $window->view()->scroll($count);
+}
+sub cmd_movement_ctrl_u {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    # no count = half of screen
+    if (not defined $count) {
+        $count = $window->{height} / 2;
+    }
+    $window->view()->scroll($count * -1);
+}
+sub cmd_movement_ctrl_f {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    $window->view()->scroll($count * $window->{height});
+}
+sub cmd_movement_ctrl_b {
+    my ($count, $pos, $repeat) = @_;
+
+    cmd_movement_ctrl_f($count * -1, $pos, $repeat);
+}
+
 sub cmd_movement_tilde {
     my ($count, $pos, $repeat) = @_;
 
@@ -867,6 +903,11 @@ sub cmd_movement_register {
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
+}
+
+sub cmd_movement_ctrl_6 {
+    # like :b#
+    Irssi::command('window last');
 }
 
 # Adapt the input position depending if an operator is active or not.
@@ -967,6 +1008,8 @@ sub cmd_ex_command {
     # :ls and :buffers
     } elsif ($arg_str eq 'ls' or $arg_str eq 'buffers') {
         Irssi::command('window list');
+    } elsif ($arg_str eq 'undol' or $arg_str eq 'undolist') {
+        _print_undo_buffer();
     }
 }
 
@@ -1306,8 +1349,10 @@ sub handle_command_cmd {
         if ($skip) {
             print "Skipping movement and operator." if DEBUG;
         } else {
-            # Make sure count is at least 1.
-            if (not $numeric_prefix) {
+            # Make sure count is at least 1 except for functions which need to
+            # know if no count was used
+            if (not $numeric_prefix and $char ne "\x04"    # ctrl-d
+                                    and $char ne "\x15") { # ctrl-u
                 $numeric_prefix = 1;
             }
 
