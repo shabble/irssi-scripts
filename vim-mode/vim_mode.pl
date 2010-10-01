@@ -721,7 +721,7 @@ sub _beginning_of_WORD {
 
     while ($count-- > 0 and length($input) > $pos) {
         if (substr($input, $pos + 1) !~ /\s+/) {
-            return cmd_movement_dollar();
+            return length($input);
         }
         $pos += $+[0] + 1;
     }
