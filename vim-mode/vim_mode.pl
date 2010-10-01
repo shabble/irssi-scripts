@@ -348,7 +348,6 @@ my $movements_repeatable
      'C' => undef,
      'D' => undef,
      '~' => undef,
-     '"' => undef,
      'i' => undef,
      'a' => undef,
      'I' => undef,
