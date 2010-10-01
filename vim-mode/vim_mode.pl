@@ -282,6 +282,11 @@ my $movements
      # to end of line
      'C' => { func => \&cmd_movement_dollar },
      'D' => { func => \&cmd_movement_dollar },
+     # scrolling
+     "\x04" => { func => \&cmd_movement_ctrl_d }, # half screen down
+     "\x15" => { func => \&cmd_movement_ctrl_u }, # half screen up
+     "\x06" => { func => \&cmd_movement_ctrl_f }, # screen down
+     "\x02" => { func => \&cmd_movement_ctrl_b }, # screen up
      # misc
      '~' => { func => \&cmd_movement_tilde },
      '.' => {},
@@ -808,6 +813,38 @@ sub _paste_at_position {
     _insert_at_position($registers->{$register}, $count, $pos);
 }
 
+sub cmd_movement_ctrl_d {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    # no count = half of screen
+    if (not defined $count) {
+        $count = $window->{height} / 2;
+    }
+    $window->view()->scroll($count);
+}
+sub cmd_movement_ctrl_u {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    # no count = half of screen
+    if (not defined $count) {
+        $count = $window->{height} / 2;
+    }
+    $window->view()->scroll($count * -1);
+}
+sub cmd_movement_ctrl_f {
+    my ($count, $pos, $repeat) = @_;
+
+    my $window = Irssi::active_win();
+    $window->view()->scroll($count * $window->{height});
+}
+sub cmd_movement_ctrl_b {
+    my ($count, $pos, $repeat) = @_;
+
+    cmd_movement_ctrl_f($count * -1, $pos, $repeat);
+}
+
 sub cmd_movement_tilde {
     my ($count, $pos, $repeat) = @_;
 
@@ -1312,8 +1349,10 @@ sub handle_command_cmd {
         if ($skip) {
             print "Skipping movement and operator." if DEBUG;
         } else {
-            # Make sure count is at least 1.
-            if (not $numeric_prefix) {
+            # Make sure count is at least 1 except for functions which need to
+            # know if no count was used
+            if (not $numeric_prefix and $char ne "\x04"    # ctrl-d
+                                    and $char ne "\x15") { # ctrl-u
                 $numeric_prefix = 1;
             }
 
