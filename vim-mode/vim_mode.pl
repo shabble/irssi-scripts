@@ -290,8 +290,6 @@ my $movements
      # undo
      'u'    => { func => \&cmd_undo },
      "\x12" => { func => \&cmd_redo },
-     "\x04" => { func => \&_print_undo_buffer },
-
     };
 
 # special movements which take an additional key
@@ -973,6 +971,8 @@ sub cmd_ex_command {
     # :ls and :buffers
     } elsif ($arg_str eq 'ls' or $arg_str eq 'buffers') {
         Irssi::command('window list');
+    } elsif ($arg_str eq 'undol' or $arg_str eq 'undolist') {
+        _print_undo_buffer();
     }
 }
 
