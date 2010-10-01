@@ -683,12 +683,7 @@ sub cmd_movement_W {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
-    while ($count-- > 0 and length($input) > $pos) {
-        if (substr($input, $pos + 1) !~ /\s+/) {
-            return cmd_movement_dollar();
-        }
-        $pos += $+[0] + 1;
-    }
+    $pos = _beginning_of_WORD($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
     _input_pos($pos);
 }
@@ -713,7 +708,20 @@ sub cmd_movement_E {
         _input_pos($pos);
     }
 }
-# Go to the end of $count-th WORD, like vi's e.
+# Go to beginning of $count-th WORD, like vi's W.
+sub _beginning_of_WORD {
+    my ($input, $count, $pos) = @_;
+
+    while ($count-- > 0 and length($input) > $pos) {
+        if (substr($input, $pos + 1) !~ /\s+/) {
+            return cmd_movement_dollar();
+        }
+        $pos += $+[0] + 1;
+    }
+
+    return $pos;
+}
+# Go to end of $count-th WORD, like vi's E.
 sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
 
