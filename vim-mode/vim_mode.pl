@@ -482,7 +482,7 @@ sub cmd_movement_j {
     if (Irssi::version < 20090117) {
         # simulate a down-arrow
         _emulate_keystrokes(0x1b, 0x5b, 0x42);
-        return;
+        return (undef, undef);
     }
 
     my @history = Irssi::active_win->get_history_lines();
@@ -517,7 +517,7 @@ sub cmd_movement_k {
     if (Irssi::version < 20090117) {
         # simulate an up-arrow
         _emulate_keystrokes(0x1b, 0x5b, 0x41);
-        return;
+        return (undef, undef);
     }
 
     my @history = Irssi::active_win->get_history_lines();
