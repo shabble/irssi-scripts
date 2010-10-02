@@ -274,9 +274,9 @@ my $operators
 # operator; also things like i/I are listed here, not entirely correct but
 # they work in a similar way
 #
-# If a function returns a value it's interpreted as changing the $cur_pos (see
-# handle_command_cmd()), to prevent that most functions should return; at the
-# end.
+# Each function returns two values, an updated $cur_pos (see
+# handle_command_cmd()) and the new cursor position. If undef is returned in
+# either place, the position isn't changed.
 my $movements
   = {
      # arrow like movement
@@ -381,7 +381,7 @@ sub cmd_undo {
     } else {
         print "No further undo." if DEBUG;
     }
-    return;
+    return (undef, undef);
 }
 
 sub cmd_redo {
@@ -395,7 +395,7 @@ sub cmd_redo {
     } else {
         print "No further Redo." if DEBUG;
     }
-    return;
+    return (undef, undef);
 }
 
 sub cmd_operator_c {
@@ -414,7 +414,7 @@ sub cmd_operator_c {
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer(1);
+        _insert_buffer(1, $new_pos);
     }
 }
 sub cmd_operator_d {
@@ -486,8 +486,7 @@ sub cmd_movement_h {
 
     $pos -= $count;
     $pos = 0 if $pos < 0;
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_l {
     my ($count, $pos, $repeat) = @_;
@@ -495,13 +494,11 @@ sub cmd_movement_l {
     my $length = _input_len();
     $pos += $count;
     $pos = _fix_input_pos($pos, $length);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_space {
     my ($count, $pos, $repeat) = @_;
-    cmd_movement_l($count, $pos);
-    return;
+    return cmd_movement_l($count, $pos);
 }
 
 # later history (down)
@@ -537,7 +534,7 @@ sub cmd_movement_j {
         _input($history);
         _input_pos(0);
     }
-    return;
+    return (undef, undef);
 }
 # earlier history (up)
 sub cmd_movement_k {
@@ -569,54 +566,51 @@ sub cmd_movement_k {
         _input($history);
         _input_pos(0);
     }
-    return;
+    return (undef, undef);
 }
 
 sub cmd_movement_f {
     my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
-    if ($pos != -1) {
-        _input_pos($pos);
-    }
 
     $last_ftFT = { type => 'f', char => $char };
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_t {
     my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
-    if ($pos != -1) {
-        _input_pos($pos - 1);
+    if (defined $pos) {
+        $pos--;
     }
 
     $last_ftFT = { type => 't', char => $char };
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_F {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
     $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
-    if ($pos != -1) {
-        _input_pos(length($input) - $pos - 1);
+    if (defined $pos) {
+        $pos = length($input) - $pos - 1;
     }
 
     $last_ftFT = { type => 'F', char => $char };
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_T {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
     $pos = _next_occurrence($input, $char, $count, length($input) - $pos - 1);
-    if ($pos != -1) {
-        _input_pos(length($input) - $pos - 1 + 1);
+    if (defined $pos) {
+        $pos = length($input) - $pos - 1 + 1;
     }
 
     $last_ftFT = { type => 'T', char => $char };
-    return;
+    return (undef, $pos);
 }
 # Find $count-th next occurrence of $char.
 sub _next_occurrence {
@@ -625,7 +619,7 @@ sub _next_occurrence {
     while ($count-- > 0) {
         $pos = index $input, $char, $pos + 1;
         if ($pos == -1) {
-            return -1;
+            return undef;
         }
     }
     return $pos;
@@ -637,8 +631,7 @@ sub cmd_movement_w {
     my $input = _input();
     $pos = _beginning_of_word($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_b {
     my ($count, $pos, $repeat) = @_;
@@ -650,8 +643,7 @@ sub cmd_movement_b {
     $pos = _end_of_word($input, $count, $pos);
     $pos = length($input) - $pos - 1;
     $pos = 0 if ($pos < 0);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_e {
     my ($count, $pos, $repeat) = @_;
@@ -659,8 +651,7 @@ sub cmd_movement_e {
     my $input = _input();
     $pos = _end_of_word($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 # Go to the beginning of $count-th word, like vi's w.
 sub _beginning_of_word {
@@ -723,8 +714,7 @@ sub cmd_movement_W {
     my $input = _input();
     $pos = _beginning_of_WORD($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_B {
     my ($count, $pos, $repeat) = @_;
@@ -732,22 +722,20 @@ sub cmd_movement_B {
     my $input = reverse _input();
     $pos = _end_of_WORD($input, $count, length($input) - $pos - 1);
     if ($pos == -1) {
-        cmd_movement_0();
+        return cmd_movement_0();
     } else {
-        _input_pos(length($input) - $pos - 1);
+        return (undef, length($input) - $pos - 1);
     }
-    return;
 }
 sub cmd_movement_E {
     my ($count, $pos, $repeat) = @_;
 
     $pos = _end_of_WORD(_input(), $count, $pos);
     if ($pos == -1) {
-        cmd_movement_dollar();
+        return cmd_movement_dollar();
     } else {
-        _input_pos($pos);
+        return (undef, $pos);
     }
-    return;
 }
 # Go to beginning of $count-th WORD, like vi's W.
 sub _beginning_of_WORD {
@@ -794,7 +782,7 @@ sub cmd_movement_i_ {
     my ($count, $pos, $repeat, $char) = @_;
 
     _warn("i_ not implemented yet");
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_a_ {
     my ($count, $pos, $repeat, $char) = @_;
@@ -854,11 +842,10 @@ sub cmd_movement_a_ {
                     }
                 }
             }
-            _input_pos($pos);
         }
     }
 
-    return $cur_pos;
+    return ($cur_pos, $pos);
 }
 # Find regex as close as possible before the current position. If $end is true
 # the end of the match is returned, otherwise the beginning.
@@ -882,8 +869,7 @@ sub _find_regex_before {
 }
 
 sub cmd_movement_0 {
-    _input_pos(0);
-    return;
+    return (undef, 0);
 }
 sub cmd_movement_caret {
     my $input = _input();
@@ -898,31 +884,29 @@ sub cmd_movement_caret {
     } else {
         $pos = _fix_input_pos(_input_len(), length $input);
     }
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_dollar {
     my $input = _input();
     my $length = length $input;
-    _input_pos(_fix_input_pos($length, $length));
-    return;
+    return (undef, _fix_input_pos($length, $length));
 }
 
 sub cmd_movement_x {
     my ($count, $pos, $repeat) = @_;
 
     cmd_operator_d($pos, $pos + $count, 'x');
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_X {
     my ($count, $pos, $repeat) = @_;
 
-    return if $pos == 0;
+    return (undef, undef) if $pos == 0;
 
     my $new = $pos - $count;
     $new = 0 if $new < 0;
     cmd_operator_d($pos, $new, 'X');
-    return;
+    return (undef, undef);
 }
 
 sub cmd_movement_i {
@@ -931,20 +915,20 @@ sub cmd_movement_i {
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer($count);
+        $pos = _insert_buffer($count, $pos);
     }
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_I {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_movement_caret();
+    $pos = cmd_movement_caret();
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer($count);
+        $pos = _insert_buffer($count, $pos);
     }
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_a {
     my ($count, $pos, $repeat) = @_;
@@ -954,31 +938,30 @@ sub cmd_movement_a {
     my $length = _input_len();
     $pos += $count;
     $pos = $length if $pos > $length;
-    _input_pos($pos);
 
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer($count);
+        $pos = _insert_buffer($count, $pos);
     }
-    return;
+    return (undef, $pos);
 }
 sub cmd_movement_A {
     my ($count, $pos, $repeat) = @_;
 
-    _input_pos(_input_len());
+    $pos = _input_len();
 
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer($count);
+        $pos = _insert_buffer($count, $pos);
     }
-    return;
+    return (undef, $pos);
 }
-# Add @insert_buf to _input() at the current cursor position.
+# Add @insert_buf to _input() at the given position.
 sub _insert_buffer {
-    my ($count) = @_;
-    _insert_at_position(join('', @insert_buf), $count, _input_pos());
+    my ($count, $pos) = @_;
+    return _insert_at_position(join('', @insert_buf), $count, $pos);
 }
 sub _insert_at_position {
     my ($string, $count, $pos) = @_;
@@ -995,7 +978,7 @@ sub _insert_at_position {
     }
     _input($input);
 
-    _input_pos($pos - 1 + length $string);
+    return $pos - 1 + length $string;
 }
 
 sub cmd_movement_r {
@@ -1004,25 +987,24 @@ sub cmd_movement_r {
     my $input = _input();
     substr $input, $pos, 1, $char;
     _input($input);
-    _input_pos($pos);
-    return;
+    return (undef, $pos);
 }
 
 sub cmd_movement_p {
     my ($count, $pos, $repeat) = @_;
-    _paste_at_position($count, $pos + 1);
-    return;
+    $pos = _paste_at_position($count, $pos + 1);
+    return (undef, $pos);
 }
 sub cmd_movement_P {
     my ($count, $pos, $repeat) = @_;
-    _paste_at_position($count, $pos);
-    return;
+    $pos = _paste_at_position($count, $pos);
+    return (undef, $pos);
 }
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
     return if not $registers->{$register};
-    _insert_at_position($registers->{$register}, $count, $pos);
+    return _insert_at_position($registers->{$register}, $count, $pos);
 }
 
 sub cmd_movement_ctrl_d {
@@ -1034,7 +1016,7 @@ sub cmd_movement_ctrl_d {
         $count = $window->{height} / 2;
     }
     $window->view()->scroll($count);
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_ctrl_u {
     my ($count, $pos, $repeat) = @_;
@@ -1045,20 +1027,20 @@ sub cmd_movement_ctrl_u {
         $count = $window->{height} / 2;
     }
     $window->view()->scroll($count * -1);
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_ctrl_f {
     my ($count, $pos, $repeat) = @_;
 
     my $window = Irssi::active_win();
     $window->view()->scroll($count * $window->{height});
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_ctrl_b {
     my ($count, $pos, $repeat) = @_;
 
     cmd_movement_ctrl_f($count * -1, $pos, $repeat);
-    return;
+    return (undef, undef);
 }
 
 sub cmd_movement_tilde {
@@ -1070,34 +1052,35 @@ sub cmd_movement_tilde {
     substr $input, $pos, $count, $string;
 
     _input($input);
-    _input_pos($pos + $count);
-    return;
+    return (undef, $pos + $count);
 }
 
 sub cmd_movement_semicolon {
     my ($count, $pos, $repeat) = @_;
 
-    return if not defined $last_ftFT;
+    return (undef, undef) if not defined $last_ftFT;
 
-    $movements->{$last_ftFT->{type}}
-              ->{func}($count, $pos, $repeat, $last_ftFT->{char});
-    return;
+    (undef, $pos)
+        = $movements->{$last_ftFT->{type}}
+                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+    return (undef, $pos);
 }
 sub cmd_movement_comma {
     my ($count, $pos, $repeat) = @_;
 
-    return if not defined $last_ftFT;
+    return (undef, undef) if not defined $last_ftFT;
 
     # Change direction.
     my $save = $last_ftFT->{type};
     my $type = $save;
     $type =~ tr/ftFT/FTft/;
 
-    $movements->{$type}
-              ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+    (undef, $pos)
+        = $movements->{$type}
+                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     # Restore type as the move functions overwrites it.
     $last_ftFT->{type} = $save;
-    return;
+    return (undef, $pos);
 }
 
 
@@ -1106,7 +1089,7 @@ sub cmd_movement_register {
 
     if (not exists $registers->{$char} and not exists $registers->{lc $char}) {
         print "Wrong register $char, ignoring." if DEBUG;
-        return;
+        return (undef, undef);
     }
 
     # make sure black hole register is always empty
@@ -1122,7 +1105,7 @@ sub cmd_movement_register {
 
     $register = $char;
     print "Changing register to $register" if DEBUG;
-    return;
+    return (undef, undef);
 }
 
 sub cmd_movement_g {
@@ -1138,18 +1121,17 @@ sub cmd_movement_g {
         $pos = _beginning_of_word($input, $count, $pos);
         $pos = length($input) - $pos - 1;
         $pos = 0 if ($pos < 0);
-        _input_pos($pos);
     # gE
     } elsif ($char eq 'E') {
         $input = reverse $input;
         $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
         if ($pos == -1 or length($input) - $pos - 1 == -1) {
-            cmd_movement_0();
+            return cmd_movement_0();
         } else {
-            _input_pos(length($input) - $pos - 1);
+            $pos = length($input) - $pos - 1;
         }
     }
-    return;
+    return (undef, $pos);
 }
 
 sub cmd_movement_ctrl_w {
@@ -1164,12 +1146,12 @@ sub cmd_movement_ctrl_w {
             Irssi::command('window up');
         }
     }
-    return;
+    return (undef, undef);
 }
 sub cmd_movement_ctrl_6 {
     # like :b#
     Irssi::command('window last');
-    return;
+    return (undef, undef);
 }
 
 # Adapt the input position depending if an operator is active or not.
@@ -1636,11 +1618,15 @@ sub handle_command_cmd {
                 _add_undo_entry(_input(), $cur_pos);
             }
 
-            my $return;
+            # If defined $cur_pos will be changed to this.
+            my $old_pos;
+            # Position after the move.
+            my $new_pos;
             # Execute the movement (multiple times).
             if (not $movement) {
-                $return = $movements->{$char}->{func}
-                                    ->($numeric_prefix, $cur_pos, $repeat);
+                ($old_pos, $new_pos)
+                    = $movements->{$char}->{func}
+                                ->($numeric_prefix, $cur_pos, $repeat);
             } else {
                 # Use the real movement command (like t or f) for operator
                 # below.
@@ -1649,14 +1635,18 @@ sub handle_command_cmd {
                 if ($char eq 'i' or $char eq 'a') {
                     $char .= '_';
                 }
-                $return = $movements->{$char}->{func}
-                                    ->($numeric_prefix, $cur_pos, $repeat,
-                                       substr $movement, 1);
+                ($old_pos, $new_pos)
+                    = $movements->{$char}->{func}
+                                ->($numeric_prefix, $cur_pos, $repeat,
+                                   substr $movement, 1);
             }
-            my $new_pos = _input_pos();
-
-            if (defined $return) {
-                $cur_pos = $return;
+            if (defined $old_pos) {
+                $cur_pos = $old_pos;
+            }
+            if (defined $new_pos) {
+                _input_pos($new_pos);
+            } else {
+                $new_pos = _input_pos();
             }
 
             # If we have an operator pending then run it on the handled text.
@@ -1932,17 +1922,20 @@ sub _stop() {
 sub _update_mode {
     my ($new_mode) = @_;
 
+    my $pos;
+
     if ($mode == M_INS and $new_mode == M_CMD) {
         # Support counts with insert modes, like 3i.
         if ($numeric_prefix and $numeric_prefix > 1) {
-            _insert_buffer($numeric_prefix - 1);
+            $pos = _insert_buffer($numeric_prefix - 1, _input_pos());
+            _input_pos($pos);
             $numeric_prefix = undef;
 
         # In insert mode we are "between" characters, in command mode "on top"
         # of keys. When leaving insert mode we have to move on key left to
         # accomplish that.
         } else {
-            my $pos = _input_pos();
+            $pos = _input_pos();
             if ($pos != 0) {
                 _input_pos($pos - 1);
             }
