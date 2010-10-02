@@ -17,7 +17,7 @@
 # * Cursor motion: h l 0 ^ $ <space> f t F T
 # * History motion: j k
 # * Cursor word motion: w b ge e W gE B E
-# * Word objects (only the following work yet): aW
+# * Word objects (only the following work yet): aw aW
 # * Yank and paste: y p P
 # * Change and delete: c d
 # * Delete at cursor: x X
@@ -817,12 +817,9 @@ sub cmd_movement_a_ {
 
     # aw and aW
     if ($char eq 'w' or $char eq 'W') {
-        if ($char eq 'w') {
-
-        } elsif ($char eq 'W') {
             while ($count-- > 0 and length($input) > $pos) {
                 if (substr($input, $pos, 1) =~ /\s/) {
-                    # Any whitespace before the WORD must be removed.
+                    # Any whitespace before the word/WORD must be removed.
                     if (not defined $cur_pos) {
                         $cur_pos = _find_regex_before($input, '\S', $pos, 0);
                         if ($cur_pos < 0) {
@@ -831,17 +828,52 @@ sub cmd_movement_a_ {
                             $cur_pos++;
                         }
                     }
-                    # Move before the WORD.
+                    # Move before the word/WORD.
                     if (substr($input, $pos + 1) =~ /^\s+/) {
                         $pos += $+[0];
                     }
-                    # And delete it.
-                    if (substr($input, $pos + 1) =~ /\s/) {
-                        $pos += $-[0] + 1;
+                    # And delete the word.
+                    if ($char eq 'w') {
+                        if (substr($input, $pos) =~ /^\s($word+|$non_word+)/) {
+                            $pos += $+[0];
+                        } else {
+                            $pos = length($input);
+                        }
+                    # WORD
                     } else {
-                        $pos = length($input);
+                        if (substr($input, $pos + 1) =~ /\s/) {
+                            $pos += $-[0] + 1;
+                        } else {
+                            $pos = length($input);
+                        }
                     }
 
+                # word
+                } elsif ($char eq 'w') {
+                    # Start at the beginning of this WORD.
+                    if (not defined $cur_pos and $pos > 0 and substr($input, $pos - 1, 2) !~ /(\s.|$word$non_word|$non_word$word)/) {
+
+                        $cur_pos = _find_regex_before($input, "^($word+$non_word|$non_word+$word|$word+\\s|$non_word+\\s)", $pos, 1);
+                        if ($cur_pos < 0) {
+                            $cur_pos = 0;
+                        } else {
+                            $cur_pos += 2;
+                        }
+                    }
+                    # Delete to the end of the word.
+                    if (substr($input, $pos) =~ /^($word+$non_word|$non_word+$word|$word+\s+\S|$non_word+\s+\S)/) {
+                        $pos += $+[0] - 1;
+                    } else {
+                        $pos = length($input);
+                        # If we are at the end of the line, whitespace before
+                        # the word is also deleted.
+                        my $new_pos = _find_regex_before($input, "^($word+\\s+|$non_word+\\s+)", $pos, 1);
+                        if ($new_pos != -1 and (not defined $cur_pos or $cur_pos > $new_pos + 1)) {
+                            $cur_pos = $new_pos + 1;
+                        }
+                    }
+
+                # WORD
                 } else {
                     # Start at the beginning of this WORD.
                     if (not defined $cur_pos and $pos > 0 and
@@ -867,7 +899,6 @@ sub cmd_movement_a_ {
                     }
                 }
             }
-        }
     }
 
     return ($cur_pos, $pos);
