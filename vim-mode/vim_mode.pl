@@ -1646,6 +1646,7 @@ sub handle_command_cmd {
                                    substr $movement, 1);
             }
             if (defined $old_pos) {
+                print "Changing \$cur_pos from $cur_pos to $old_pos" if DEBUG;
                 $cur_pos = $old_pos;
             }
             if (defined $new_pos) {
