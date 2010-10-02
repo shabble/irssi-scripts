@@ -883,13 +883,12 @@ sub cmd_movement_caret {
         $pos = $-[0];
     # Only whitespace, go to the end.
     } else {
-        $pos = _fix_input_pos(_input_len(), length $input);
+        $pos = _fix_input_pos(length $input, length $input);
     }
     return (undef, $pos);
 }
 sub cmd_movement_dollar {
-    my $input = _input();
-    my $length = length $input;
+    my $length = _input_len();
     return (undef, _fix_input_pos($length, $length));
 }
 
