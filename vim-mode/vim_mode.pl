@@ -529,7 +529,12 @@ sub cmd_movement_j {
         _input_pos($history_pos);
         $history_index = $#history + 1;
     } elsif ($history_index >= 0) {
-        _input($history[$history_index]);
+        my $history = $history[$history_index];
+        # History is not in UTF-8!
+        if ($utf8) {
+            $history = decode_utf8($history);
+        }
+        _input($history);
         _input_pos(0);
     }
     return;
@@ -556,7 +561,12 @@ sub cmd_movement_k {
     }
     print "History Index: $history_index" if DEBUG;
     if ($history_index >= 0) {
-        _input($history[$history_index]);
+        my $history = $history[$history_index];
+        # History is not in UTF-8!
+        if ($utf8) {
+            $history = decode_utf8($history);
+        }
+        _input($history);
         _input_pos(0);
     }
     return;
