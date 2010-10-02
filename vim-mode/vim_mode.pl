@@ -462,6 +462,11 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
+    # Strip leading a_ or i_ if a text-object was used.
+    if ($move =~ /^[ai]_(.)/) {
+        $move = $1;
+    }
+
     # Most movement commands don't move one character after the deletion area
     # (which is what we need). For those increase length to support proper
     # selection/deletion.
@@ -1713,11 +1718,11 @@ sub handle_command_cmd {
             # problems with e.g. f when the search string doesn't exist).
             if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator if DEBUG;
-                # If text-objects are used the real move character must be
-                # passed to the operator.
+                # If text-objects are used the real move character must also
+                # be passed to the operator.
                 my $tmp_char = $char;
                 if ($char eq 'i_' or $char eq 'a_') {
-                    $tmp_char = substr $movement, 1;
+                    $tmp_char .= substr $movement, 1;
                 }
                 $operators->{$operator}->{func}->($cur_pos, $new_pos,
                                                   $tmp_char, $repeat);
