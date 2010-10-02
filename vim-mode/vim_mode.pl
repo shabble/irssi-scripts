@@ -490,8 +490,12 @@ sub cmd_movement_j {
     if (defined $history_index) {
         $history_index += $count;
         print "History Index: $history_index" if DEBUG;
+    # Prevent destroying the current input when pressing j after entering
+    # command mode. Not exactly like in default irssi, but simplest solution
+    # (and S can be used to clear the input line fast, which is what <down>
+    # does in plain irssi).
     } else {
-        $history_index = $#history;
+        return (undef, undef);
     }
 
     if ($history_index > $#history) {
