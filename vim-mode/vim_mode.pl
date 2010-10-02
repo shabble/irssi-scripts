@@ -1252,6 +1252,7 @@ sub cmd_ex_command {
         }
         my $active_window = Irssi::active_win;
         foreach my $key (sort @regs) {
+            next if $key eq '_'; # skip black hole
             if (defined $registers->{$key}) {
                 $active_window->print("register $key: $registers->{$key}");
             }
