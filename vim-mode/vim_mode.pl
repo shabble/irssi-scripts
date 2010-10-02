@@ -606,7 +606,7 @@ sub _next_occurrence {
 sub cmd_movement_semicolon {
     my ($count, $pos, $repeat) = @_;
 
-    return (undef, undef) if not defined $last_ftFT;
+    return (undef, undef) if not defined $last_ftFT->{type};
 
     (undef, $pos)
         = $movements->{$last_ftFT->{type}}
@@ -616,7 +616,7 @@ sub cmd_movement_semicolon {
 sub cmd_movement_comma {
     my ($count, $pos, $repeat) = @_;
 
-    return (undef, undef) if not defined $last_ftFT;
+    return (undef, undef) if not defined $last_ftFT->{type};
 
     # Change direction.
     my $save = $last_ftFT->{type};
