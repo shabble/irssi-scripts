@@ -817,88 +817,88 @@ sub cmd_movement_a_ {
 
     # aw and aW
     if ($char eq 'w' or $char eq 'W') {
-            while ($count-- > 0 and length($input) > $pos) {
-                if (substr($input, $pos, 1) =~ /\s/) {
-                    # Any whitespace before the word/WORD must be removed.
-                    if (not defined $cur_pos) {
-                        $cur_pos = _find_regex_before($input, '\S', $pos, 0);
-                        if ($cur_pos < 0) {
-                            $cur_pos = 0;
-                        } else {
-                            $cur_pos++;
-                        }
-                    }
-                    # Move before the word/WORD.
-                    if (substr($input, $pos + 1) =~ /^\s+/) {
-                        $pos += $+[0];
-                    }
-                    # And delete the word.
-                    if ($char eq 'w') {
-                        if (substr($input, $pos) =~ /^\s($word+|$non_word+)/) {
-                            $pos += $+[0];
-                        } else {
-                            $pos = length($input);
-                        }
-                    # WORD
+        while ($count-- > 0 and length($input) > $pos) {
+            if (substr($input, $pos, 1) =~ /\s/) {
+                # Any whitespace before the word/WORD must be removed.
+                if (not defined $cur_pos) {
+                    $cur_pos = _find_regex_before($input, '\S', $pos, 0);
+                    if ($cur_pos < 0) {
+                        $cur_pos = 0;
                     } else {
-                        if (substr($input, $pos + 1) =~ /\s/) {
-                            $pos += $-[0] + 1;
-                        } else {
-                            $pos = length($input);
-                        }
+                        $cur_pos++;
                     }
-
-                # word
-                } elsif ($char eq 'w') {
-                    # Start at the beginning of this WORD.
-                    if (not defined $cur_pos and $pos > 0 and substr($input, $pos - 1, 2) !~ /(\s.|$word$non_word|$non_word$word)/) {
-
-                        $cur_pos = _find_regex_before($input, "^($word+$non_word|$non_word+$word|$word+\\s|$non_word+\\s)", $pos, 1);
-                        if ($cur_pos < 0) {
-                            $cur_pos = 0;
-                        } else {
-                            $cur_pos += 2;
-                        }
-                    }
-                    # Delete to the end of the word.
-                    if (substr($input, $pos) =~ /^($word+$non_word|$non_word+$word|$word+\s+\S|$non_word+\s+\S)/) {
-                        $pos += $+[0] - 1;
+                }
+                # Move before the word/WORD.
+                if (substr($input, $pos + 1) =~ /^\s+/) {
+                    $pos += $+[0];
+                }
+                # And delete the word.
+                if ($char eq 'w') {
+                    if (substr($input, $pos) =~ /^\s($word+|$non_word+)/) {
+                        $pos += $+[0];
                     } else {
                         $pos = length($input);
-                        # If we are at the end of the line, whitespace before
-                        # the word is also deleted.
-                        my $new_pos = _find_regex_before($input, "^($word+\\s+|$non_word+\\s+)", $pos, 1);
-                        if ($new_pos != -1 and (not defined $cur_pos or $cur_pos > $new_pos + 1)) {
-                            $cur_pos = $new_pos + 1;
-                        }
                     }
-
                 # WORD
                 } else {
-                    # Start at the beginning of this WORD.
-                    if (not defined $cur_pos and $pos > 0 and
-                            substr($input, $pos - 1, 1) !~ /\s/) {
-                        $cur_pos = _find_regex_before($input, '\s', $pos - 1, 0);
-                        if ($cur_pos < 0) {
-                            $cur_pos = 0;
-                        } else {
-                            $cur_pos++;
-                        }
-                    }
-                    # Delete to the end of the word.
-                    if (substr($input, $pos + 1) =~ /^\S*\s+\S/) {
-                        $pos += $+[0];
+                    if (substr($input, $pos + 1) =~ /\s/) {
+                        $pos += $-[0] + 1;
                     } else {
                         $pos = length($input);
-                        # If we are at the end of the line, whitespace before
-                        # the WORD is also deleted.
-                        my $new_pos = _find_regex_before($input, '\s+', $pos, 1);
-                        if (not defined $cur_pos or $cur_pos > $new_pos + 1) {
-                            $cur_pos = $new_pos + 1;
-                        }
+                    }
+                }
+
+            # word
+            } elsif ($char eq 'w') {
+                # Start at the beginning of this WORD.
+                if (not defined $cur_pos and $pos > 0 and substr($input, $pos - 1, 2) !~ /(\s.|$word$non_word|$non_word$word)/) {
+
+                    $cur_pos = _find_regex_before($input, "^($word+$non_word|$non_word+$word|$word+\\s|$non_word+\\s)", $pos, 1);
+                    if ($cur_pos < 0) {
+                        $cur_pos = 0;
+                    } else {
+                        $cur_pos += 2;
+                    }
+                }
+                # Delete to the end of the word.
+                if (substr($input, $pos) =~ /^($word+$non_word|$non_word+$word|$word+\s+\S|$non_word+\s+\S)/) {
+                    $pos += $+[0] - 1;
+                } else {
+                    $pos = length($input);
+                    # If we are at the end of the line, whitespace before
+                    # the word is also deleted.
+                    my $new_pos = _find_regex_before($input, "^($word+\\s+|$non_word+\\s+)", $pos, 1);
+                    if ($new_pos != -1 and (not defined $cur_pos or $cur_pos > $new_pos + 1)) {
+                        $cur_pos = $new_pos + 1;
+                    }
+                }
+
+            # WORD
+            } else {
+                # Start at the beginning of this WORD.
+                if (not defined $cur_pos and $pos > 0 and
+                        substr($input, $pos - 1, 1) !~ /\s/) {
+                    $cur_pos = _find_regex_before($input, '\s', $pos - 1, 0);
+                    if ($cur_pos < 0) {
+                        $cur_pos = 0;
+                    } else {
+                        $cur_pos++;
+                    }
+                }
+                # Delete to the end of the word.
+                if (substr($input, $pos + 1) =~ /^\S*\s+\S/) {
+                    $pos += $+[0];
+                } else {
+                    $pos = length($input);
+                    # If we are at the end of the line, whitespace before
+                    # the WORD is also deleted.
+                    my $new_pos = _find_regex_before($input, '\s+', $pos, 1);
+                    if (not defined $cur_pos or $cur_pos > $new_pos + 1) {
+                        $cur_pos = $new_pos + 1;
                     }
                 }
             }
+        }
     }
 
     return ($cur_pos, $pos);
