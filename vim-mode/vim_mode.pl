@@ -86,7 +86,8 @@
 # For proper :ex mode support, requires the installation of prompt_info.pl
 #  http://github.com/shabble/irssi-scripts/raw/master/prompt_info/prompt_info.pl
 #
-# and follow the instructions in the top of that file for installation instructions.
+# and follow the instructions in the top of that file for installation
+# instructions.
 #
 # If you don't need Ex-mode, you can run vim_mode.pl without the
 # prompt_info.pl script.
@@ -262,7 +263,7 @@ sub script_is_loaded {
 vim_mode_init();
 
 
-# vi-operators like d, c; they don't move the cursor
+# vi-operators like d, c, y
 my $operators
   = {
      'c' => { func => \&cmd_operator_c },
