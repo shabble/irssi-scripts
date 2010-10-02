@@ -40,6 +40,10 @@
 # Counts and combinations work as well, e.g. d5fx or 3iabc<esc>
 # Repeat also supports counts.
 #
+# The following insert mode mappings are supported:
+#
+# * Insert register content: Ctrl-R x (where x is the register to insert)
+#
 # Ex-mode supports (activated by : in command mode) the following commands:
 #
 # * Switching buffers: :b <num> - switch to channel number
@@ -237,7 +241,11 @@ foreach my $char ('a' .. 'z') {
 my $imap = undef;
 
 # maps for insert mode
-my $imaps = {};
+my $imaps
+  = {
+     # ctrl-r, insert register
+     "\x12" => { map  => undef, func => \&cmd_insert_ctrl_r },
+    };
 
 # index into the history list (for j,k)
 my $history_index = undef;
@@ -370,6 +378,17 @@ my $movements_repeatable
      'I' => undef,
      'A' => undef,
     };
+
+
+sub cmd_insert_ctrl_r {
+    my ($key) = @_;
+
+    my $char = chr($key);
+    return if not defined $registers->{$char} or not $registers->{$char};
+
+    my $pos = _insert_at_position($registers->{$char}, 1, _input_pos());
+    _input_pos($pos + 1);
+}
 
 
 sub cmd_operator_c {
@@ -1397,8 +1416,8 @@ sub got_key {
         } elsif ($input_buf_enabled and $imap) {
             print "Imap $imap active" if DEBUG;
             my $map = $imaps->{$imap};
-            if (chr($key) eq $map->{map}) {
-                $map->{func}();
+            if (not defined $map->{map} or chr($key) eq $map->{map}) {
+                $map->{func}($key);
                 # Clear the buffer so the imap is not printed.
                 @input_buf = ();
             } else {
@@ -1764,8 +1783,10 @@ sub vim_mode_init {
 sub setup_changed {
     my $value;
 
-    # TODO: okay for now, will cause problems when we have more imaps
-    $imaps = {};
+    # Delete all possible imaps created by /set vim_mode_cmd_seq.
+    foreach my $char ('a' .. 'z') {
+        delete $imaps->{$char};
+    }
 
     $value = Irssi::settings_get_str('vim_mode_cmd_seq');
     if ($value) {
