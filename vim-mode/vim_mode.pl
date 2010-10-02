@@ -17,6 +17,7 @@
 # * Cursor motion: h l 0 ^ $ <space> f t F T
 # * History motion: j k
 # * Cursor word motion: w b ge e W gE B E
+# * Word objects (only the following work yet): aW
 # * Yank and paste: y p P
 # * Change and delete: c d
 # * Delete at cursor: x X
@@ -788,8 +789,86 @@ sub cmd_movement_i_ {
 sub cmd_movement_a_ {
     my ($count, $pos, $repeat, $char) = @_;
 
-    _warn("a_ not implemented yet");
-    return;
+    my $cur_pos;
+    my $input = _input();
+
+    # aw and aW
+    if ($char eq 'w' or $char eq 'W') {
+        if ($char eq 'w') {
+
+        } elsif ($char eq 'W') {
+            while ($count-- > 0 and length($input) > $pos) {
+                if (substr($input, $pos, 1) =~ /\s/) {
+                    # Any whitespace before the WORD must be removed.
+                    if (not defined $cur_pos) {
+                        $cur_pos = _find_regex_before($input, '\S', $pos, 0);
+                        if ($cur_pos < 0) {
+                            $cur_pos = 0;
+                        } else {
+                            $cur_pos++;
+                        }
+                    }
+                    # Move before the WORD.
+                    if (substr($input, $pos + 1) =~ /^\s+/) {
+                        $pos += $+[0];
+                    }
+                    # And delete it.
+                    if (substr($input, $pos + 1) =~ /\s/) {
+                        $pos += $-[0] + 1;
+                    } else {
+                        $pos = length($input);
+                    }
+
+                } else {
+                    # Start at the beginning of this WORD.
+                    if (not defined $cur_pos and $pos > 0 and
+                            substr($input, $pos - 1, 1) !~ /\s/) {
+                        $cur_pos = _find_regex_before($input, '\s', $pos - 1, 0);
+                        if ($cur_pos < 0) {
+                            $cur_pos = 0;
+                        } else {
+                            $cur_pos++;
+                        }
+                    }
+                    # Delete to the end of the word.
+                    if (substr($input, $pos + 1) =~ /^\S*\s+\S/) {
+                        $pos += $+[0];
+                    } else {
+                        $pos = length($input);
+                        # If we are at the end of the line, whitespace before
+                        # the WORD is also deleted.
+                        my $new_pos = _find_regex_before($input, '\s+', $pos, 1);
+                        if (not defined $cur_pos or $cur_pos > $new_pos + 1) {
+                            $cur_pos = $new_pos + 1;
+                        }
+                    }
+                }
+            }
+            _input_pos($pos);
+        }
+    }
+
+    return $cur_pos;
+}
+# Find regex as close as possible before the current position. If $end is true
+# the end of the match is returned, otherwise the beginning.
+sub _find_regex_before {
+    my ($input, $regex, $pos, $end) = @_;
+
+    $input = reverse $input;
+    $pos = length($input) - $pos - 1;
+    $pos = 0 if $pos < 0;
+
+    if (substr($input, $pos) =~ /$regex/) {
+        if (!$end) {
+            $pos += $-[0];
+        } else {
+            $pos += $+[0];
+        }
+        return length($input) - $pos - 1;
+    } else {
+        return -1;
+    }
 }
 
 sub cmd_movement_0 {
@@ -1575,8 +1654,14 @@ sub handle_command_cmd {
             # problems with e.g. f when the search string doesn't exist).
             if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator if DEBUG;
-                $operators->{$operator}->{func}->($cur_pos, $new_pos, $char,
-                                                  $repeat);
+                # If text-objects are used the real move character must be
+                # passed to the operator.
+                my $tmp_char = $char;
+                if ($char eq 'i_' or $char eq 'a_') {
+                    $tmp_char = substr $movement, 1;
+                }
+                $operators->{$operator}->{func}->($cur_pos, $new_pos,
+                                                  $tmp_char, $repeat);
             }
 
             # Store command, necessary for .
