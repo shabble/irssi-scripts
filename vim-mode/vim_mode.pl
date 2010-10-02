@@ -1056,7 +1056,7 @@ sub cmd_movement_tilde {
     substr $input, $pos, $count, $string;
 
     _input($input);
-    return (undef, $pos + $count);
+    return (undef, _fix_input_pos($pos + $count, length $input));
 }
 
 sub cmd_movement_semicolon {
