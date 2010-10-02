@@ -936,7 +936,7 @@ sub cmd_movement_a {
     # Move after current character. Can't use cmd_movement_l() because we need
     # to mover after last character at the end of the line.
     my $length = _input_len();
-    $pos += $count;
+    $pos += 1;
     $pos = $length if $pos > $length;
 
     if (!$repeat) {
