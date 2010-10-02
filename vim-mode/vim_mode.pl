@@ -372,33 +372,6 @@ my $movements_repeatable
     };
 
 
-sub cmd_undo {
-    print "Undo!" if DEBUG;
-
-    _restore_undo_entry($undo_index);
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
-    if ($undo_index != $#undo_buffer) {
-        $undo_index++;
-    } else {
-        print "No further undo." if DEBUG;
-    }
-    return (undef, undef);
-}
-
-sub cmd_redo {
-    print "Redo!" if DEBUG;
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
-
-    _restore_undo_entry($undo_index);
-
-    if ($undo_index != 0) {
-        $undo_index--;
-    } else {
-        print "No further Redo." if DEBUG;
-    }
-    return (undef, undef);
-}
-
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move, $repeat) = @_;
 
@@ -624,6 +597,34 @@ sub _next_occurrence {
         }
     }
     return $pos;
+}
+
+sub cmd_movement_semicolon {
+    my ($count, $pos, $repeat) = @_;
+
+    return (undef, undef) if not defined $last_ftFT;
+
+    (undef, $pos)
+        = $movements->{$last_ftFT->{type}}
+                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+    return (undef, $pos);
+}
+sub cmd_movement_comma {
+    my ($count, $pos, $repeat) = @_;
+
+    return (undef, undef) if not defined $last_ftFT;
+
+    # Change direction.
+    my $save = $last_ftFT->{type};
+    my $type = $save;
+    $type =~ tr/ftFT/FTft/;
+
+    (undef, $pos)
+        = $movements->{$type}
+                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+    # Restore type as the move functions overwrites it.
+    $last_ftFT->{type} = $save;
+    return (undef, $pos);
 }
 
 sub cmd_movement_w {
@@ -1047,6 +1048,26 @@ sub cmd_movement_ctrl_b {
     return (undef, undef);
 }
 
+sub cmd_movement_ctrl_w {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    if ($char eq 'j') {
+        while ($count -- > 0) {
+            Irssi::command('window down');
+        }
+    } elsif ($char eq 'k') {
+        while ($count -- > 0) {
+            Irssi::command('window up');
+        }
+    }
+    return (undef, undef);
+}
+sub cmd_movement_ctrl_6 {
+    # like :b#
+    Irssi::command('window last');
+    return (undef, undef);
+}
+
 sub cmd_movement_tilde {
     my ($count, $pos, $repeat) = @_;
 
@@ -1058,35 +1079,6 @@ sub cmd_movement_tilde {
     _input($input);
     return (undef, _fix_input_pos($pos + $count, length $input));
 }
-
-sub cmd_movement_semicolon {
-    my ($count, $pos, $repeat) = @_;
-
-    return (undef, undef) if not defined $last_ftFT;
-
-    (undef, $pos)
-        = $movements->{$last_ftFT->{type}}
-                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
-    return (undef, $pos);
-}
-sub cmd_movement_comma {
-    my ($count, $pos, $repeat) = @_;
-
-    return (undef, undef) if not defined $last_ftFT;
-
-    # Change direction.
-    my $save = $last_ftFT->{type};
-    my $type = $save;
-    $type =~ tr/ftFT/FTft/;
-
-    (undef, $pos)
-        = $movements->{$type}
-                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
-    # Restore type as the move functions overwrites it.
-    $last_ftFT->{type} = $save;
-    return (undef, $pos);
-}
-
 
 sub cmd_movement_register {
     my ($count, $pos, $repeat, $char) = @_;
@@ -1138,23 +1130,29 @@ sub cmd_movement_g {
     return (undef, $pos);
 }
 
-sub cmd_movement_ctrl_w {
-    my ($count, $pos, $repeat, $char) = @_;
+sub cmd_undo {
+    print "Undo!" if DEBUG;
 
-    if ($char eq 'j') {
-        while ($count -- > 0) {
-            Irssi::command('window down');
-        }
-    } elsif ($char eq 'k') {
-        while ($count -- > 0) {
-            Irssi::command('window up');
-        }
+    _restore_undo_entry($undo_index);
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
+    if ($undo_index != $#undo_buffer) {
+        $undo_index++;
+    } else {
+        print "No further undo." if DEBUG;
     }
     return (undef, undef);
 }
-sub cmd_movement_ctrl_6 {
-    # like :b#
-    Irssi::command('window last');
+sub cmd_redo {
+    print "Redo!" if DEBUG;
+    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
+
+    _restore_undo_entry($undo_index);
+
+    if ($undo_index != 0) {
+        $undo_index--;
+    } else {
+        print "No further Redo." if DEBUG;
+    }
     return (undef, undef);
 }
 
@@ -1173,6 +1171,7 @@ sub _fix_input_pos {
 
     return $pos;
 }
+
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
