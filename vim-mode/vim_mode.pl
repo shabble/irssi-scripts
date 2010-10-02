@@ -985,9 +985,13 @@ sub cmd_movement_r {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = _input();
-    substr $input, $pos, 1, $char;
+
+    # Abort if at end of the line.
+    return (undef, undef) if length($input) < $pos + $count;
+
+    substr $input, $pos, $count, $char x $count;
     _input($input);
-    return (undef, $pos);
+    return (undef, $pos + $count - 1);
 }
 
 sub cmd_movement_p {
