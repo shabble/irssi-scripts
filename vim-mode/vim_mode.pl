@@ -1706,8 +1706,8 @@ sub handle_command_cmd {
             # Update input position of last undo entry so that undo/redo
             # restores correct position.
             if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
-                (defined $operator or exists $movements_repeatable->{$char} or
-                                      $char eq '.')) {
+                ((defined $operator and $operator eq 'd') or
+                 exists $movements_repeatable->{$char} or $char eq '.')) {
                 print "Updating history position: $undo_buffer[0]->[0]"
                     if DEBUG;
                 $undo_buffer[0]->[1] = $cur_pos;
