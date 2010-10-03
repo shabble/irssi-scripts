@@ -367,16 +367,16 @@ my $movements_repeatable
   = {
      'x' => undef,
      'X' => undef,
+     'i' => undef,
+     'a' => undef,
+     'I' => undef,
+     'A' => undef,
      'r' => undef,
      'p' => undef,
      'P' => undef,
      'C' => undef,
      'D' => undef,
      '~' => undef,
-     'i' => undef,
-     'a' => undef,
-     'I' => undef,
-     'A' => undef,
     };
 
 
