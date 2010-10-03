@@ -1872,6 +1872,14 @@ sub UNLOAD {
 
 sub _add_undo_entry {
     my ($line, $pos) = @_;
+
+    # If we aren't at the top of the history stack, then drop newer entries as
+    # we can't branch (yet).
+    while ($undo_index > 0) {
+        shift @undo_buffer;
+        $undo_index--;
+    }
+
     # check it's not a dupe of the list head
     my $current = $undo_buffer[$undo_index];
     if ($line eq $current->[0] && $pos == $current->[1]) {
