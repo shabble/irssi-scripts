@@ -1730,8 +1730,8 @@ sub handle_command_cmd {
 
             # Save an undo checkpoint here for operators, all repeatable
             # movements, operators and repetition.
-            if (defined $operator or exists $movements_repeatable->{$char} or
-                                     $char eq '.') {
+            if ((defined $operator and $operator eq 'd') or
+                exists $movements_repeatable->{$char} or $char eq '.') {
                 # TODO: why do histpry entries still show up in undo
                 # buffer? Is avoiding the commands here insufficient?
 
