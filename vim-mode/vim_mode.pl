@@ -1192,10 +1192,11 @@ sub cmd_movement_g {
 sub cmd_undo {
     print "Undo!" if DEBUG;
 
-    _restore_undo_entry($undo_index);
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
     if ($undo_index != $#undo_buffer) {
         $undo_index++;
+        _restore_undo_entry($undo_index);
+        print "Undoing entry index: $undo_index of " . scalar(@undo_buffer)
+            if DEBUG;
     } else {
         print "No further undo." if DEBUG;
     }
@@ -1203,12 +1204,12 @@ sub cmd_undo {
 }
 sub cmd_redo {
     print "Redo!" if DEBUG;
-    print "Undoing entry index: $undo_index of " . scalar(@undo_buffer) if DEBUG;
-
-    _restore_undo_entry($undo_index);
 
     if ($undo_index != 0) {
         $undo_index--;
+        print "Undoing entry index: $undo_index of " . scalar(@undo_buffer)
+            if DEBUG;
+        _restore_undo_entry($undo_index);
     } else {
         print "No further Redo." if DEBUG;
     }
@@ -1670,16 +1671,6 @@ sub handle_command_cmd {
 
             my $cur_pos = _input_pos();
 
-            # Save an undo checkpoint here for operators, all repeatable
-            # movements, operators and repetition.
-            if (defined $operator or exists $movements_repeatable->{$char} or
-                                     $char eq '.') {
-                # TODO: why do histpry entries still show up in undo
-                # buffer? Is avoiding the commands here insufficient?
-
-                _add_undo_entry(_input(), $cur_pos);
-            }
-
             # If defined $cur_pos will be changed to this.
             my $old_pos;
             # Position after the move.
@@ -1725,6 +1716,16 @@ sub handle_command_cmd {
                 }
                 $operators->{$operator}->{func}->($cur_pos, $new_pos,
                                                   $tmp_char, $repeat);
+            }
+
+            # Save an undo checkpoint here for operators, all repeatable
+            # movements, operators and repetition.
+            if (defined $operator or exists $movements_repeatable->{$char} or
+                                     $char eq '.') {
+                # TODO: why do histpry entries still show up in undo
+                # buffer? Is avoiding the commands here insufficient?
+
+                _add_undo_entry(_input(), $cur_pos);
             }
 
             # Store command, necessary for .
@@ -2005,6 +2006,9 @@ sub _update_mode {
                 _input_pos($pos - 1);
             }
         }
+        # Store current line to allow undo of i/a/I/A.
+        _add_undo_entry(_input(), _input_pos());
+
     # Change mode to i to support insert mode repetition. This doesn't affect
     # commands like i/a/I/A because handle_command_cmd() sets $last->{char}.
     # It's necessary when pressing enter.
