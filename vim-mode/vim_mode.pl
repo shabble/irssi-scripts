@@ -1670,11 +1670,10 @@ sub handle_command_cmd {
 
             my $cur_pos = _input_pos();
 
-            # save an undo checkpoint here.
-
-            if ($char ne 'u' && $char ne "\x12" && $char ne "\x04"
-                && $char ne 'j' && $char ne 'k') {
-
+            # Save an undo checkpoint here for operators, all repeatable
+            # movements, operators and repetition.
+            if (defined $operator or exists $movements_repeatable->{$char} or
+                                     $char eq '.') {
                 # TODO: why do histpry entries still show up in undo
                 # buffer? Is avoiding the commands here insufficient?
 
