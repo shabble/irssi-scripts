@@ -394,10 +394,12 @@ sub cmd_insert_ctrl_r {
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move, $repeat) = @_;
 
-    # Changing a word or WORD doesn't delete the last space before a word.
+    # Changing a word or WORD doesn't delete the last space before a word, but
+    # not if we are on that whitespace before the word.
     if ($move eq 'w' or $move eq 'W') {
         my $input = _input();
-        if (substr($input, $new_pos - 1, 1) =~ /\s/) {
+        if ($new_pos - $old_pos > 1 and
+                substr($input, $new_pos - 1, 1) =~ /\s/) {
             $new_pos--;
         }
     }
