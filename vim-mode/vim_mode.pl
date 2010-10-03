@@ -938,7 +938,7 @@ sub cmd_movement_caret {
     # No whitespace at all.
     if ($input !~ m/^\s/) {
         $pos = 0;
-    # Some non-whitesapece, go to first one.
+    # Some non-whitespace, go to first one.
     } elsif ($input =~ m/[^\s]/) {
         $pos = $-[0];
     # Only whitespace, go to the end.
