@@ -407,7 +407,9 @@ sub cmd_operator_c {
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
-        _insert_buffer(1, $new_pos);
+        my $pos = _input_pos();
+        $pos = _insert_buffer(1, $pos);
+        _input_pos($pos);
     }
 }
 sub cmd_operator_d {
