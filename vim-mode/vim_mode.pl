@@ -1671,16 +1671,6 @@ sub handle_command_cmd {
 
             my $cur_pos = _input_pos();
 
-            # Update input position of last undo entry so that undo/redo
-            # restores correct position.
-            if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
-                (defined $operator or exists $movements_repeatable->{$char} or
-                                      $char eq '.')) {
-                print "Updating history position: $undo_buffer[0]->[0]"
-                    if DEBUG;
-                $undo_buffer[0]->[1] = $cur_pos;
-            }
-
             # If defined $cur_pos will be changed to this.
             my $old_pos;
             # Position after the move.
@@ -1711,6 +1701,16 @@ sub handle_command_cmd {
                 _input_pos($new_pos);
             } else {
                 $new_pos = _input_pos();
+            }
+
+            # Update input position of last undo entry so that undo/redo
+            # restores correct position.
+            if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
+                (defined $operator or exists $movements_repeatable->{$char} or
+                                      $char eq '.')) {
+                print "Updating history position: $undo_buffer[0]->[0]"
+                    if DEBUG;
+                $undo_buffer[0]->[1] = $cur_pos;
             }
 
             # If we have an operator pending then run it on the handled text.
