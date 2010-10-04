@@ -15,7 +15,8 @@
 #   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
 #   can be used as well).
 # * Cursor motion: h l 0 ^ $ <space> f t F T
-# * History motion: j k G
+# * History motion: j k gg G
+#   gg moves to the oldest (first) history line.
 #   G without a count moves to the current input line, with a count it goes to
 #   the count-th history line (1 is the oldest).
 # * Cursor word motion: w b ge e W gE B E
@@ -1229,7 +1230,12 @@ sub cmd_movement_g {
         } else {
             $pos = length($input) - $pos - 1;
         }
+    # gg
+    } elsif ($char eq 'g') {
+        cmd_movement_G(1, $pos, $repeat);
+        $pos = undef;
     }
+
     return (undef, $pos);
 }
 
