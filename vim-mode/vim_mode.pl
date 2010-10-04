@@ -2139,6 +2139,3 @@ sub _warn {
 
     print '%_vim_mode: ', $warning, '%_';
 }
-
-# TODO:
-# 10gg -> go to window 10 (prefix.gg -> win <prefix>)
