@@ -15,7 +15,9 @@
 #   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
 #   can be used as well).
 # * Cursor motion: h l 0 ^ $ <space> f t F T
-# * History motion: j k
+# * History motion: j k G
+#   G without a count moves to the current input line, with a count it goes to
+#   the count-th history line (1 is the oldest).
 # * Cursor word motion: w b ge e W gE B E
 # * Word objects (only the following work yet): aw aW
 # * Yank and paste: y p P
@@ -292,8 +294,10 @@ my $movements
      'h' => { func => \&cmd_movement_h },
      'l' => { func => \&cmd_movement_l },
      ' ' => { func => \&cmd_movement_space },
+     # history movement
      'j' => { func => \&cmd_movement_j },
      'k' => { func => \&cmd_movement_k },
+     'G' => { func => \&cmd_movement_G },
      # char movement, take an additional parameter and use $movement
      'f' => { func => \&cmd_movement_f },
      't' => { func => \&cmd_movement_t },
@@ -572,6 +576,42 @@ sub cmd_movement_k {
         _input($history);
         _input_pos(0);
     }
+    return (undef, undef);
+}
+sub cmd_movement_G {
+    my ($count, $pos, $repeat) = @_;
+
+    if (Irssi::version < 20090117) {
+        return;
+    }
+
+    my @history = Irssi::active_win->get_history_lines();
+
+    # Go to the current input line if no count was given or it's too big.
+    if (not $count or $count - 1 >= scalar @history) {
+        if (defined $history_input and defined $history_pos) {
+            _input($history_input);
+            _input_pos($history_pos);
+            $history_index = undef;
+        }
+        return;
+    } else {
+        # Save input line so it doesn't get lost.
+        if (not defined $history_index) {
+            $history_input = _input();
+            $history_pos = _input_pos();
+        }
+        $history_index = $count - 1;
+    }
+
+    my $history = $history[$history_index];
+    # History is not in UTF-8!
+    if ($utf8) {
+        $history = decode_utf8($history);
+    }
+    _input($history);
+    _input_pos(0);
+
     return (undef, undef);
 }
 
@@ -1673,7 +1713,8 @@ sub handle_command_cmd {
             # Make sure count is at least 1 except for functions which need to
             # know if no count was used
             if (not $numeric_prefix and $char ne "\x04"    # ctrl-d
-                                    and $char ne "\x15") { # ctrl-u
+                                    and $char ne "\x15"    # ctrl-u
+                                    and $char ne 'G') {
                 $numeric_prefix = 1;
             }
 
