@@ -9,7 +9,7 @@
 # Please submit reproducible sequences to the bug-tracker at:
 # http://github.com/shabble/irssi-scripts/issues
 #
-# or contact rudi_s or shabble on irc.freenode.net (#irssi)
+# or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
 #
 #
 # Features:
