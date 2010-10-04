@@ -1624,6 +1624,10 @@ sub handle_command_cmd {
                 if ($char eq 'y') {
                     _input_pos($pos);
                 }
+                if ($register ne '"') {
+                    print 'Changing register to "' if DEBUG;
+                    $register = '"';
+                }
             }
             $numeric_prefix = undef;
             $operator = undef;
