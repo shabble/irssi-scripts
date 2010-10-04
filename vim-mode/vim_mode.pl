@@ -1650,9 +1650,8 @@ sub handle_command_cmd {
         print "Changing s to cl" if DEBUG;
         $char = 'l';
         $operator = 'c';
-    }
     # S is an alias for cc.
-    if (!$movement and !$operator and $char eq 'S') {
+    } elsif (!$movement and !$operator and $char eq 'S') {
         print "Changing S to cc" if DEBUG;
         $char = 'c';
         $operator = 'c';
@@ -1722,9 +1721,8 @@ sub handle_command_cmd {
             } elsif ($operator and ($char eq 'j' or $char eq 'k')) {
                 print "Invalid operator/char: $operator $char" if DEBUG;
                 $skip = 1;
-            }
             # C and D force the matching operator
-            if ($char eq 'C') {
+            } elsif ($char eq 'C') {
                 $operator = 'c';
             } elsif ($char eq 'D') {
                 $operator = 'd';
