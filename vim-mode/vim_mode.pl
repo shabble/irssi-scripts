@@ -454,7 +454,6 @@ sub cmd_operator_d {
     # when changing (C).
     $pos-- if $pos == length($input) and !$change;
 
-    # Move the cursor at the right position.
     _input_pos($pos);
 }
 sub cmd_operator_y {
@@ -1736,7 +1735,7 @@ sub handle_command_cmd {
             print "Skipping movement and operator." if DEBUG;
         } else {
             # Make sure count is at least 1 except for functions which need to
-            # know if no count was used
+            # know if no count was used.
             if (not $numeric_prefix and $char ne "\x04"    # ctrl-d
                                     and $char ne "\x15"    # ctrl-u
                                     and $char ne 'G') {
