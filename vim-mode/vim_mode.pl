@@ -1867,7 +1867,6 @@ sub handle_command_ex {
     } elsif ($key == 10) {
         print "Run ex-mode command" if DEBUG;
         cmd_ex_command();
-        @ex_buf = ();
         _update_mode(M_CMD);
 
     # Append entered key
@@ -2120,6 +2119,9 @@ sub _update_mode {
         $operator = undef;
         $movement = undef;
         $register = '"';
+
+        # Also clear ex-mode buffer.
+        @ex_buf = ();
     }
 
     Irssi::statusbar_items_redraw("vim_mode");
