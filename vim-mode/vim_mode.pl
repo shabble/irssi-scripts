@@ -1704,6 +1704,11 @@ sub handle_command_cmd {
             } elsif ($char eq '.') {
                 print '. pressed but $last->{char} not set' if DEBUG;
                 $skip = 1;
+
+            # Ignore invalid operator/char combinations.
+            } elsif ($operator and ($char eq 'j' or $char eq 'k')) {
+                print "Invalid operator/char: $operator $char" if DEBUG;
+                $skip = 1;
             }
             # C and D force the matching operator
             if ($char eq 'C') {
