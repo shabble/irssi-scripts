@@ -1,5 +1,10 @@
 # A script to emulate some of the vi(m) features for the Irssi inputline.
 #
+# It should work fine with at least 0.8.12 and later versions. However some
+# features are disabled in older versions (see below for details). Perl >=
+# 5.8.1 is recommended for UTF-8 support (which can be disabled if necessary).
+# Please report bugs in older versions as well, we'll try to fix them.
+#
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
 # http://github.com/shabble/irssi-scripts/issues
@@ -98,6 +103,15 @@
 #
 # If you don't need Ex-mode, you can run vim_mode.pl without the
 # prompt_info.pl script.
+#
+#
+# Irssi requirements:
+#
+# 0.8.12 and above should work fine. However the following features are
+# disabled in irssi < 0.8.13:
+#
+# * j k (only with count, they work fine without count in older versions)
+# * gg G
 #
 #
 # Known bugs:
