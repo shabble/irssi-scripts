@@ -1503,7 +1503,7 @@ sub got_key {
         # contain escape sequences (arrow keys, etc)
         $input_buf_timer
           = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
-
+        print "Buffer Timer tag: $input_buf_timer" if DEBUG;
     } elsif ($mode == M_INS) {
         if ($key == 3) { # Ctrl-C enter command mode
             _update_mode(M_CMD);
@@ -1568,7 +1568,7 @@ sub got_key {
 
 sub handle_input_buffer {
 
-    Irssi::timeout_remove($input_buf_timer);
+    #Irssi::timeout_remove($input_buf_timer);
     $input_buf_timer = undef;
     # see what we've collected.
     print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
