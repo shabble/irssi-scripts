@@ -133,7 +133,6 @@ aliases = {
   KB = "kickban";
   KN = "knockout";
   BANS = "ban";
-  B = "ban";
   MUB = "unban *";
   UB = "unban";
   IG = "ignore";
@@ -167,6 +166,7 @@ aliases = {
   botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
   vim = "script load vim_mode.pl";
   unvim = "/script unload vim_mode";
+  prompt = "script load prompt_replace.pl";
 };
 
 statusbar = {
@@ -268,8 +268,7 @@ statusbar = {
     };
     prompt = {
       items = {
-        prompt = { };
-        prompt_empty = { };
+        new_prompt = { priority = "0"; };
         input = { priority = "10"; };
       };
     };
@@ -304,5 +303,6 @@ keyboard = (
   { key = "^R"; id = "command"; data = "history_search_start "; },
   { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
   { key = "meta-q"; id = "command"; data = "echo bacons"; },
-  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; }
+  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; },
+  { key = "meta-l"; id = "command"; data = "visual "; }
 );
