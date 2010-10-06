@@ -22,7 +22,7 @@ our %IRSSI =
 sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
-my $prompt_data = undef;
+my $prompt_data = '';
 my $prompt_item = undef;
 
 my $region_active = 0;
@@ -121,6 +121,7 @@ sub init {
 sub change_prompt_sig {
     my ($text) = @_;
 
+    $text = '$p' . $text;
     print "Got prompt change sig with: $text" if DEBUG;
 
     my $changed = ($prompt_data ne $text);
