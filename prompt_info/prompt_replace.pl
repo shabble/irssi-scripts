@@ -39,14 +39,24 @@ init();
 
 sub update_terminal_size {
 
+    my @stty_data = qx/stty -a/;
+    my $line = $stty_data[0];
 
-    my $rows = qx/tput lines/;
-    my $cols = qx/tput cols/;
-    chomp $rows;
-    chomp $cols;
-
-    $term_w = 0+$cols;
-    $term_h = 0+$rows;
+    # linux
+    # speed 38400 baud; rows 36; columns 126; line = 0;
+    if ($line =~ m/rows (\d+); columns (\d+);/) {
+        $term_h = $1;
+        $term_w = $2;
+    # osx
+    # speed 9600 baud; 40 rows; 235 columns;
+    } elsif ($line =~ m/(\d+) rows; (\d+) columns;/) {
+        $term_h = $1;
+        $term_w = $2;
+    } else {
+        # guess?
+        $term_h = 24;
+        $term_w = 80;
+    }
 
     print "Terminal detected as $term_w cols by $term_h rows" if DEBUG;
 }
