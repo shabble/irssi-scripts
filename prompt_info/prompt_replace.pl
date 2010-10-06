@@ -25,15 +25,15 @@ sub DEBUG () { 1 }
 my $prompt_data = undef;
 my $prompt_item = undef;
 
-my $vis_enabled = 0;
+my $region_active = 0;
 
 my ($term_w, $term_h) = (0, 0);
 
+# visual region selected.
 my ($region_start, $region_end) = (0, 0);
+my $region_content = '';
 
-
-my $prompt_format;
-my $prompt_format_str = '';
+my $prompt_format = '';
 
 init();
 
@@ -51,10 +51,16 @@ sub update_terminal_size {
     }
 }
 
-sub subcmd_handler {
+sub prompt_subcmd_handler {
     my ($data, $server, $item) = @_;
     $data =~ s/\s+$//g; # strip trailing whitespace.
     Irssi::command_runsub('prompt', $data, $server, $item);
+}
+
+sub visual_subcmd_handler {
+    my ($data, $server, $item) = @_;
+    $data =~ s/\s+$//g; # strip trailing whitespace.
+    Irssi::command_runsub('visual', $data, $server, $item);
 }
 
 sub init {
@@ -63,18 +69,22 @@ sub init {
 
     Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*] ');
 
-    Irssi::command_bind("prompt", \&subcmd_handler);
+    Irssi::command_bind("prompt", \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on', \&replace_prompt_items);
     Irssi::command_bind('prompt off', \&restore_prompt_items);
     Irssi::command_bind('prompt set',
-                        sub { $prompt_data = shift; uberprompt_refresh(); });
+                        sub { Irssi::signal_emit 'change prompt', shift; });
     Irssi::command_bind('prompt clear',
-                        sub { undef $prompt_data; uberprompt_refresh(); });
+                        sub { Irssi::signal_emit 'change prompt', '$p'; });
 
     # misc faff
-    Irssi::command_bind('visual', \&cmd_toggle_visual);
-    Irssi::command("^BIND meta-l /visual");
-    Irssi::command_bind('menu', \&draw_menu);
+    Irssi::command_bind('visual', \&visual_subcmd_handler);
+    Irssi::command_bind('visual toggle', \&cmd_toggle_visual);
+    Irssi::command_bind('visual clear',  \&cmd_clear_visual);
+
+    Irssi::command("^BIND ^F /visual toggle");
+    Irssi::command("^BIND ^G /visual clear");
+
 
     # redraw interception
     Irssi::signal_add_last('command redraw',   \&augment_redraw);
@@ -100,7 +110,29 @@ sub init {
 
     # install our statusbars.
     replace_prompt_items();
+
+    # the actual API signal.
+    Irssi::signal_register({'change prompt' => [qw/string/]});
+    Irssi::signal_add('change prompt' => \&change_prompt_sig);
+
+
 }
+
+sub change_prompt_sig {
+    my ($text) = @_;
+
+    print "Got prompt change sig with: $text" if DEBUG;
+
+    my $changed = ($prompt_data ne $text);
+
+    $prompt_data = $text;
+
+    if ($changed) {
+        print "Redrawing prompt" if DEBUG;
+        uberprompt_refresh();
+    }
+}
+
 
 sub UNLOAD {
     # remove uberprompt and return the original ones.
@@ -109,10 +141,10 @@ sub UNLOAD {
 
 sub reload_settings {
     my $new = Irssi::settings_get_str('uberprompt_format');
-    if ($prompt_format_str ne $new) {
-        print "Updated prompt format";
-        $prompt_format_str = $new;
-        Irssi::abstracts_register(['uberprompt', $prompt_format_str]);
+    if ($prompt_format ne $new) {
+        print "Updated prompt format" if DEBUG;
+        $prompt_format = $new;
+        Irssi::abstracts_register(['uberprompt', $prompt_format]);
     }
 }
 
@@ -139,7 +171,7 @@ sub uberprompt_draw {
     } else {
         $p_copy = $default_prompt;
     }
-    print "Redrawing with: $p_copy, size-only: $get_size_only";
+    print "Redrawing with: $p_copy, size-only: $get_size_only" if DEBUG;
 
     $prompt_item = $sb_item;
 
@@ -147,56 +179,75 @@ sub uberprompt_draw {
 }
 
 sub augment_redraw {
-    print "Redraw called";
+    print "Redraw called" if DEBUG;
     uberprompt_refresh();
-    Irssi::timeout_add_once(10, \&refresh_inputline, 0);
+    Irssi::timeout_add_once(10, \&refresh_visual_overlay, 0);
 }
 
 sub uberprompt_refresh {
     Irssi::statusbar_items_redraw('uberprompt');
 }
 
+
+sub cmd_clear_visual {
+    _clear_visual_region();
+    #refresh_visual_overlay();
+    Irssi::statusbar_items_redraw('input');
+}
+
 sub cmd_toggle_visual {
-    $vis_enabled = not $vis_enabled;
-    if ($vis_enabled) {
+
+    $region_active = not $region_active;
+
+    if ($region_active) {
         $region_start = _pos();
         $region_end   = 0; # reset end marker.
-        print "visual mode started at $region_start";
+        print "visual mode started at $region_start" if DEBUG;
     } else {
         $region_end = _pos();
-        print "Visual mode ended at $region_end";
+        print "Visual mode ended at $region_end" if DEBUG;
 
         if ($region_end > $region_start) {
             my $input = Irssi::parse_special('$L', 0, 0);
             my $str = substr($input, $region_start, $region_end - $region_start);
-            print "Region selected: $str";
+            print "Region selected: $str" if DEBUG;
         } else {
-            print "Invalid region selection: [ $region_start - $region_end ]";
+            print "Invalid region selection: [ $region_start - $region_end ]" 
+              if DEBUG;
             $region_start = $region_end = 0;
         }
+        cmd_clear_visual();
     }
 }
 
 sub ctrl_l_intercept {
     my $key = shift;
 
-    if ($key == 12) {
-        print "C-l pressed";
+    if ($key == 12) { # C-l
+        print "C-l pressed" if DEBUG;
         Irssi::command("redraw");
         Irssi::signal_stop();
-    }
-    if ($key == 10) {
-        $region_end = $region_start = 0;
+    } elsif ($key == 10) { # RET
+        _clear_visual_region();
     }
 }
 
 sub key_pressed {
-    my $key = shift;
-    return unless $vis_enabled;
-    refresh_inputline();
+    # this handler needs to be last so the actual character is printed by irssi
+    # before we overlay on it. Otherwise things are all a bit off-by-1
+    return unless $region_active;
+
+    refresh_visual_overlay();
 }
 
-sub refresh_inputline {
+sub _clear_visual_region {
+    print "Clearing Region markers" if DEBUG;
+    $region_end = 0;
+    $region_start = 0;
+}
+
+
+sub refresh_visual_overlay {
 
     my $end_pos = $region_end;
     $end_pos  ||= _pos(); # if not set, take current position as end.
@@ -209,9 +260,9 @@ sub refresh_inputline {
 
     my $text = substr($input, $region_start, $len);
 
-    print "printing '$text' at $offset [$region_start, $end_pos] ($len)";
+    print "printing '$text' at $offset [$region_start, $end_pos] ($len)" if DEBUG;
 
-    $text = '%k%2' . $text . '%n';
+    $text = '%8' . $text . '%8';
     _draw_overlay($offset, $text, $len);
 
 }
@@ -240,6 +291,7 @@ sub restore_prompt_items {
     _sbar_command('prompt', 'remove', 'uberprompt');
 
     print "Restoring original prompt" if DEBUG;
+
     _sbar_command('prompt', 'add', 'prompt',
                   qw/-alignment left -before input -priority 0/);
     _sbar_command('prompt', 'add', 'prompt_empty',
