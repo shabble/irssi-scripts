@@ -39,17 +39,14 @@ init();
 
 sub update_terminal_size {
 
-    my @stty_lines = qx/stty -a/;
-    my $line = $stty_lines[0];
-    @stty_lines = ();           # don't need the rest.
 
-    if ($line =~ m/\s*(\d+)\s*rows\s*;\s*(\d+)\s*columns\s*;/) {
-        $term_h = $1;
-        $term_w = $2;
-        print "terminal size detected as $term_w x $term_h" if DEBUG;
-    } else {
-        print "Failed to detect terminal size" if DEBUG;
-    }
+    my $rows = qx/tput lines/;
+    my $cols = qx/tput cols/;
+    chomp $rows;
+    chomp $cols;
+
+    $term_w = $cols;
+    $term_h = $rows;
 }
 
 sub prompt_subcmd_handler {
