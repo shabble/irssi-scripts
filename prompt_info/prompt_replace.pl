@@ -45,8 +45,10 @@ sub update_terminal_size {
     chomp $rows;
     chomp $cols;
 
-    $term_w = $cols;
-    $term_h = $rows;
+    $term_w = 0+$cols;
+    $term_h = 0+$rows;
+
+    print "Terminal detected as $term_w cols by $term_h rows" if DEBUG;
 }
 
 sub prompt_subcmd_handler {
