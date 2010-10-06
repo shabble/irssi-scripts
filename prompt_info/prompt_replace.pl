@@ -22,7 +22,7 @@ our %IRSSI =
 sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
-my $prompt_data = '';
+my $prompt_data = undef;
 my $prompt_item = undef;
 
 my $region_active = 0;
@@ -124,7 +124,8 @@ sub change_prompt_sig {
     $text = '$p' . $text;
     print "Got prompt change sig with: $text" if DEBUG;
 
-    my $changed = ($prompt_data ne $text);
+    my $changed;
+    $changed = defined $prompt_data ? $prompt_data ne $text : 1;
 
     $prompt_data = $text;
 
@@ -213,7 +214,7 @@ sub cmd_toggle_visual {
             my $str = substr($input, $region_start, $region_end - $region_start);
             print "Region selected: $str" if DEBUG;
         } else {
-            print "Invalid region selection: [ $region_start - $region_end ]" 
+            print "Invalid region selection: [ $region_start - $region_end ]"
               if DEBUG;
             $region_start = $region_end = 0;
         }
@@ -316,3 +317,8 @@ sub _sbar_command {
 sub _pos {
     return Irssi::gui_input_get_pos();
 }
+
+
+# bit of fakery so things don't complain about the lack of prompt_info (hoepfully)
+
+%Irssi::Script::prompt_info:: = ();
