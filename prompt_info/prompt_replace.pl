@@ -46,8 +46,9 @@ sub update_terminal_size {
     if ($line =~ m/\s*(\d+)\s*rows\s*;\s*(\d+)\s*columns\s*;/) {
         $term_h = $1;
         $term_w = $2;
+        print "terminal size detected as $term_w x $term_h" if DEBUG;
     } else {
-        print "Failed to detect terminal size";
+        print "Failed to detect terminal size" if DEBUG;
     }
 }
 
@@ -85,6 +86,10 @@ sub init {
     Irssi::command("^BIND ^F /visual toggle");
     Irssi::command("^BIND ^G /visual clear");
 
+    Irssi::command_bind 'print_test',
+        sub {
+            Irssi::gui_printtext(0, 0, '%8hello there%n');
+            };
 
     # redraw interception
     Irssi::signal_add_last('command redraw',   \&augment_redraw);
