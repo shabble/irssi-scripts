@@ -4,7 +4,6 @@ use warnings;
 use Irssi;
 use Irssi::TextUI;              # for sbar_items_redraw
 use Data::Dumper;
-use Term::Size;
 
 
 
