@@ -284,8 +284,9 @@ sub replace_prompt_items {
     # add the new one.
 
     _sbar_command('prompt', 'add', 'uberprompt',
-                  qw/-alignment left -before input -priority 0/);
+                  qw/-alignment left -before input -priority '-1'/);
 
+    _sbar_command('prompt', 'position', '100');
 }
 
 sub restore_prompt_items {
@@ -295,9 +296,12 @@ sub restore_prompt_items {
     print "Restoring original prompt" if DEBUG;
 
     _sbar_command('prompt', 'add', 'prompt',
-                  qw/-alignment left -before input -priority 0/);
+                  qw/-alignment left -before input -priority '-1'/);
     _sbar_command('prompt', 'add', 'prompt_empty',
-                  qw/-alignment left -after prompt -priority 0/);
+                  qw/-alignment left -after prompt -priority '-1'/);
+
+    _sbar_command('prompt', 'position', '100');
+
 }
 
 sub _sbar_command {
@@ -305,7 +309,7 @@ sub _sbar_command {
 
     my $args_str = join ' ', @args;
 
-    $args_str .= ' ' if length $args_str;
+    $args_str .= ' ' if length $args_str && defined $item;
 
     my $command = sprintf 'STATUSBAR %s %s %s%s',
       $bar, $cmd, $args_str, defined($item)?$item:'';
