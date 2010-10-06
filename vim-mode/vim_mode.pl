@@ -1644,6 +1644,12 @@ sub handle_command_cmd {
     # argument.
     if ($movement) {
         $movement .= $char;
+
+    # Counts
+    } elsif ($char =~ m/[1-9]/ || ($numeric_prefix && $char =~ m/[0-9]/)) {
+        print "Processing numeric prefix: $char" if DEBUG;
+        handle_numeric_prefix($char);
+        return 1; # call _stop()
     }
 
     # s is an alias for cl.
@@ -1656,13 +1662,6 @@ sub handle_command_cmd {
         print "Changing S to cc" if DEBUG;
         $char = 'c';
         $operator = 'c';
-    }
-
-    if (!$movement && ($char =~ m/[1-9]/ ||
-                       ($numeric_prefix && $char =~ m/[0-9]/))) {
-        print "Processing numeric prefix: $char" if DEBUG;
-        handle_numeric_prefix($char);
-        return 1; # call _stop()
     }
 
     # text-objects (i a) are simulated with $movement
