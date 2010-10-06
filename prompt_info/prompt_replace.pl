@@ -31,6 +31,70 @@ my ($term_w, $term_h) = (0, 0);
 
 my ($region_start, $region_end) = (0, 0);
 
+# overlay  := { $num1 => line1, $num2 => line2 }
+# line     := [ region, region, region ]
+# region   := { start => x, end => y, ...? }
+
+my $overlay;
+
+my $prompt_format;
+my $prompt_format_str = '';
+
+
+sub _add_overlay_region {
+    my ($line, $start, $end, $text, $len) = @_;
+    my $region = { start => $start,
+                   end => $end,
+                   text => $text,
+                   len => $len };
+
+    my $o_line = $overlay->{$line};
+
+    unless (defined $o_line) {
+        $o_line = [];
+        $overlay->{$line} = $o_line;
+    }
+
+    foreach my $cur_region (@$o_line) {
+        if (_region_overlaps($cur_region, $region)) {
+            # do something.
+            print "Region overlaps";
+            last;
+        }
+    }
+
+    push @$o_line, $region;
+
+}
+
+sub _remove_overlay_region {
+    my ($line, $start, $end) = @_;
+
+    my $o_line = $overlay->{$line};
+    return unless $o_line;
+
+    my $i = 0;
+    foreach my $region (@$o_line) {
+        if ($region->{start} == $start && $region->{end} == $end) {
+            last;
+        }
+        $i++;
+    }
+    splice @$o_line, $i, 1, (); # remove it.
+}
+
+sub _redraw_overlay {
+    foreach my $line_num (sort keys %$overlay) {
+        my $line = $overlay->{$line_num};
+
+        foreach my $region (@$line) {
+            Irssi::gui_printtext($region->{start}, $line_num,
+                                 $region->{text});
+        }
+    }
+}
+
+
 init();
 
 sub update_terminal_size {
@@ -47,54 +111,109 @@ sub update_terminal_size {
     }
 }
 
+sub subcmd_handler {
+    my ($data, $server, $item) = @_;
+    $data =~ s/\s+$//g; # strip trailing whitespace.
+    Irssi::command_runsub('prompt', $data, $server, $item);
+}
+
 sub init {
 
-    Irssi::command_bind('prompt_on', \&replace_prompt_items);
-    Irssi::command_bind('prompt_off', \&restore_prompt_items);
+    Irssi::statusbar_item_register ('uberprompt', 0, 'uberprompt_draw');
 
-    Irssi::command_bind('menu', \&draw_menu);
+    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*] ');
 
-    Irssi::command_bind('prompt_set',
-                        sub {
-                            my $data = shift;
-                            $prompt_data = $data;
-                            refresh_prompt();
-                        });
+    Irssi::command_bind("prompt", \&subcmd_handler);
+    Irssi::command_bind('prompt on', \&replace_prompt_items);
+    Irssi::command_bind('prompt off', \&restore_prompt_items);
+    Irssi::command_bind('prompt set',
+                        sub { $prompt_data = shift; uberprompt_refresh(); });
+    Irssi::command_bind('prompt clear',
+                        sub { undef $prompt_data; uberprompt_refresh(); });
 
-    Irssi::command_bind('prompt_clear',
-                        sub {
-                            $prompt_data = undef;
-                            refresh_prompt();
-                        });
-
+    # misc faff
     Irssi::command_bind('visual', \&cmd_toggle_visual);
     Irssi::command("^BIND meta-l /visual");
+    Irssi::command_bind('menu', \&draw_menu);
 
-    Irssi::signal_add_last('command redraw', sub {
-                               print "Redrawing";
-                               refresh_prompt();
-                               Irssi::timeout_add_once(10, \&refresh_inputline, 0);
-                               });
-
-    Irssi::statusbar_item_register ('new_prompt', 0, 'new_prompt_render');
-
+    # redraw interception
+    Irssi::signal_add_last('command redraw',   \&augment_redraw);
     Irssi::signal_add_first('gui key pressed', \&ctrl_l_intercept);
+
+    # for updating the overlay.
     Irssi::signal_add_last ('gui key pressed', \&key_pressed);
 
-    Irssi::signal_add('window changed', \&refresh_prompt);
-    Irssi::signal_add('window name changed', \&refresh_prompt);
-    Irssi::signal_add('window changed automatic', \&refresh_prompt);
-    Irssi::signal_add('window item changed', \&refresh_prompt);
+    # things to refresh the overlay for.
+    Irssi::signal_add('window changed',           \&uberprompt_refresh);
+    Irssi::signal_add('window name changed',      \&uberprompt_refresh);
+    Irssi::signal_add('window changed automatic', \&uberprompt_refresh);
+    Irssi::signal_add('window item changed',      \&uberprompt_refresh);
 
     Irssi::signal_add('terminal resized', \&update_terminal_size);
+    Irssi::signal_add('setup changed',    \&reload_settings);
 
+    # so we know where the bottom line is
     update_terminal_size();
+
+    # intialise the prompt format.
+    reload_settings();
+
+    # install our statusbars.
     replace_prompt_items();
 }
 
-
 sub UNLOAD {
+    # remove uberprompt and return the original ones.
     restore_prompt_items();
+}
+
+sub reload_settings {
+    my $new = Irssi::settings_get_str('uberprompt_format');
+    if ($prompt_format_str ne $new) {
+        print "Updated prompt format";
+        $prompt_format_str = $new;
+        Irssi::abstracts_register(['uberprompt', $prompt_format_str]);
+    }
+}
+
+sub uberprompt_draw {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $default_prompt = '';
+
+    my $window = Irssi::active_win;
+
+    # hack to produce the same defaults as prompt/prompt_empty sbars.
+
+    if (scalar( () = $window->items )) {
+        $default_prompt = '{uberprompt $[.15]itemname}';
+    } else {
+        $default_prompt = '{uberprompt $winname}';
+    }
+
+    my $p_copy = $prompt_data;
+
+    if (defined $prompt_data) {
+        # replace the special marker '$p' with the original prompt.
+        $p_copy =~ s/\$p/$default_prompt/;
+    } else {
+        $p_copy = $default_prompt;
+    }
+    print "Redrawing with: $p_copy, size-only: $get_size_only";
+
+    $prompt_item = $sb_item;
+
+    $sb_item->default_handler($get_size_only, $p_copy, '', 0);
+}
+
+sub augment_redraw {
+    print "Redraw called";
+    uberprompt_refresh();
+    Irssi::timeout_add_once(10, \&refresh_inputline, 0);
+}
+
+sub uberprompt_refresh {
+    Irssi::statusbar_items_redraw('uberprompt');
 }
 
 sub cmd_toggle_visual {
@@ -116,11 +235,6 @@ sub cmd_toggle_visual {
             $region_start = $region_end = 0;
         }
     }
-
-}
-
-sub refresh_prompt {
-    Irssi::statusbar_items_redraw('new_prompt');
 }
 
 sub ctrl_l_intercept {
@@ -167,19 +281,23 @@ sub _draw_overlay {
     Irssi::gui_printtext($offset, $term_h, $text);
 }
 
-sub draw_menu {
+sub _clear_overlay {
+    Irssi::active_win->view->redraw();
+}
+
+sub _draw_overlay_menu {
 
     my $w = 10;
 
     my @lines = (
-                 '+' . ('-' x $w) . '+',
+                 '%7+' . ('-' x $w) . '+%n',
+                 sprintf('%%7|%%n%*s%%7|%%n', $w, 'bacon'),
                  sprintf('|%*s|', $w, 'bacon'),
                  sprintf('|%*s|', $w, 'bacon'),
                  sprintf('|%*s|', $w, 'bacon'),
                  sprintf('|%*s|', $w, 'bacon'),
                  sprintf('|%*s|', $w, 'bacon'),
-                 sprintf('|%*s|', $w, 'bacon'),
-                 '+' . ('-' x $w) . '+',
+                 '%7+' . ('-' x $w) . '+%n',
                 );
     my $i = 10; # start vert offset.
     for my $line (@lines) {
@@ -187,32 +305,6 @@ sub draw_menu {
     }
 }
 
-sub new_prompt_render {
-    my ($sb_item, $get_size_only) = @_;
-
-
-    my $default_prompt = '';
-
-    my $window = Irssi::active_win();
-    if (scalar( () = $window->items )) {
-        $default_prompt = '{prompt $[.15]itemname}';
-    } else {
-        $default_prompt = '{prompt $winname}';
-    }
-
-    my $p_copy = $prompt_data;
-    if (defined $prompt_data) {
-        # check if we have a marker
-        $p_copy =~ s/\$p/$default_prompt/;
-    } else {
-        $p_copy = $default_prompt;
-    }
-    print "Redrawing with: $p_copy, size-only: $get_size_only";
-
-    $prompt_item = $sb_item;
-
-    $sb_item->default_handler($get_size_only, $p_copy, '', 0);
-}
 
 sub replace_prompt_items {
     # remove existing ones.
@@ -223,14 +315,14 @@ sub replace_prompt_items {
 
     # add the new one.
 
-    _sbar_command('prompt', 'add', 'new_prompt',
+    _sbar_command('prompt', 'add', 'uberprompt',
                   qw/-alignment left -before input -priority 0/);
 
 }
 
 sub restore_prompt_items {
 
-    _sbar_command('prompt', 'remove', 'new_prompt');
+    _sbar_command('prompt', 'remove', 'uberprompt');
 
     print "Restoring original prompt" if DEBUG;
     _sbar_command('prompt', 'add', 'prompt',
@@ -238,7 +330,6 @@ sub restore_prompt_items {
     _sbar_command('prompt', 'add', 'prompt_empty',
                   qw/-alignment left -after prompt -priority 0/);
 }
-
 
 sub _sbar_command {
     my ($bar, $cmd, $item, @args) = @_;
@@ -254,64 +345,6 @@ sub _sbar_command {
     Irssi::command($command);
 }
 
-
 sub _pos {
     return Irssi::gui_input_get_pos();
 }
-
-
-# my $prompt_additional_content = '';
-
-# Irssi::expando_create('prompt_additional', \&expando_prompt, {});
-
-# sub expando_prompt {
-#     my ($server, $witem, $arg) = @_;
-#     return $prompt_additional_content;
-#     #return Irssi::current_theme->format_expand("{sb
-#     #$prompt_additional_content}", 0x0f);
-# }
-
-# sub redraw_prompts {
-#     Irssi::statusbar_items_redraw ('prompt');
-#     Irssi::statusbar_items_redraw ('prompt_empty');
-# }
-
-# sub handle_change_prompt_sig {
-#     my ($text) = @_;
-
-#     my $expanded_text = Irssi::parse_special($text);
-
-#     print "Got prompt change sig with: $text -> $expanded_text" if DEBUG;
-
-#     my $changed = ($expanded_text ne $prompt_additional_content);
-
-#     $prompt_additional_content = $expanded_text;
-
-#     if ($changed) {
-#         print "Redrawing prompts" if DEBUG;
-#         redraw_prompts();
-#     }
-# }
-
-# sub prompt_additional_cmd {
-#     my ($str) = @_;
-#     print "Setting prompt to: $str" if DEBUG;
-#     Irssi::signal_emit('change prompt', $str);
-# }
-
-# test_abstract_setup();
-# Irssi::signal_register({'change prompt' => [qw/string/]});
-# Irssi::signal_add('change prompt' => \&handle_change_prompt_sig);
-
-# Irssi::command_bind('set_prompt' => \&prompt_additional_cmd);
-
-# sub test_abstract_setup {
-#     my $theme = Irssi::current_theme();
-#     my $prompt = $theme->format_expand('{prompt}', 0);
-#     if ($prompt !~ m/\$prompt_additional/) {
-#         print "Prompt_Info: It looks like you haven't modified your theme"
-#           . " to include the \$prompt_additional expando.  You will not see"
-#             . " any prompt info messages until you do. See script comments"
-#               . "for details";
-#     }
-# }
