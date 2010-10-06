@@ -4,11 +4,26 @@ __END__
 
 Irssi::TextUI::StatusbarItem
 
+=head1 DESCRIPTION
+
 =head1 FIELDS
 
 =head1 METHODS
 
 =head2 C<default_handler>
 
-I<undocumented>
+=over
+
+=item C<$item>
+
+=item C<$get_size_only>
+
+=item C<$str>
+
+=item C<$data>
+
+=item C<$escape_vars> - defaults to C<TRUE>
+
+=back
+
 
