@@ -1560,7 +1560,10 @@ sub got_key {
     }
 
     if ($mode == M_CMD) {
-        handle_command_cmd($key);
+        my $should_stop = handle_command_cmd($key);
+        _stop() if $should_stop;
+        Irssi::statusbar_items_redraw("vim_mode");
+
     } elsif ($mode == M_EX) {
         handle_command_ex($key);
     }
@@ -1635,8 +1638,6 @@ sub handle_numeric_prefix {
 sub handle_command_cmd {
     my ($key) = @_;
 
-    my $should_stop = 1;
-
     my $char = chr($key);
 
     # We need to treat $movements_multiple specially as they need another
@@ -1661,9 +1662,11 @@ sub handle_command_cmd {
                        ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
+        return 1; # call _stop()
+    }
 
     # text-objects (i a) are simulated with $movement
-    } elsif (!$movement && (exists $movements_multiple->{$char}
+    if (!$movement && (exists $movements_multiple->{$char}
                             or $operator and ($char eq 'i' or $char eq 'a'))) {
         print "Processing movement: $char" if DEBUG;
         $movement = $char;
@@ -1845,13 +1848,11 @@ sub handle_command_cmd {
 
     # Enter key sends the current input line in command mode as well.
     } elsif ($key == 10) {
-        $should_stop = 0;
         _commit_line();
+        return 0; # don't call _stop()
     }
 
-    Irssi::statusbar_items_redraw("vim_mode");
-
-    _stop() if $should_stop;
+    return 1; # call _stop()
 }
 
 sub handle_command_ex {
