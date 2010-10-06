@@ -28,16 +28,17 @@ my $prompt_item = undef;
 
 my $vis_enabled = 0;
 
-my ($term_w, $term_h);
+my ($term_w, $term_h) = (0, 0);
 
-my ($region_start, $region_end);
+my ($region_start, $region_end) = (0, 0);
 
 init();
 
 sub update_terminal_size {
+
     my @stty_lines = qx/stty -a/;
     my $line = $stty_lines[0];
-    @stty_lines = (); # don't need the rest.
+    @stty_lines = ();           # don't need the rest.
 
     if ($line =~ m/\s*(\d+)\s*rows\s*;\s*(\d+)\s*columns\s*;/) {
         $term_h = $1;
@@ -52,6 +53,8 @@ sub init {
     Irssi::command_bind('prompt_on', \&replace_prompt_items);
     Irssi::command_bind('prompt_off', \&restore_prompt_items);
 
+    Irssi::command_bind('menu', \&draw_menu);
+
     Irssi::command_bind('prompt_set',
                         sub {
                             my $data = shift;
@@ -65,13 +68,20 @@ sub init {
                             refresh_prompt();
                         });
 
-    Irssi::command_bind('visual', \&cmd_vis);
+    Irssi::command_bind('visual', \&cmd_toggle_visual);
     Irssi::command("^BIND meta-l /visual");
+
+    Irssi::signal_add_last('command redraw', sub {
+                               print "Redrawing";
+                               refresh_prompt();
+                               Irssi::timeout_add_once(10, \&refresh_inputline, 0);
+                               });
 
     Irssi::statusbar_item_register ('new_prompt', 0, 'new_prompt_render');
 
+    Irssi::signal_add_first('gui key pressed', \&ctrl_l_intercept);
+    Irssi::signal_add_last ('gui key pressed', \&key_pressed);
 
-    Irssi::signal_add_last('gui key pressed', \&key_pressed);
     Irssi::signal_add('window changed', \&refresh_prompt);
     Irssi::signal_add('window name changed', \&refresh_prompt);
     Irssi::signal_add('window changed automatic', \&refresh_prompt);
@@ -83,22 +93,20 @@ sub init {
     replace_prompt_items();
 }
 
-# Irssi::signal_add('window changed automatic', \&refresh_prompt);
-# Irssi::signal_add('window changed automatic', \&refresh_prompt);
-
 
 sub UNLOAD {
     restore_prompt_items();
 }
 
-sub cmd_vis {
+sub cmd_toggle_visual {
     $vis_enabled = not $vis_enabled;
     if ($vis_enabled) {
-        print "visual mode started";
         $region_start = _pos();
+        $region_end   = 0; # reset end marker.
+        print "visual mode started at $region_start";
     } else {
-        print "Visual mode ended";
         $region_end = _pos();
+        print "Visual mode ended at $region_end";
 
         if ($region_end > $region_start) {
             my $input = Irssi::parse_special('$L', 0, 0);
@@ -106,7 +114,7 @@ sub cmd_vis {
             print "Region selected: $str";
         } else {
             print "Invalid region selection: [ $region_start - $region_end ]";
-            $region_start = $region_end = undef;
+            $region_start = $region_end = 0;
         }
     }
 
@@ -116,61 +124,96 @@ sub refresh_prompt {
     Irssi::statusbar_items_redraw('new_prompt');
 }
 
-my $buf = '';
+sub ctrl_l_intercept {
+    my $key = shift;
+
+    if ($key == 12) {
+        print "C-l pressed";
+        Irssi::command("redraw");
+        Irssi::signal_stop();
+    }
+    if ($key == 10) {
+        $region_end = $region_start = 0;
+    }
+}
 
 sub key_pressed {
-    my ($key) = @_;
-    my $char = chr($key);
-    $buf .= $char;
-    my $str = Irssi::parse_special('$L');
-
+    my $key = shift;
     return unless $vis_enabled;
-
-    print_to_input($str, $prompt_item->{size});
+    refresh_inputline();
 }
 
-sub print_to_input {
-    my ($str, $offset) = @_;
-    $str = "%8$str%8";
+sub refresh_inputline {
 
-    #    my ($term_w, $term_h) = Term::Size::chars *STDOUT{IO};
+    my $end_pos = $region_end;
+    $end_pos  ||= _pos(); # if not set, take current position as end.
 
+    my $len = $end_pos - $region_start;
+    return unless $len; # no point drawing an empty overlay
 
-    # my $theme = Irssi::current_theme();
-    # my $prompt = $theme->format_expand('{prompt $itemname $winname}',
-    #                                    Irssi::EXPAND_FLAG_RECURSIVE_MASK);
-    #print "Prompt is $prompt";
+    my $input = Irssi::parse_special('$L');
+    my $offset = $prompt_item->{size} + $region_start;
 
-    Irssi::gui_printtext($offset, $term_h, $str);
+    my $text = substr($input, $region_start, $len);
+
+    print "printing '$text' at $offset [$region_start, $end_pos] ($len)";
+
+    $text = '%k%2' . $text . '%n';
+    _draw_overlay($offset, $text, $len);
+
 }
 
+sub _draw_overlay {
+    my ($offset, $text, $len) = @_;
+    Irssi::gui_printtext($offset, $term_h, $text);
+}
 
-  sub new_prompt_render {
-      my ($sb_item, $get_size_only) = @_;
+sub draw_menu {
+
+    my $w = 10;
+
+    my @lines = (
+                 '+' . ('-' x $w) . '+',
+                 sprintf('|%*s|', $w, 'bacon'),
+                 sprintf('|%*s|', $w, 'bacon'),
+                 sprintf('|%*s|', $w, 'bacon'),
+                 sprintf('|%*s|', $w, 'bacon'),
+                 sprintf('|%*s|', $w, 'bacon'),
+                 sprintf('|%*s|', $w, 'bacon'),
+                 '+' . ('-' x $w) . '+',
+                );
+    my $i = 10; # start vert offset.
+    for my $line (@lines) {
+        Irssi::gui_printtext(int ($term_w / 2), $i++, $line);
+    }
+}
+
+sub new_prompt_render {
+    my ($sb_item, $get_size_only) = @_;
 
 
-      my $default_prompt = '';
+    my $default_prompt = '';
 
-      my $window = Irssi::active_win();
-      if (scalar( () = $window->items )) {
-          $default_prompt = '{prompt $[.15]itemname}';
-      } else {
-          $default_prompt = '{prompt $winname}';
-      }
+    my $window = Irssi::active_win();
+    if (scalar( () = $window->items )) {
+        $default_prompt = '{prompt $[.15]itemname}';
+    } else {
+        $default_prompt = '{prompt $winname}';
+    }
 
-      my $p_copy = $prompt_data;
-      if (defined $prompt_data) {
-          # check if we have a marker
-          $p_copy =~ s/\$p/$default_prompt/;
-      } else {
-          $p_copy = $default_prompt;
-      }
-      print "Redrawing with: $p_copy";
+    my $p_copy = $prompt_data;
+    if (defined $prompt_data) {
+        # check if we have a marker
+        $p_copy =~ s/\$p/$default_prompt/;
+    } else {
+        $p_copy = $default_prompt;
+    }
+    print "Redrawing with: $p_copy, size-only: $get_size_only";
 
-      $prompt_item = $sb_item;
+    $prompt_item = $sb_item;
 
-      $sb_item->default_handler($get_size_only, $p_copy, '', 0);
-  }
+    $sb_item->default_handler($get_size_only, $p_copy, '', 0);
+}
 
 sub replace_prompt_items {
     # remove existing ones.
