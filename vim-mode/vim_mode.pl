@@ -5,6 +5,9 @@
 # 5.8.1 is recommended for UTF-8 support (which can be disabled if necessary).
 # Please report bugs in older versions as well, we'll try to fix them.
 #
+# Any behavior different from Vim (unless explicitly documented) should be
+# considered a bug and reported.
+#
 # NOTE: This script is still under heavy development, and there may be bugs.
 # Please submit reproducible sequences to the bug-tracker at:
 # http://github.com/shabble/irssi-scripts/issues
@@ -2296,7 +2299,7 @@ sub _update_mode {
 
     # Change mode to i to support insert mode repetition. This doesn't affect
     # commands like i/a/I/A because handle_command_cmd() sets $last->{cmd}.
-    # It's necessary when pressing enter.
+    # It's necessary when pressing enter so the next line can be repeated.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{cmd} = $commands->{i};
     # Make sure prompt is cleared when leaving ex mode.
