@@ -1485,7 +1485,7 @@ sub ex_registers {
             }
         }
     } else {
-        _warn_ex(':reigsters');
+        _warn_ex(':registers');
     }
 }
 
