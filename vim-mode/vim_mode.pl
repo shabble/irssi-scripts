@@ -417,6 +417,8 @@ sub script_is_loaded {
 vim_mode_init();
 
 
+# INSERT MODE COMMANDS
+
 sub insert_ctrl_r {
     my ($key) = @_;
 
@@ -427,6 +429,8 @@ sub insert_ctrl_r {
     _input_pos($pos + 1);
 }
 
+
+# COMMAND MODE OPERATORS
 
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move, $repeat) = @_;
@@ -518,6 +522,7 @@ sub _get_pos_and_length {
     return ($old_pos, $length);
 }
 
+# COMMAND MODE COMMANDS
 
 sub cmd_h {
     my ($count, $pos, $repeat) = @_;
@@ -1343,6 +1348,8 @@ sub _fix_input_pos {
 }
 
 
+# EX MODE COMMANDS
+
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
     if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
@@ -1484,6 +1491,8 @@ sub _matching_windows {
 }
 
 
+# STATUS ITEMS
+
 # vi mode status item.
 sub vim_mode_cb {
     my ($sb_item, $get_size_only) = @_;
@@ -1534,6 +1543,8 @@ sub b_windows_cb {
     $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
 
+
+# INPUT HANDLING
 
 sub got_key {
     my ($key) = @_;
