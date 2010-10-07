@@ -186,9 +186,134 @@ sub M_CMD() { 1 } # command mode
 sub M_INS() { 0 } # insert mode
 sub M_EX () { 2 } # extended mode (after a :?)
 
+# operator command
+sub C_OPERATOR () { 0 }
+# normal commmand
+sub C_NORMAL () { 1 }
+# command taking another key as argument
+sub C_NEEDSKEY () { 2 }
+# text-object commmand (i a)
+sub C_TEXTOBJECT () { 3 }
+# commands entering insert mode
+sub C_INSERT () { 4 }
+
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
 my $non_word = qr/[^\w_\s]/o;
+
+# COMMANDS
+
+# All available commands in command mode, they are stored with a char as key,
+# but this is not necessarily the key the command is currently mapped to.
+my $commands
+  = {
+     # operators
+     c => { char => 'c', func => \&cmd_operator_c, type => C_OPERATOR,
+            repeatable => 1 },
+     d => { char => 'd', func => \&cmd_operator_d, type => C_OPERATOR,
+            repeatable => 1 },
+     y => { char => 'y', func => \&cmd_operator_y, type => C_OPERATOR,
+            repeatable => 1 },
+
+     # arrow like movement
+      h  => { char => 'h', func => \&cmd_movement_h, type => C_NORMAL },
+      l  => { char => 'l', func => \&cmd_movement_l, type => C_NORMAL },
+     ' ' => { char => '<space>', func => \&cmd_movement_space, type => C_NORMAL },
+     # history movement
+     j  => { char => 'j',  func => \&cmd_movement_j,  type => C_NORMAL },
+     k  => { char => 'k',  func => \&cmd_movement_k,  type => C_NORMAL },
+     gg => { char => 'gg', func => \&cmd_movement_gg, type => C_NORMAL },
+     G  => { char => 'G',  func => \&cmd_movement_G,  type => C_NORMAL,
+             needs_count => 1 },
+     # char movement, take an additional parameter and use $movement
+      f  => { char => 'f', func => \&cmd_movement_f, type => C_NEEDSKEY },
+      t  => { char => 't', func => \&cmd_movement_t, type => C_NEEDSKEY },
+      F  => { char => 'F', func => \&cmd_movement_F, type => C_NEEDSKEY },
+      T  => { char => 'T', func => \&cmd_movement_T, type => C_NEEDSKEY },
+     ';' => { char => ';', func => \&cmd_movement_semicolon, type => C_NORMAL },
+     ',' => { char => ',', func => \&cmd_movement_comma, type => C_NORMAL },
+     # word movement
+     w  => { char => 'w',  func => \&cmd_movement_w,  type => C_NORMAL },
+     b  => { char => 'b',  func => \&cmd_movement_b,  type => C_NORMAL },
+     e  => { char => 'e',  func => \&cmd_movement_e,  type => C_NORMAL },
+     ge => { char => 'ge', func => \&cmd_movement_ge, type => C_NORMAL },
+     W  => { char => 'W',  func => \&cmd_movement_W,  type => C_NORMAL },
+     B  => { char => 'B',  func => \&cmd_movement_B,  type => C_NORMAL },
+     E  => { char => 'E',  func => \&cmd_movement_E,  type => C_NORMAL },
+     gE => { char => 'gE', func => \&cmd_movement_gE, type => C_NORMAL },
+     # text-objects, leading _ means can't be mapped!
+     _i => { char => '_i', func => \&cmd_movement__i, type => C_TEXTOBJECT },
+     _a => { char => '_a', func => \&cmd_movement__a, type => C_TEXTOBJECT },
+     # line movement
+     '0' => { char => '0', func => \&cmd_movement_0, type => C_NORMAL },
+     '^' => { char => '^', func => \&cmd_movement_caret, type => C_NORMAL },
+     '$' => { char => '$', func => \&cmd_movement_dollar, type => C_NORMAL },
+     # delete chars
+     x => { char => 'x', func => \&cmd_movement_x, type => C_NORMAL,
+            repeatable => 1 },
+     X => { char => 'X', func => \&cmd_movement_X, type => C_NORMAL,
+            repeatable => 1 },
+     s => { char => 's', func => \&cmd_movement_s, type => C_NORMAL,
+            repeatable => 1 }, # operator c takes care of insert mode
+     S => { char => 'S', func => \&cmd_movement_S, type => C_NORMAL,
+            repeatable => 1 }, # operator c takes care of insert mode
+     # insert mode
+     i => { char => 'i', func => \&cmd_movement_i, type => C_INSERT },
+     I => { char => 'I', func => \&cmd_movement_I, type => C_INSERT },
+     a => { char => 'a', func => \&cmd_movement_a, type => C_INSERT },
+     A => { char => 'A', func => \&cmd_movement_A, type => C_INSERT },
+     # replace
+     r => { char => 'r', func => \&cmd_movement_r, type => C_NEEDSKEY,
+              repeatable => 1 },
+     # paste
+     p => { char => 'p', func => \&cmd_movement_p, type => C_NORMAL,
+            repeatable => 1 },
+     P => { char => 'P', func => \&cmd_movement_P, type => C_NORMAL,
+            repeatable => 1 },
+     # to end of line
+     C => { char => 'C', func => \&cmd_movement_C, type => C_NORMAL,
+            repeatable => 1 },
+     D => { char => 'D', func => \&cmd_movement_D, type => C_NORMAL,
+            repeatable => 1 },
+     # scrolling
+     "\x04" => { char => '<c-d>', func => \&cmd_movement_ctrl_d, type => C_NORMAL,
+                 repeatable => 1 }, # half screen down
+     "\x15" => { char => '<c-u>', func => \&cmd_movement_ctrl_u, type => C_NORMAL,
+                 repeatable => 1 }, # half screen up
+     "\x06" => { char => '<c-f>', func => \&cmd_movement_ctrl_f, type => C_NORMAL,
+                 repeatable => 1 }, # screen down
+     "\x02" => { char => '<c-b>', func => \&cmd_movement_ctrl_b, type => C_NORMAL,
+                 repeatable => 1 }, # screen up
+     # window switching
+     "\x17j" => { char => '<c-w>j', func => \&cmd_movement_ctrl_wj, type => C_NORMAL,
+                  needs_count => 1 },
+     "\x17k" => { char => '<c-w>k', func => \&cmd_movement_ctrl_wk, type => C_NORMAL,
+                  needs_count => 1 },
+     "\x1e"  => { char => '<c-6>', func => \&cmd_movement_ctrl_6, type => C_NORMAL,
+                  needs_count => 1 },
+     # misc
+     '~'  => { char => '~', func => \&cmd_movement_tilde, type => C_NORMAL,
+               repeatable => 1 },
+     '"'  => { char => '"', func => \&cmd_movement_register, type => C_NEEDSKEY },
+     '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
+     ':'  => { char => ':', type => C_NORMAL },
+     "\n" => { char => '<cr>', type => C_NORMAL }, # return
+     # undo
+     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL },
+     "\x12" => { char => '<c-r>', func => \&cmd_redo, type => C_NORMAL },
+    };
+
+
+# MAPPINGS
+
+# default command mode mappings
+my $maps = {};
+
+# Add all default mappings.
+foreach my $char (keys %$commands) {
+    next if $char =~ /^_/; # skip private commands (text-objects for now)
+    add_map($char, $commands->{$char});
+}
 
 # GLOBAL VARIABLES
 
@@ -214,16 +339,20 @@ my $should_ignore = 0;
 # ex mode buffer
 my @ex_buf;
 
+# we are waiting for another mapped key (e.g. g pressed, but there are
+# multiple mappings like gg gE etc.)
+my $pending_map = undef;
+
 # for commands like 10x
 my $numeric_prefix = undef;
-# vi operators like d, c, ..
+# current operator as $command hash
 my $operator = undef;
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
 # last vi command, used by .
 my $last
   = {
-     'char' => 'i', # = i to support . when loading the script
+     'cmd' => $commands->{i}, # = i to support . when loading the script
      'numeric_prefix' => undef,
      'operator' => undef,
      'movement' => undef,
@@ -286,117 +415,6 @@ sub script_is_loaded {
 }
 
 vim_mode_init();
-
-
-# vi-operators like d, c, y
-my $operators
-  = {
-     'c' => { func => \&cmd_operator_c },
-     'd' => { func => \&cmd_operator_d },
-     'y' => { func => \&cmd_operator_y },
-    };
-
-# vi-moves like w,b; they move the cursor and may get combined with an
-# operator; also things like i/I are listed here, not entirely correct but
-# they work in a similar way
-#
-# Each function returns two values, an updated $cur_pos (see
-# handle_command_cmd()) and the new cursor position. If undef is returned in
-# either place, the position isn't changed.
-my $movements
-  = {
-     # arrow like movement
-     'h' => { func => \&cmd_movement_h },
-     'l' => { func => \&cmd_movement_l },
-     ' ' => { func => \&cmd_movement_space },
-     # history movement
-     'j' => { func => \&cmd_movement_j },
-     'k' => { func => \&cmd_movement_k },
-     'G' => { func => \&cmd_movement_G },
-     # char movement, take an additional parameter and use $movement
-     'f' => { func => \&cmd_movement_f },
-     't' => { func => \&cmd_movement_t },
-     'F' => { func => \&cmd_movement_F },
-     'T' => { func => \&cmd_movement_T },
-     ';' => { func => \&cmd_movement_semicolon },
-     ',' => { func => \&cmd_movement_comma },
-     # word movement
-     'w' => { func => \&cmd_movement_w },
-     'b' => { func => \&cmd_movement_b },
-     'e' => { func => \&cmd_movement_e },
-     'W' => { func => \&cmd_movement_W },
-     'B' => { func => \&cmd_movement_B },
-     'E' => { func => \&cmd_movement_E },
-     # text-objects
-     'i_' => { func => \&cmd_movement_i_ },
-     'a_' => { func => \&cmd_movement_a_ },
-     # line movement
-     '0' => { func => \&cmd_movement_0 },
-     '^' => { func => \&cmd_movement_caret },
-     '$' => { func => \&cmd_movement_dollar },
-     # delete chars
-     'x' => { func => \&cmd_movement_x },
-     'X' => { func => \&cmd_movement_X },
-     # insert mode
-     'i' => { func => \&cmd_movement_i },
-     'I' => { func => \&cmd_movement_I },
-     'a' => { func => \&cmd_movement_a },
-     'A' => { func => \&cmd_movement_A },
-     # replace mode
-     'r' => { func => \&cmd_movement_r },
-     # paste
-     'p' => { func => \&cmd_movement_p },
-     'P' => { func => \&cmd_movement_P },
-     # to end of line
-     'C' => { func => \&cmd_movement_dollar },
-     'D' => { func => \&cmd_movement_dollar },
-     # scrolling
-     "\x04" => { func => \&cmd_movement_ctrl_d }, # half screen down
-     "\x15" => { func => \&cmd_movement_ctrl_u }, # half screen up
-     "\x06" => { func => \&cmd_movement_ctrl_f }, # screen down
-     "\x02" => { func => \&cmd_movement_ctrl_b }, # screen up
-     # window switching
-     "\x17" => { func => \&cmd_movement_ctrl_w },
-     "\x1e" => { func => \&cmd_movement_ctrl_6 },
-     # misc
-     '~' => { func => \&cmd_movement_tilde },
-     '.' => {},
-     '"' => { func => \&cmd_movement_register },
-     'g' => { func => \&cmd_movement_g }, # g does many things
-     # undo
-     'u'    => { func => \&cmd_undo },
-     "\x12" => { func => \&cmd_redo }, # ctrl-r
-    };
-
-# special movements which take an additional key
-my $movements_multiple =
-    {
-     'f' => undef,
-     't' => undef,
-     'F' => undef,
-     'T' => undef,
-     'r' => undef,
-     '"' => undef,
-     'g' => undef,
-     "\x17" => undef, # ctrl-w
-    };
-
-# "movements" which can be repeated (additional to operators of course).
-my $movements_repeatable
-  = {
-     'x' => undef,
-     'X' => undef,
-     'i' => undef,
-     'a' => undef,
-     'I' => undef,
-     'A' => undef,
-     'r' => undef,
-     'p' => undef,
-     'P' => undef,
-     'C' => undef,
-     'D' => undef,
-     '~' => undef,
-    };
 
 
 sub cmd_insert_ctrl_r {
@@ -484,8 +502,8 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
-    # Strip leading a_ or i_ if a text-object was used.
-    if ($move =~ /^[ai]_(.)/) {
+    # Strip leading _a or _i if a text-object was used.
+    if ($move =~ /^_[ai](.)/) {
         $move = $1;
     }
 
@@ -628,6 +646,11 @@ sub cmd_movement_G {
 
     return (undef, undef);
 }
+sub cmd_movement_gg {
+    my ($count, $pos, $repeat) = @_;
+
+    return cmd_movement_G(1, $pos, $repeat);
+}
 
 sub cmd_movement_f {
     my ($count, $pos, $repeat, $char) = @_;
@@ -691,8 +714,8 @@ sub cmd_movement_semicolon {
     return (undef, undef) if not defined $last_ftFT->{type};
 
     (undef, $pos)
-        = $movements->{$last_ftFT->{type}}
-                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+        = $commands->{$last_ftFT->{type}}
+                   ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     return (undef, $pos);
 }
 sub cmd_movement_comma {
@@ -706,8 +729,8 @@ sub cmd_movement_comma {
     $type =~ tr/ftFT/FTft/;
 
     (undef, $pos)
-        = $movements->{$type}
-                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+        = $commands->{$type}
+                   ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     # Restore type as the move functions overwrites it.
     $last_ftFT->{type} = $save;
     return (undef, $pos);
@@ -739,6 +762,19 @@ sub cmd_movement_e {
     my $input = _input();
     $pos = _end_of_word($input, $count, $pos);
     $pos = _fix_input_pos($pos, length $input);
+    return (undef, $pos);
+}
+sub cmd_movement_ge {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    my $input = reverse _input();
+    $pos = length($input) - $pos - 1;
+    $pos = 0 if ($pos < 0);
+
+    $pos = _beginning_of_word($input, $count, $pos);
+    $pos = length($input) - $pos - 1;
+    $pos = 0 if ($pos < 0);
+
     return (undef, $pos);
 }
 # Go to the beginning of $count-th word, like vi's w.
@@ -825,6 +861,19 @@ sub cmd_movement_E {
         return (undef, $pos);
     }
 }
+sub cmd_movement_gE {
+    my ($count, $pos, $repeat, $char) = @_;
+
+    my $input = reverse _input();
+    $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
+    if ($pos == -1 or length($input) - $pos - 1 == -1) {
+        return cmd_movement_0();
+    } else {
+        $pos = length($input) - $pos - 1;
+    }
+
+    return (undef, $pos);
+}
 # Go to beginning of $count-th WORD, like vi's W.
 sub _beginning_of_WORD {
     my ($input, $count, $pos) = @_;
@@ -866,13 +915,13 @@ sub _end_of_WORD {
     return $pos;
 }
 
-sub cmd_movement_i_ {
+sub cmd_movement__i {
     my ($count, $pos, $repeat, $char) = @_;
 
     _warn("i_ not implemented yet");
     return (undef, undef);
 }
-sub cmd_movement_a_ {
+sub cmd_movement__a {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $cur_pos;
@@ -1026,6 +1075,18 @@ sub cmd_movement_X {
     cmd_operator_d($pos, $new, 'X');
     return (undef, undef);
 }
+sub cmd_movement_s {
+    my ($count, $pos, $repeat) = @_;
+
+    $operator = $commands->{c};
+    return (undef, $pos + 1);
+}
+sub cmd_movement_S {
+    my ($count, $pos, $repeat) = @_;
+
+    $operator = $commands->{c};
+    return (0, _input_len());
+}
 
 sub cmd_movement_i {
     my ($count, $pos, $repeat) = @_;
@@ -1129,6 +1190,19 @@ sub _paste_at_position {
     return _insert_at_position($registers->{$register}, $count, $pos);
 }
 
+sub cmd_movement_C {
+    my ($count, $pos, $repeat) = @_;
+
+    $operator = $commands->{c};
+    return (undef, _input_len());
+}
+sub cmd_movement_D {
+    my ($count, $pos, $repeat) = @_;
+
+    $operator = $commands->{d};
+    return (undef, _input_len());
+}
+
 sub cmd_movement_ctrl_d {
     my ($count, $pos, $repeat) = @_;
 
@@ -1165,18 +1239,22 @@ sub cmd_movement_ctrl_b {
     return (undef, undef);
 }
 
-sub cmd_movement_ctrl_w {
-    my ($count, $pos, $repeat, $char) = @_;
+sub cmd_movement_ctrl_wj {
+    my ($count, $pos, $repeat) = @_;
 
-    if ($char eq 'j') {
-        while ($count -- > 0) {
-            Irssi::command('window down');
-        }
-    } elsif ($char eq 'k') {
-        while ($count -- > 0) {
-            Irssi::command('window up');
-        }
+    while ($count -- > 0) {
+        Irssi::command('window down');
     }
+
+    return (undef, undef);
+}
+sub cmd_movement_ctrl_wk {
+    my ($count, $pos, $repeat) = @_;
+
+    while ($count -- > 0) {
+        Irssi::command('window up');
+    }
+
     return (undef, undef);
 }
 sub cmd_movement_ctrl_6 {
@@ -1219,37 +1297,6 @@ sub cmd_movement_register {
     $register = $char;
     print "Changing register to $register" if DEBUG;
     return (undef, undef);
-}
-
-sub cmd_movement_g {
-    my ($count, $pos, $repeat, $char) = @_;
-
-    my $input = _input();
-    # ge
-    if ($char eq 'e') {
-        $input = reverse $input;
-        $pos = length($input) - $pos - 1;
-        $pos = 0 if ($pos < 0);
-
-        $pos = _beginning_of_word($input, $count, $pos);
-        $pos = length($input) - $pos - 1;
-        $pos = 0 if ($pos < 0);
-    # gE
-    } elsif ($char eq 'E') {
-        $input = reverse $input;
-        $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
-        if ($pos == -1 or length($input) - $pos - 1 == -1) {
-            return cmd_movement_0();
-        } else {
-            $pos = length($input) - $pos - 1;
-        }
-    # gg
-    } elsif ($char eq 'g') {
-        cmd_movement_G(1, $pos, $repeat);
-        $pos = undef;
-    }
-
-    return (undef, $pos);
 }
 
 sub cmd_undo {
@@ -1456,10 +1503,10 @@ sub vim_mode_cb {
                 $mode_str .= $numeric_prefix;
             }
             if ($operator) {
-                $mode_str .= $operator;
+                $mode_str .= $operator->{char};
             }
             if ($movement) {
-                $mode_str .= $movement;
+                $mode_str .= $movement->{char};
             }
             $mode_str .= ')';
         }
@@ -1623,6 +1670,18 @@ sub flush_input_buffer {
     $imap = undef;
 }
 
+sub flush_pending_map {
+    my ($old_pending_map) = @_;
+
+    print "flush_pending_map(): ", $pending_map, ' ', $old_pending_map
+        if DEBUG;
+
+    return if not defined $pending_map or
+              $pending_map ne $old_pending_map;
+
+    handle_command_cmd(undef);
+}
+
 sub handle_numeric_prefix {
     my ($char) = @_;
     my $num = 0+$char;
@@ -1638,50 +1697,96 @@ sub handle_numeric_prefix {
 sub handle_command_cmd {
     my ($key) = @_;
 
-    my $char = chr($key);
+    my $pending_map_flushed = 0;
 
-    # We need to treat $movements_multiple specially as they need another
-    # argument.
-    if ($movement) {
-        $movement .= $char;
+    my $char;
+    if (defined $key) {
+        $char = chr($key);
+    # We were called from flush_pending_map().
+    } else {
+        $char = $pending_map;
+        $key = 0;
+        $pending_map_flushed = 1;
+    }
 
     # Counts
-    } elsif ($char =~ m/[1-9]/ || ($numeric_prefix && $char =~ m/[0-9]/)) {
+    if (!$movement and ($char =~ m/[1-9]/ or
+                        ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
         return 1; # call _stop()
     }
 
-    # s is an alias for cl.
-    if (!$movement and !$operator and $char eq 's') {
-        print "Changing s to cl" if DEBUG;
-        $char = 'l';
-        $operator = 'c';
-    # S is an alias for cc.
-    } elsif (!$movement and !$operator and $char eq 'S') {
-        print "Changing S to cc" if DEBUG;
-        $char = 'c';
-        $operator = 'c';
+    if (defined $pending_map and not $pending_map_flushed) {
+        $pending_map = $pending_map . $char;
+        $char = $pending_map;
+    }
+
+    my $map;
+    if ($movement) {
+        $map = { char => $movement->{char},
+                 cmd => $movement,
+                 maps => {},
+               };
+
+    } elsif (exists $maps->{$char}) {
+        $map = $maps->{$char};
+
+        # We have multiple mappings starting with this key sequence.
+        if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
+            if (not defined $pending_map) {
+                $pending_map = $char;
+            }
+
+            # The current key sequence has a command mapped to it, run if
+            # after a timeout.
+            if (defined $map->{cmd}) {
+                Irssi::timeout_add_once(1000, \&flush_pending_map,
+                                              $pending_map);
+            }
+            return 1; # call _stop()
+        }
+
+    } else {
+        print "No mapping found for $char" if DEBUG;
+        $pending_map = undef;
+        return 1; # call _stop()
+    }
+
+    $pending_map = undef;
+
+    my $cmd = $map->{cmd};
+
+    # Make sure we have a valid $cmd.
+    if (not defined $cmd) {
+        print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
+        return 1; # call _stop()
     }
 
     # text-objects (i a) are simulated with $movement
-    if (!$movement && (exists $movements_multiple->{$char}
-                            or $operator and ($char eq 'i' or $char eq 'a'))) {
-        print "Processing movement: $char" if DEBUG;
-        $movement = $char;
+    if (!$movement and ($cmd->{type} == C_NEEDSKEY or
+                        ($operator and ($char eq 'i' or $char eq 'a')))) {
+        print "Processing movement: $map->{char} ($cmd->{char})" if DEBUG;
+        if ($char eq 'i') {
+            $movement = $commands->{_i};
+        } elsif ($char eq 'a') {
+            $movement = $commands->{_a};
+        } else {
+            $movement = $cmd;
+        }
 
-    } elsif (!$movement && exists $operators->{$char}) {
-        print "Processing operator: $char" if DEBUG;
-
+    } elsif (!$movement and $cmd->{type} == C_OPERATOR) {
+        print "Processing operator: $map->{char} ($cmd->{char})" if DEBUG;
         # Abort operator if we already have one pending.
         if ($operator) {
             # But allow cc/dd/yy.
-            if ($operator eq $char) {
-                print "Processing operator: ", $operator, $char if DEBUG;
+            if ($operator == $cmd) {
+                print "Processing line operator: $map->{char} ($cmd->{char})"
+                    if DEBUG;
                 my $pos = _input_pos();
-                $operators->{$operator}->{func}->(0, _input_len(), '', 0);
+                $cmd->{func}->(0, _input_len(), '', 0);
                 # Restore position for yy.
-                if ($char eq 'y') {
+                if ($cmd == $commands->{y}) {
                     _input_pos($pos);
                 }
                 if ($register ne '"') {
@@ -1694,18 +1799,34 @@ sub handle_command_cmd {
             $movement = undef;
         # Set new operator.
         } else {
-            $operator = $char;
+            $operator = $cmd;
         }
 
-    } elsif ($movement || exists $movements->{$char}) {
-        print "Processing movement command: $char" if DEBUG;
+    # Start Ex mode.
+    } elsif ($cmd == $commands->{':'}) {
+        if (not script_is_loaded('prompt_info')) {
+            _warn("Warning: Ex mode requires the 'prompt_info' script. " .
+                    "Please load it and try again.");
+        } else {
+            _update_mode(M_EX);
+            _set_prompt(':');
+        }
+
+    # Enter key sends the current input line in command mode as well.
+    } elsif ($key == 10) {
+        _commit_line();
+        return 0; # don't call _stop()
+
+    } else { #if ($movement || exists $movements->{$char}) {
+        print "Processing command: $map->{char} ($cmd->{char})" if DEBUG;
 
         my $skip = 0;
         my $repeat = 0;
 
         if (!$movement) {
             # . repeats the last command.
-            if ($char eq '.' and defined $last->{char}) {
+            if ($cmd == $commands->{'.'} and defined $last->{cmd}) {
+                $cmd = $last->{cmd};
                 $char = $last->{char};
                 # If . is given a count then it replaces original count.
                 if (not defined $numeric_prefix) {
@@ -1715,19 +1836,9 @@ sub handle_command_cmd {
                 $movement = $last->{movement};
                 $register = $last->{register};
                 $repeat = 1;
-            } elsif ($char eq '.') {
+            } elsif ($cmd == $commands->{'.'}) {
                 print '. pressed but $last->{char} not set' if DEBUG;
                 $skip = 1;
-
-            # Ignore invalid operator/char combinations.
-            } elsif ($operator and ($char eq 'j' or $char eq 'k')) {
-                print "Invalid operator/char: $operator $char" if DEBUG;
-                $skip = 1;
-            # C and D force the matching operator
-            } elsif ($char eq 'C') {
-                $operator = 'c';
-            } elsif ($char eq 'D') {
-                $operator = 'd';
             }
         }
 
@@ -1736,9 +1847,7 @@ sub handle_command_cmd {
         } else {
             # Make sure count is at least 1 except for functions which need to
             # know if no count was used.
-            if (not $numeric_prefix and $char ne "\x04"    # ctrl-d
-                                    and $char ne "\x15"    # ctrl-u
-                                    and $char ne 'G') {
+            if (not $numeric_prefix and not $cmd->{needs_count}) {
                 $numeric_prefix = 1;
             }
 
@@ -1751,20 +1860,11 @@ sub handle_command_cmd {
             # Execute the movement (multiple times).
             if (not $movement) {
                 ($old_pos, $new_pos)
-                    = $movements->{$char}->{func}
-                                ->($numeric_prefix, $cur_pos, $repeat);
+                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat);
             } else {
-                # Use the real movement command (like t or f) for operator
-                # below.
-                $char = substr $movement, 0, 1;
-                # i_ and a_ represent text-objects.
-                if ($char eq 'i' or $char eq 'a') {
-                    $char .= '_';
-                }
                 ($old_pos, $new_pos)
-                    = $movements->{$char}->{func}
-                                ->($numeric_prefix, $cur_pos, $repeat,
-                                   substr $movement, 1);
+                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat,
+                                     $char);
             }
             if (defined $old_pos) {
                 print "Changing \$cur_pos from $cur_pos to $old_pos" if DEBUG;
@@ -1779,8 +1879,8 @@ sub handle_command_cmd {
             # Update input position of last undo entry so that undo/redo
             # restores correct position.
             if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
-                ((defined $operator and $operator eq 'd') or
-                 exists $movements_repeatable->{$char} or $char eq '.')) {
+                ((defined $operator and $operator == $commands->{d}) or
+                 $cmd->{repeatable})) {
                 print "Updating history position: $undo_buffer[0]->[0]"
                     if DEBUG;
                 $undo_buffer[0]->[1] = $cur_pos;
@@ -1790,21 +1890,20 @@ sub handle_command_cmd {
             # But only if the movement changed the position (this prevents
             # problems with e.g. f when the search string doesn't exist).
             if ($operator and $cur_pos != $new_pos) {
-                print "Processing operator: ", $operator if DEBUG;
+                print "Processing operator: ", $operator->{char} if DEBUG;
                 # If text-objects are used the real move character must also
                 # be passed to the operator.
-                my $tmp_char = $char;
-                if ($char eq 'i_' or $char eq 'a_') {
-                    $tmp_char .= substr $movement, 1;
+                my $tmp_char = $cmd->{char};
+                if ($tmp_char eq '_i' or $tmp_char eq '_a') {
+                   $tmp_char .= $char;
                 }
-                $operators->{$operator}->{func}->($cur_pos, $new_pos,
-                                                  $tmp_char, $repeat);
+                $operator->{func}->($cur_pos, $new_pos, $tmp_char, $repeat);
             }
 
             # Save an undo checkpoint here for operators, all repeatable
             # movements, operators and repetition.
-            if ((defined $operator and $operator eq 'd') or
-                exists $movements_repeatable->{$char} or $char eq '.') {
+            if ((defined $operator and $operator == $commands->{d}) or
+                $cmd->{repeatable}) {
                 # TODO: why do histpry entries still show up in undo
                 # buffer? Is avoiding the commands here insufficient?
 
@@ -1812,7 +1911,8 @@ sub handle_command_cmd {
             }
 
             # Store command, necessary for .
-            if ($operator or exists $movements_repeatable->{$char}) {
+            if ($operator or $cmd->{repeatable}) {
+                $last->{cmd} = $cmd;
                 $last->{char} = $char;
                 $last->{numeric_prefix} = $numeric_prefix;
                 $last->{operator} = $operator;
@@ -1824,31 +1924,17 @@ sub handle_command_cmd {
         # Reset the count unless we go into insert mode, _update_mode() needs
         # to know it when leaving insert mode to support insert with counts
         # (like 3i).
-        if ($repeat or ($char ne 'i' and $char ne 'I' and $char ne 'a' and $char ne 'A')) {
+        if ($repeat or $cmd->{type} != C_INSERT) {
             $numeric_prefix = undef;
         }
         $operator = undef;
         $movement = undef;
 
-        if ($char ne '"' and $register ne '"') {
+        if ($cmd != $commands->{'"'} and $register ne '"') {
             print 'Changing register to "' if DEBUG;
             $register = '"';
         }
 
-    # Start Ex mode.
-    } elsif ($char eq ':') {
-        if (not script_is_loaded('prompt_info')) {
-            _warn("Warning: Ex mode requires the 'prompt_info' script. " .
-                    "Please load it and try again.");
-        } else {
-            _update_mode(M_EX);
-            _set_prompt(':');
-        }
-
-    # Enter key sends the current input line in command mode as well.
-    } elsif ($key == 10) {
-        _commit_line();
-        return 0; # don't call _stop()
     }
 
     return 1; # call _stop()
@@ -2008,6 +2094,35 @@ sub _reset_undo_buffer {
 }
 
 
+sub add_map {
+    my ($keys, $command) = @_;
+
+    # To allow multiple mappings starting with the same key (like gg, ge, gE)
+    # also create maps for the keys "leading" to this key (g in this case, but
+    # can be longer for this like ,ls). When looking for the mapping these
+    # "leading" maps are followed.
+    my $tmp = $keys;
+    while (length $tmp > 1) {
+        my $map = substr $tmp, -1, 1, '';
+        if (not exists $maps->{$tmp}) {
+            $maps->{$tmp} = { cmd => undef, maps => {} };
+        }
+        if (not exists $maps->{$tmp}->{maps}->{$tmp . $map}) {
+            $maps->{$tmp}->{maps}->{$tmp . $map} = undef;
+        }
+    }
+
+    if (not exists $maps->{$keys}) {
+        $maps->{$keys} = { char => $keys,
+                            cmd => $command,
+                           maps => {}
+                         };
+    } else {
+        $maps->{$keys}->{cmd} = $command;
+    }
+}
+
+
 sub _commit_line {
     _update_mode(M_INS);
     _reset_undo_buffer('', 0);
@@ -2098,10 +2213,10 @@ sub _update_mode {
         _add_undo_entry(_input(), _input_pos());
 
     # Change mode to i to support insert mode repetition. This doesn't affect
-    # commands like i/a/I/A because handle_command_cmd() sets $last->{char}.
+    # commands like i/a/I/A because handle_command_cmd() sets $last->{cmd}.
     # It's necessary when pressing enter.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
-        $last->{char} = 'i';
+        $last->{cmd} = $commands->{i};
     # Make sure prompt is cleared when leaving ex mode.
     } elsif ($mode == M_EX and $new_mode != M_EX) {
         _set_prompt('');
@@ -2119,6 +2234,8 @@ sub _update_mode {
         $operator = undef;
         $movement = undef;
         $register = '"';
+
+        $pending_map = undef;
 
         # Also clear ex-mode buffer.
         @ex_buf = ();
