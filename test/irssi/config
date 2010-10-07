@@ -165,6 +165,7 @@ aliases = {
   xxx = "/dump Irssi::bindings()";
   showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
   botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
+  vim = "/script load vim_mode.pl";
 };
 
 statusbar = {
@@ -229,6 +230,7 @@ statusbar = {
         act = { priority = "10"; };
         more = { priority = "-1"; alignment = "right"; };
         barend = { priority = "100"; alignment = "right"; };
+        vim_mode = { };
       };
     };
 
