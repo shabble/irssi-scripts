@@ -303,6 +303,24 @@ my $commands
      "\x12" => { char => '<c-r>', func => \&cmd_redo, type => C_NORMAL },
     };
 
+# All available commands in Ex-Mode.
+my $commands_ex
+  = {
+     s         => \&ex_substitute,
+     bn        => \&ex_bnext,
+     bp        => \&ex_bprev,
+     bd        => \&ex_bdelete,
+     buffer    => \&ex_buffer,
+     b         => \&ex_buffer,
+     registers => \&ex_registers,
+     reg       => \&ex_registers,
+     display   => \&ex_registers,
+     di        => \&ex_registers,
+     buffers   => \&ex_buffers,
+     ls        => \&ex_buffers,
+     undolist  => \&ex_undolist,
+     undol     => \&ex_undolist,
+    };
 
 # MAPPINGS
 
@@ -1352,6 +1370,21 @@ sub _fix_input_pos {
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
+
+    if ($arg_str !~ /^([a-z]+)/) {
+        return _warn("Invalid Ex-mode command!");
+    }
+
+    if (not exists $commands_ex->{$1}) {
+        return _warn("Ex-mode $1 doesn't exist!");
+    }
+
+    $commands_ex->{$1}($arg_str);
+}
+
+sub ex_substitute {
+    my ($arg_str) = @_;
+
     if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
         my ($search, $replace, $flags) = ($1, $2, $3);
         print "Searching for $search, replace: $replace, flags; $flags"
@@ -1379,17 +1412,25 @@ sub cmd_ex_command {
 
         print "New line is: $line" if DEBUG;
         _input($line);
-    # :bn
-    } elsif ($arg_str eq 'bn') {
-        Irssi::command('window next');
-    # :bp
-    } elsif ($arg_str eq 'bp') {
-        Irssi::command('window previous');
-    # :bd
-    } elsif ($arg_str eq 'bd') {
-        Irssi::command('window close');
+    } else {
+        _warn_ex('s');
+    }
+}
+
+sub ex_bnext {
+    Irssi::command('window next');
+}
+sub ex_bprev {
+    Irssi::command('window previous');
+}
+sub ex_bdelete {
+    Irssi::command('window close');
+}
+sub ex_buffer {
+    my ($arg_str) = @_;
+
     # :b[buffer] {args}
-    } elsif ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
+    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
         my $window;
         my $item;
         my $buffer = $1;
@@ -1415,9 +1456,16 @@ sub cmd_ex_command {
                 $item->set_active();
             }
         }
+    } else {
+        _warn_ex('buffer');
+    }
+}
+
+sub ex_registers {
+    my ($arg_str) = @_;
 
     # :reg[isters] {arg} and :di[splay] {arg}
-    } elsif ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
+    if ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
         my @regs;
         if ($1) {
             my $regs = $1;
@@ -1433,12 +1481,22 @@ sub cmd_ex_command {
                 $active_window->print("register $key: $registers->{$key}");
             }
         }
-    # :ls and :buffers
-    } elsif ($arg_str eq 'ls' or $arg_str eq 'buffers') {
-        Irssi::command('window list');
-    } elsif ($arg_str eq 'undol' or $arg_str eq 'undolist') {
-        _print_undo_buffer();
+    } else {
+        _warn_ex(':reigsters');
     }
+}
+
+sub ex_buffers {
+    Irssi::command('window list');
+}
+
+sub ex_undolist {
+    _print_undo_buffer();
+}
+
+sub _warn_ex {
+    my ($command) = @_;
+    _warn("Error in ex-mode command $command");
 }
 
 sub _matching_windows {
