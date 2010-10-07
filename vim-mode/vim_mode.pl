@@ -196,6 +196,8 @@ sub C_NEEDSKEY () { 2 }
 sub C_TEXTOBJECT () { 3 }
 # commands entering insert mode
 sub C_INSERT () { 4 }
+# ex-mode commands
+sub C_EX () { 5 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -306,23 +308,23 @@ my $commands
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
-     s         => \&ex_substitute,
-     bnext     => \&ex_bnext,
-     bn        => \&ex_bnext,
-     bprev     => \&ex_bprev,
-     bp        => \&ex_bprev,
-     bdelete   => \&ex_bdelete,
-     bd        => \&ex_bdelete,
-     buffer    => \&ex_buffer,
-     b         => \&ex_buffer,
-     registers => \&ex_registers,
-     reg       => \&ex_registers,
-     display   => \&ex_registers,
-     di        => \&ex_registers,
-     buffers   => \&ex_buffers,
-     ls        => \&ex_buffers,
-     undolist  => \&ex_undolist,
-     undol     => \&ex_undolist,
+     s         => { func => \&ex_substitute => type => C_EX },
+     bnext     => { func => \&ex_bnext      => type => C_EX },
+     bn        => { func => \&ex_bnext      => type => C_EX },
+     bprev     => { func => \&ex_bprev      => type => C_EX },
+     bp        => { func => \&ex_bprev      => type => C_EX },
+     bdelete   => { func => \&ex_bdelete    => type => C_EX },
+     bd        => { func => \&ex_bdelete    => type => C_EX },
+     buffer    => { func => \&ex_buffer     => type => C_EX },
+     b         => { func => \&ex_buffer     => type => C_EX },
+     registers => { func => \&ex_registers  => type => C_EX },
+     reg       => { func => \&ex_registers  => type => C_EX },
+     display   => { func => \&ex_registers  => type => C_EX },
+     di        => { func => \&ex_registers  => type => C_EX },
+     buffers   => { func => \&ex_buffers    => type => C_EX },
+     ls        => { func => \&ex_buffers    => type => C_EX },
+     undolist  => { func => \&ex_undolist   => type => C_EX },
+     undol     => { func => \&ex_undolist   => type => C_EX },
     };
 
 # MAPPINGS
@@ -1832,6 +1834,13 @@ sub handle_command_cmd {
     # Make sure we have a valid $cmd.
     if (not defined $cmd) {
         print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
+        return 1; # call _stop()
+    }
+
+    # Ex-mode commands can also be bound in command mode. Works only if the
+    # ex-mode command doesn't take any arguments.
+    if ($cmd->{type} == C_EX) {
+        $cmd->{func}->();
         return 1; # call _stop()
     }
 
