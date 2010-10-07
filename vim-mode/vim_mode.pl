@@ -224,7 +224,7 @@ my $commands
      # arrow like movement
       h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
       l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<space>', func => \&cmd_space, type => C_NORMAL },
+     ' ' => { char => '<Space>', func => \&cmd_space, type => C_NORMAL },
      # history movement
      j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
      k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
@@ -286,28 +286,28 @@ my $commands
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
             repeatable => 1 },
      # scrolling
-     "\x04" => { char => '<c-d>', func => \&cmd_ctrl_d, type => C_NORMAL,
+     "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
                  repeatable => 1 }, # half screen down
-     "\x15" => { char => '<c-u>', func => \&cmd_ctrl_u, type => C_NORMAL,
+     "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
                  repeatable => 1 }, # half screen up
-     "\x06" => { char => '<c-f>', func => \&cmd_ctrl_f, type => C_NORMAL,
+     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
                  repeatable => 1 }, # screen down
-     "\x02" => { char => '<c-b>', func => \&cmd_ctrl_b, type => C_NORMAL,
+     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
                  repeatable => 1 }, # screen up
      # window switching
-     "\x17j" => { char => '<c-w>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
-     "\x17k" => { char => '<c-w>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
-     "\x1e"  => { char => '<c-6>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
+     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
+     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
+     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
      # misc
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1 },
      '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY },
      '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
      ':'  => { char => ':', type => C_NORMAL },
-     "\n" => { char => '<cr>', type => C_NORMAL }, # return
+     "\n" => { char => '<CR>', type => C_NORMAL }, # return
      # undo
      'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL },
-     "\x12" => { char => '<c-r>', func => \&cmd_redo, type => C_NORMAL },
+     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL },
     };
 
 # All available commands in Ex-Mode.
