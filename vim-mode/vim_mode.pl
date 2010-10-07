@@ -37,9 +37,10 @@
 # * Switch case: ~
 # * Repeat change: .
 # * Repeat ftFT: ; ,
-# * Registers: "a-"z "" "* "+ "_ (black hole)
+# * Registers: "a-"z "" "0 "* "+ "_ (black hole)
 #   Appending to register with "A-"Z
 #   "" is the default yank/delete register.
+#   "0 contains the last yank (if no register was specified).
 #   The special registers "* "+ contain both irssi's cut-buffer.
 # * Line-wise shortcuts: dd cc yy
 # * Shortcuts: s S C D
@@ -402,6 +403,7 @@ my $register = '"';
 my $registers
   = {
      '"' => '', # default register
+     '0' => '', # yank register
      '+' => '', # contains irssi's cut buffer
      '*' => '', # same
      '_' => '', # black hole register, always empty
@@ -525,6 +527,10 @@ sub cmd_operator_y {
     } else {
         $registers->{$register} = $string;
         print "Yanked into $register: ", $registers->{$register} if DEBUG;
+        if ($register eq '"') {
+            $registers->{0} = $string;
+            print "Yanked into 0: ", $registers->{0} if DEBUG;
+        }
     }
 
     # Always move to the lower position.
