@@ -510,6 +510,12 @@ sub cmd_operator_y {
 
     my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
 
+    # When yanking left of the current char, the current char is not included
+    # in the yank.
+    if ($old_pos > $new_pos) {
+        $length--;
+    }
+
     # Extract the selected string and put it in the " register.
     my $input = _input();
     my $string = substr $input, $pos, $length;
@@ -521,7 +527,12 @@ sub cmd_operator_y {
         print "Yanked into $register: ", $registers->{$register} if DEBUG;
     }
 
-    _input_pos($old_pos);
+    # Always move to the lower position.
+    if ($old_pos > $new_pos) {
+        _input_pos($new_pos);
+    } else {
+        _input_pos($old_pos);
+    }
 }
 sub _get_pos_and_length {
     my ($old_pos, $new_pos, $move) = @_;
