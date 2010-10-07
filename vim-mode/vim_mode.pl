@@ -216,85 +216,85 @@ my $commands
             repeatable => 1 },
 
      # arrow like movement
-      h  => { char => 'h', func => \&cmd_movement_h, type => C_NORMAL },
-      l  => { char => 'l', func => \&cmd_movement_l, type => C_NORMAL },
-     ' ' => { char => '<space>', func => \&cmd_movement_space, type => C_NORMAL },
+      h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
+      l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
+     ' ' => { char => '<space>', func => \&cmd_space, type => C_NORMAL },
      # history movement
-     j  => { char => 'j',  func => \&cmd_movement_j,  type => C_NORMAL },
-     k  => { char => 'k',  func => \&cmd_movement_k,  type => C_NORMAL },
-     gg => { char => 'gg', func => \&cmd_movement_gg, type => C_NORMAL },
-     G  => { char => 'G',  func => \&cmd_movement_G,  type => C_NORMAL,
+     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
+     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
+     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL },
+     G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
              needs_count => 1 },
      # char movement, take an additional parameter and use $movement
-      f  => { char => 'f', func => \&cmd_movement_f, type => C_NEEDSKEY },
-      t  => { char => 't', func => \&cmd_movement_t, type => C_NEEDSKEY },
-      F  => { char => 'F', func => \&cmd_movement_F, type => C_NEEDSKEY },
-      T  => { char => 'T', func => \&cmd_movement_T, type => C_NEEDSKEY },
-     ';' => { char => ';', func => \&cmd_movement_semicolon, type => C_NORMAL },
-     ',' => { char => ',', func => \&cmd_movement_comma, type => C_NORMAL },
+      f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY },
+      t  => { char => 't', func => \&cmd_t, type => C_NEEDSKEY },
+      F  => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
+      T  => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
+     ';' => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
+     ',' => { char => ',', func => \&cmd_comma, type => C_NORMAL },
      # word movement
-     w  => { char => 'w',  func => \&cmd_movement_w,  type => C_NORMAL },
-     b  => { char => 'b',  func => \&cmd_movement_b,  type => C_NORMAL },
-     e  => { char => 'e',  func => \&cmd_movement_e,  type => C_NORMAL },
-     ge => { char => 'ge', func => \&cmd_movement_ge, type => C_NORMAL },
-     W  => { char => 'W',  func => \&cmd_movement_W,  type => C_NORMAL },
-     B  => { char => 'B',  func => \&cmd_movement_B,  type => C_NORMAL },
-     E  => { char => 'E',  func => \&cmd_movement_E,  type => C_NORMAL },
-     gE => { char => 'gE', func => \&cmd_movement_gE, type => C_NORMAL },
+     w  => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
+     b  => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
+     e  => { char => 'e',  func => \&cmd_e,  type => C_NORMAL },
+     ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL },
+     W  => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
+     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL },
+     E  => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
+     gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => '_i', func => \&cmd_movement__i, type => C_TEXTOBJECT },
-     _a => { char => '_a', func => \&cmd_movement__a, type => C_TEXTOBJECT },
+     _i => { char => '_i', func => \&cmd__i, type => C_TEXTOBJECT },
+     _a => { char => '_a', func => \&cmd__a, type => C_TEXTOBJECT },
      # line movement
-     '0' => { char => '0', func => \&cmd_movement_0, type => C_NORMAL },
-     '^' => { char => '^', func => \&cmd_movement_caret, type => C_NORMAL },
-     '$' => { char => '$', func => \&cmd_movement_dollar, type => C_NORMAL },
+     '0' => { char => '0', func => \&cmd_0, type => C_NORMAL },
+     '^' => { char => '^', func => \&cmd_caret, type => C_NORMAL },
+     '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
      # delete chars
-     x => { char => 'x', func => \&cmd_movement_x, type => C_NORMAL,
+     x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
             repeatable => 1 },
-     X => { char => 'X', func => \&cmd_movement_X, type => C_NORMAL,
+     X => { char => 'X', func => \&cmd_X, type => C_NORMAL,
             repeatable => 1 },
-     s => { char => 's', func => \&cmd_movement_s, type => C_NORMAL,
+     s => { char => 's', func => \&cmd_s, type => C_NORMAL,
             repeatable => 1 }, # operator c takes care of insert mode
-     S => { char => 'S', func => \&cmd_movement_S, type => C_NORMAL,
+     S => { char => 'S', func => \&cmd_S, type => C_NORMAL,
             repeatable => 1 }, # operator c takes care of insert mode
      # insert mode
-     i => { char => 'i', func => \&cmd_movement_i, type => C_INSERT },
-     I => { char => 'I', func => \&cmd_movement_I, type => C_INSERT },
-     a => { char => 'a', func => \&cmd_movement_a, type => C_INSERT },
-     A => { char => 'A', func => \&cmd_movement_A, type => C_INSERT },
+     i => { char => 'i', func => \&cmd_i, type => C_INSERT },
+     I => { char => 'I', func => \&cmd_I, type => C_INSERT },
+     a => { char => 'a', func => \&cmd_a, type => C_INSERT },
+     A => { char => 'A', func => \&cmd_A, type => C_INSERT },
      # replace
-     r => { char => 'r', func => \&cmd_movement_r, type => C_NEEDSKEY,
+     r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
               repeatable => 1 },
      # paste
-     p => { char => 'p', func => \&cmd_movement_p, type => C_NORMAL,
+     p => { char => 'p', func => \&cmd_p, type => C_NORMAL,
             repeatable => 1 },
-     P => { char => 'P', func => \&cmd_movement_P, type => C_NORMAL,
+     P => { char => 'P', func => \&cmd_P, type => C_NORMAL,
             repeatable => 1 },
      # to end of line
-     C => { char => 'C', func => \&cmd_movement_C, type => C_NORMAL,
+     C => { char => 'C', func => \&cmd_C, type => C_NORMAL,
             repeatable => 1 },
-     D => { char => 'D', func => \&cmd_movement_D, type => C_NORMAL,
+     D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
             repeatable => 1 },
      # scrolling
-     "\x04" => { char => '<c-d>', func => \&cmd_movement_ctrl_d, type => C_NORMAL,
+     "\x04" => { char => '<c-d>', func => \&cmd_ctrl_d, type => C_NORMAL,
                  repeatable => 1 }, # half screen down
-     "\x15" => { char => '<c-u>', func => \&cmd_movement_ctrl_u, type => C_NORMAL,
+     "\x15" => { char => '<c-u>', func => \&cmd_ctrl_u, type => C_NORMAL,
                  repeatable => 1 }, # half screen up
-     "\x06" => { char => '<c-f>', func => \&cmd_movement_ctrl_f, type => C_NORMAL,
+     "\x06" => { char => '<c-f>', func => \&cmd_ctrl_f, type => C_NORMAL,
                  repeatable => 1 }, # screen down
-     "\x02" => { char => '<c-b>', func => \&cmd_movement_ctrl_b, type => C_NORMAL,
+     "\x02" => { char => '<c-b>', func => \&cmd_ctrl_b, type => C_NORMAL,
                  repeatable => 1 }, # screen up
      # window switching
-     "\x17j" => { char => '<c-w>j', func => \&cmd_movement_ctrl_wj, type => C_NORMAL,
+     "\x17j" => { char => '<c-w>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
                   needs_count => 1 },
-     "\x17k" => { char => '<c-w>k', func => \&cmd_movement_ctrl_wk, type => C_NORMAL,
+     "\x17k" => { char => '<c-w>k', func => \&cmd_ctrl_wk, type => C_NORMAL,
                   needs_count => 1 },
-     "\x1e"  => { char => '<c-6>', func => \&cmd_movement_ctrl_6, type => C_NORMAL,
+     "\x1e"  => { char => '<c-6>', func => \&cmd_ctrl_6, type => C_NORMAL,
                   needs_count => 1 },
      # misc
-     '~'  => { char => '~', func => \&cmd_movement_tilde, type => C_NORMAL,
+     '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1 },
-     '"'  => { char => '"', func => \&cmd_movement_register, type => C_NEEDSKEY },
+     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY },
      '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
      ':'  => { char => ':', type => C_NORMAL },
      "\n" => { char => '<cr>', type => C_NORMAL }, # return
@@ -390,7 +390,7 @@ my $imap = undef;
 my $imaps
   = {
      # ctrl-r, insert register
-     "\x12" => { map  => undef, func => \&cmd_insert_ctrl_r },
+     "\x12" => { map  => undef, func => \&insert_ctrl_r },
     };
 
 # index into the history list (for j,k)
@@ -417,7 +417,7 @@ sub script_is_loaded {
 vim_mode_init();
 
 
-sub cmd_insert_ctrl_r {
+sub insert_ctrl_r {
     my ($key) = @_;
 
     my $char = chr($key);
@@ -519,14 +519,14 @@ sub _get_pos_and_length {
 }
 
 
-sub cmd_movement_h {
+sub cmd_h {
     my ($count, $pos, $repeat) = @_;
 
     $pos -= $count;
     $pos = 0 if $pos < 0;
     return (undef, $pos);
 }
-sub cmd_movement_l {
+sub cmd_l {
     my ($count, $pos, $repeat) = @_;
 
     my $length = _input_len();
@@ -534,13 +534,13 @@ sub cmd_movement_l {
     $pos = _fix_input_pos($pos, $length);
     return (undef, $pos);
 }
-sub cmd_movement_space {
+sub cmd_space {
     my ($count, $pos, $repeat) = @_;
-    return cmd_movement_l($count, $pos);
+    return cmd_l($count, $pos);
 }
 
 # later history (down)
-sub cmd_movement_j {
+sub cmd_j {
     my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
@@ -579,7 +579,7 @@ sub cmd_movement_j {
     return (undef, undef);
 }
 # earlier history (up)
-sub cmd_movement_k {
+sub cmd_k {
     my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
@@ -610,7 +610,7 @@ sub cmd_movement_k {
     }
     return (undef, undef);
 }
-sub cmd_movement_G {
+sub cmd_G {
     my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
@@ -646,13 +646,13 @@ sub cmd_movement_G {
 
     return (undef, undef);
 }
-sub cmd_movement_gg {
+sub cmd_gg {
     my ($count, $pos, $repeat) = @_;
 
-    return cmd_movement_G(1, $pos, $repeat);
+    return cmd_G(1, $pos, $repeat);
 }
 
-sub cmd_movement_f {
+sub cmd_f {
     my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
@@ -660,7 +660,7 @@ sub cmd_movement_f {
     $last_ftFT = { type => 'f', char => $char };
     return (undef, $pos);
 }
-sub cmd_movement_t {
+sub cmd_t {
     my ($count, $pos, $repeat, $char) = @_;
 
     $pos = _next_occurrence(_input(), $char, $count, $pos);
@@ -671,7 +671,7 @@ sub cmd_movement_t {
     $last_ftFT = { type => 't', char => $char };
     return (undef, $pos);
 }
-sub cmd_movement_F {
+sub cmd_F {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
@@ -683,7 +683,7 @@ sub cmd_movement_F {
     $last_ftFT = { type => 'F', char => $char };
     return (undef, $pos);
 }
-sub cmd_movement_T {
+sub cmd_T {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
@@ -708,7 +708,7 @@ sub _next_occurrence {
     return $pos;
 }
 
-sub cmd_movement_semicolon {
+sub cmd_semicolon {
     my ($count, $pos, $repeat) = @_;
 
     return (undef, undef) if not defined $last_ftFT->{type};
@@ -718,7 +718,7 @@ sub cmd_movement_semicolon {
                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     return (undef, $pos);
 }
-sub cmd_movement_comma {
+sub cmd_comma {
     my ($count, $pos, $repeat) = @_;
 
     return (undef, undef) if not defined $last_ftFT->{type};
@@ -736,7 +736,7 @@ sub cmd_movement_comma {
     return (undef, $pos);
 }
 
-sub cmd_movement_w {
+sub cmd_w {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
@@ -744,7 +744,7 @@ sub cmd_movement_w {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
-sub cmd_movement_b {
+sub cmd_b {
     my ($count, $pos, $repeat) = @_;
 
     my $input = reverse _input();
@@ -756,7 +756,7 @@ sub cmd_movement_b {
     $pos = 0 if ($pos < 0);
     return (undef, $pos);
 }
-sub cmd_movement_e {
+sub cmd_e {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
@@ -764,7 +764,7 @@ sub cmd_movement_e {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
-sub cmd_movement_ge {
+sub cmd_ge {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
@@ -832,7 +832,7 @@ sub _end_of_word {
 
     return $pos;
 }
-sub cmd_movement_W {
+sub cmd_W {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
@@ -840,34 +840,34 @@ sub cmd_movement_W {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
-sub cmd_movement_B {
+sub cmd_B {
     my ($count, $pos, $repeat) = @_;
 
     my $input = reverse _input();
     $pos = _end_of_WORD($input, $count, length($input) - $pos - 1);
     if ($pos == -1) {
-        return cmd_movement_0();
+        return cmd_0();
     } else {
         return (undef, length($input) - $pos - 1);
     }
 }
-sub cmd_movement_E {
+sub cmd_E {
     my ($count, $pos, $repeat) = @_;
 
     $pos = _end_of_WORD(_input(), $count, $pos);
     if ($pos == -1) {
-        return cmd_movement_dollar();
+        return cmd_dollar();
     } else {
         return (undef, $pos);
     }
 }
-sub cmd_movement_gE {
+sub cmd_gE {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = reverse _input();
     $pos = _beginning_of_WORD($input, $count, length($input) - $pos - 1);
     if ($pos == -1 or length($input) - $pos - 1 == -1) {
-        return cmd_movement_0();
+        return cmd_0();
     } else {
         $pos = length($input) - $pos - 1;
     }
@@ -915,13 +915,13 @@ sub _end_of_WORD {
     return $pos;
 }
 
-sub cmd_movement__i {
+sub cmd__i {
     my ($count, $pos, $repeat, $char) = @_;
 
     _warn("i_ not implemented yet");
     return (undef, undef);
 }
-sub cmd_movement__a {
+sub cmd__a {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $cur_pos;
@@ -1036,10 +1036,10 @@ sub _find_regex_before {
     }
 }
 
-sub cmd_movement_0 {
+sub cmd_0 {
     return (undef, 0);
 }
-sub cmd_movement_caret {
+sub cmd_caret {
     my $input = _input();
     my $pos;
     # No whitespace at all.
@@ -1054,18 +1054,18 @@ sub cmd_movement_caret {
     }
     return (undef, $pos);
 }
-sub cmd_movement_dollar {
+sub cmd_dollar {
     my $length = _input_len();
     return (undef, _fix_input_pos($length, $length));
 }
 
-sub cmd_movement_x {
+sub cmd_x {
     my ($count, $pos, $repeat) = @_;
 
     cmd_operator_d($pos, $pos + $count, 'x');
     return (undef, undef);
 }
-sub cmd_movement_X {
+sub cmd_X {
     my ($count, $pos, $repeat) = @_;
 
     return (undef, undef) if $pos == 0;
@@ -1075,20 +1075,20 @@ sub cmd_movement_X {
     cmd_operator_d($pos, $new, 'X');
     return (undef, undef);
 }
-sub cmd_movement_s {
+sub cmd_s {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{c};
     return (undef, $pos + 1);
 }
-sub cmd_movement_S {
+sub cmd_S {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{c};
     return (0, _input_len());
 }
 
-sub cmd_movement_i {
+sub cmd_i {
     my ($count, $pos, $repeat) = @_;
 
     if (!$repeat) {
@@ -1098,10 +1098,10 @@ sub cmd_movement_i {
     }
     return (undef, $pos);
 }
-sub cmd_movement_I {
+sub cmd_I {
     my ($count, $pos, $repeat) = @_;
 
-    $pos = cmd_movement_caret();
+    $pos = cmd_caret();
     if (!$repeat) {
         _update_mode(M_INS);
     } else {
@@ -1109,11 +1109,11 @@ sub cmd_movement_I {
     }
     return (undef, $pos);
 }
-sub cmd_movement_a {
+sub cmd_a {
     my ($count, $pos, $repeat) = @_;
 
-    # Move after current character. Can't use cmd_movement_l() because we need
-    # to mover after last character at the end of the line.
+    # Move after current character. Can't use cmd_l() because we need to mover
+    # after last character at the end of the line.
     my $length = _input_len();
     $pos += 1;
     $pos = $length if $pos > $length;
@@ -1125,7 +1125,7 @@ sub cmd_movement_a {
     }
     return (undef, $pos);
 }
-sub cmd_movement_A {
+sub cmd_A {
     my ($count, $pos, $repeat) = @_;
 
     $pos = _input_len();
@@ -1160,7 +1160,7 @@ sub _insert_at_position {
     return $pos - 1 + length $string;
 }
 
-sub cmd_movement_r {
+sub cmd_r {
     my ($count, $pos, $repeat, $char) = @_;
 
     my $input = _input();
@@ -1173,12 +1173,12 @@ sub cmd_movement_r {
     return (undef, $pos + $count - 1);
 }
 
-sub cmd_movement_p {
+sub cmd_p {
     my ($count, $pos, $repeat) = @_;
     $pos = _paste_at_position($count, $pos + 1);
     return (undef, $pos);
 }
-sub cmd_movement_P {
+sub cmd_P {
     my ($count, $pos, $repeat) = @_;
     $pos = _paste_at_position($count, $pos);
     return (undef, $pos);
@@ -1190,20 +1190,20 @@ sub _paste_at_position {
     return _insert_at_position($registers->{$register}, $count, $pos);
 }
 
-sub cmd_movement_C {
+sub cmd_C {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{c};
     return (undef, _input_len());
 }
-sub cmd_movement_D {
+sub cmd_D {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{d};
     return (undef, _input_len());
 }
 
-sub cmd_movement_ctrl_d {
+sub cmd_ctrl_d {
     my ($count, $pos, $repeat) = @_;
 
     my $window = Irssi::active_win();
@@ -1214,7 +1214,7 @@ sub cmd_movement_ctrl_d {
     $window->view()->scroll($count);
     return (undef, undef);
 }
-sub cmd_movement_ctrl_u {
+sub cmd_ctrl_u {
     my ($count, $pos, $repeat) = @_;
 
     my $window = Irssi::active_win();
@@ -1225,21 +1225,21 @@ sub cmd_movement_ctrl_u {
     $window->view()->scroll($count * -1);
     return (undef, undef);
 }
-sub cmd_movement_ctrl_f {
+sub cmd_ctrl_f {
     my ($count, $pos, $repeat) = @_;
 
     my $window = Irssi::active_win();
     $window->view()->scroll($count * $window->{height});
     return (undef, undef);
 }
-sub cmd_movement_ctrl_b {
+sub cmd_ctrl_b {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_movement_ctrl_f($count * -1, $pos, $repeat);
+    cmd_ctrl_f($count * -1, $pos, $repeat);
     return (undef, undef);
 }
 
-sub cmd_movement_ctrl_wj {
+sub cmd_ctrl_wj {
     my ($count, $pos, $repeat) = @_;
 
     while ($count -- > 0) {
@@ -1248,7 +1248,7 @@ sub cmd_movement_ctrl_wj {
 
     return (undef, undef);
 }
-sub cmd_movement_ctrl_wk {
+sub cmd_ctrl_wk {
     my ($count, $pos, $repeat) = @_;
 
     while ($count -- > 0) {
@@ -1257,13 +1257,13 @@ sub cmd_movement_ctrl_wk {
 
     return (undef, undef);
 }
-sub cmd_movement_ctrl_6 {
+sub cmd_ctrl_6 {
     # like :b#
     Irssi::command('window last');
     return (undef, undef);
 }
 
-sub cmd_movement_tilde {
+sub cmd_tilde {
     my ($count, $pos, $repeat) = @_;
 
     my $input = _input();
@@ -1275,7 +1275,7 @@ sub cmd_movement_tilde {
     return (undef, _fix_input_pos($pos + $count, length $input));
 }
 
-sub cmd_movement_register {
+sub cmd_register {
     my ($count, $pos, $repeat, $char) = @_;
 
     if (not exists $registers->{$char} and not exists $registers->{lc $char}) {
