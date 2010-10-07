@@ -1384,7 +1384,7 @@ sub cmd_ex_command {
         return _warn("Ex-mode $1 doesn't exist!");
     }
 
-    $commands_ex->{$1}($arg_str);
+    $commands_ex->{$1}->{func}($arg_str);
 }
 
 sub ex_substitute {
