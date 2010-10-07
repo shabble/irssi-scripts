@@ -260,10 +260,14 @@ my $commands
      S => { char => 'S', func => \&cmd_S, type => C_NORMAL,
             repeatable => 1 }, # operator c takes care of insert mode
      # insert mode
-     i => { char => 'i', func => \&cmd_i, type => C_INSERT },
-     I => { char => 'I', func => \&cmd_I, type => C_INSERT },
-     a => { char => 'a', func => \&cmd_a, type => C_INSERT },
-     A => { char => 'A', func => \&cmd_A, type => C_INSERT },
+     i => { char => 'i', func => \&cmd_i, type => C_INSERT,
+            repeatable => 1 },
+     I => { char => 'I', func => \&cmd_I, type => C_INSERT,
+            repeatable => 1 },
+     a => { char => 'a', func => \&cmd_a, type => C_INSERT,
+            repeatable => 1 },
+     A => { char => 'A', func => \&cmd_A, type => C_INSERT,
+            repeatable => 1 },
      # replace
      r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
               repeatable => 1 },
