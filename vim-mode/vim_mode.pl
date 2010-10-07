@@ -287,12 +287,9 @@ my $commands
      "\x02" => { char => '<c-b>', func => \&cmd_ctrl_b, type => C_NORMAL,
                  repeatable => 1 }, # screen up
      # window switching
-     "\x17j" => { char => '<c-w>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
-                  needs_count => 1 },
-     "\x17k" => { char => '<c-w>k', func => \&cmd_ctrl_wk, type => C_NORMAL,
-                  needs_count => 1 },
-     "\x1e"  => { char => '<c-6>', func => \&cmd_ctrl_6, type => C_NORMAL,
-                  needs_count => 1 },
+     "\x17j" => { char => '<c-w>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
+     "\x17k" => { char => '<c-w>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
+     "\x1e"  => { char => '<c-6>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
      # misc
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1 },
@@ -1270,7 +1267,7 @@ sub cmd_ctrl_b {
 sub cmd_ctrl_wj {
     my ($count, $pos, $repeat) = @_;
 
-    while ($count -- > 0) {
+    while ($count-- > 0) {
         Irssi::command('window down');
     }
 
@@ -1279,7 +1276,7 @@ sub cmd_ctrl_wj {
 sub cmd_ctrl_wk {
     my ($count, $pos, $repeat) = @_;
 
-    while ($count -- > 0) {
+    while ($count-- > 0) {
         Irssi::command('window up');
     }
 
