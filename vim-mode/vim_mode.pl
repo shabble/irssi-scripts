@@ -1674,7 +1674,7 @@ sub got_key {
             $input_buf_enabled = 1;
             push @input_buf, $key;
             $input_buf_timer
-              = Irssi::timeout_add_once(500, \&flush_input_buffer, undef);
+              = Irssi::timeout_add_once(1000, \&flush_input_buffer, undef);
 
             _stop();
             return;
