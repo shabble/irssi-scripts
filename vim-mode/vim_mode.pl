@@ -1495,6 +1495,11 @@ sub ex_registers {
         } else {
             @regs = keys %$registers;
         }
+
+        # Update "+ and "* registers so correct values are displayed.
+        $registers->{'+'} = Irssi::parse_special('$U');
+        $registers->{'*'} = $registers->{'+'};
+
         my $active_window = Irssi::active_win;
         foreach my $key (sort @regs) {
             next if $key eq '_'; # skip black hole
