@@ -657,6 +657,7 @@ sub cmd_G {
     my ($count, $pos, $repeat) = @_;
 
     if (Irssi::version < 20090117) {
+        _warn("G and gg not supported in irssi < 0.8.13");
         return;
     }
 
