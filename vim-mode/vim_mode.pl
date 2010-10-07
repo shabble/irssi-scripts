@@ -59,9 +59,9 @@
 #                      :b <partial-channel-name>
 #                      :b <partial-server>/<partial-channel>
 #                      :buffer {args} (same as :b)
-#                      :bn - switch to next window
-#                      :bp - switch to previous window
-# * Close window:      :bd
+#                      :bn[ext] - switch to next window
+#                      :bp[rev] - switch to previous window
+# * Close window:      :bd[elete]
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
@@ -307,8 +307,11 @@ my $commands
 my $commands_ex
   = {
      s         => \&ex_substitute,
+     bnext     => \&ex_bnext,
      bn        => \&ex_bnext,
+     bprev     => \&ex_bprev,
      bp        => \&ex_bprev,
+     bdelete   => \&ex_bdelete,
      bd        => \&ex_bdelete,
      buffer    => \&ex_buffer,
      b         => \&ex_buffer,
