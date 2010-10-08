@@ -223,11 +223,11 @@ sub M_EX () { 2 } # extended mode (after a :?)
 
 # operator command
 sub C_OPERATOR () { 0 }
-# normal commmand
+# normal command, no special handling necessary
 sub C_NORMAL () { 1 }
 # command taking another key as argument
 sub C_NEEDSKEY () { 2 }
-# text-object commmand (i a)
+# text-object command (i a)
 sub C_TEXTOBJECT () { 3 }
 # commands entering insert mode
 sub C_INSERT () { 4 }
@@ -460,7 +460,7 @@ my $imap = undef;
 # maps for insert mode
 my $imaps
   = {
-     # ctrl-r, insert register
+     # CTRL-R, insert register
      "\x12" => { map  => undef, func => \&insert_ctrl_r },
     };
 
@@ -1442,6 +1442,7 @@ sub cmd_ex_command {
 sub ex_substitute {
     my ($arg_str) = @_;
 
+    # :s///
     if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
         my ($search, $replace, $flags) = ($1, $2, $3);
         print "Searching for $search, replace: $replace, flags; $flags"
@@ -1664,7 +1665,7 @@ sub _parse_mapping_reverse {
 }
 
 sub ex_source {
-    # so[urce], but only loads the vim_moderc file at the moment
+    # :so[urce], but only loads the vim_moderc file at the moment
 
     open my $file, '<', Irssi::get_irssi_dir() . '/vim_moderc' or return;
 
@@ -1854,7 +1855,7 @@ sub got_key {
         } elsif ($key == 127) {
             @insert_buf = ();
         # All other entered characters need to be stored to allow repeat of
-        # insert mode. Ignore delete and ctrl characters.
+        # insert mode. Ignore delete and control characters.
         } elsif ($key > 31) {
             push @insert_buf, chr($key);
         }
@@ -2171,7 +2172,7 @@ sub handle_command_cmd {
             # movements, operators and repetition.
             if ((defined $operator and $operator == $commands->{d}) or
                 $cmd->{repeatable}) {
-                # TODO: why do histpry entries still show up in undo
+                # TODO: why do history entries still show up in undo
                 # buffer? Is avoiding the commands here insufficient?
 
                 _add_undo_entry(_input(), _input_pos());
@@ -2216,7 +2217,7 @@ sub handle_command_ex {
         if (scalar @ex_buf > 0) {
             pop @ex_buf;
             _set_prompt(':' . join '', @ex_buf);
-        # Backspacing over : exists ex-mode.
+        # Backspacing over : exits ex-mode.
         } else {
             _update_mode(M_CMD);
         }
