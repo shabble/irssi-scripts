@@ -221,9 +221,12 @@ $VERSION = "1.0.1";
 
 # CONSTANTS
 
-sub M_CMD() { 1 } # command mode
-sub M_INS() { 0 } # insert mode
-sub M_EX () { 2 } # extended mode (after a :?)
+# command mode
+sub M_CMD () { 1 }
+# insert mode
+sub M_INS () { 0 }
+# extended mode (after a :?)
+sub M_EX () { 2 }
 
 # operator command
 sub C_OPERATOR () { 0 }
@@ -317,7 +320,7 @@ my $commands
             repeatable => 1 },
      # replace
      r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
-              repeatable => 1 },
+            repeatable => 1 },
      # paste
      p => { char => 'p', func => \&cmd_p, type => C_NORMAL,
             repeatable => 1 },
@@ -2095,7 +2098,7 @@ sub handle_command_cmd {
         _commit_line();
         return 0; # don't call _stop()
 
-    } else { #if ($movement || exists $movements->{$char}) {
+    } else {
         print "Processing command: $map->{char} ($cmd->{char})" if DEBUG;
 
         my $skip = 0;
