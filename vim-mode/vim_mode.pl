@@ -2196,8 +2196,13 @@ sub handle_command_ex {
     # DEL key - remove last character
     if ($key == 127) {
         print "Delete" if DEBUG;
-        pop @ex_buf;
-        _set_prompt(':' . join '', @ex_buf);
+        if (scalar @ex_buf > 0) {
+            pop @ex_buf;
+            _set_prompt(':' . join '', @ex_buf);
+        # Backspacing over : exists ex-mode.
+        } else {
+            _update_mode(M_CMD);
+        }
 
     # Return key - execute command
     } elsif ($key == 10) {
