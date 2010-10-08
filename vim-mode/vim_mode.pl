@@ -69,6 +69,8 @@
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
+# * Source files       :so[urce] - only sources vim_moderc at the moment,
+#                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
 #
@@ -94,6 +96,19 @@
 #
 # * vim_mode: displays current mode
 # * vim_windows: displays windows selected with :b
+#
+#
+# Configuration
+#
+# Additionally to the irssi settings described above vim_mode can be
+# configured through an external configuration file named "vim_moderc" located
+# in ~/.irssi/vim_moderc. If available it's loaded on startup and every
+# supported ex-command is run. It's syntax is similar to "vimrc". To (re)load
+# it while vim_mode is running use :so[urce].
+#
+# Supported ex-commands:
+#
+# * :map
 #
 #
 # Installation:
@@ -345,6 +360,8 @@ my $commands_ex
      undolist  => { char => 'undolist',  func => \&ex_undolist,   type => C_EX },
      undol     => { char => 'undol',     func => \&ex_undolist,   type => C_EX },
      map       => { char => 'map',       func => \&ex_map,        type => C_EX },
+     source    => { char => 'source',    func => \&ex_source,     type => C_EX },
+     so        => { char => 'so',        func => \&ex_source,     type => C_EX },
     };
 
 # MAPPINGS
@@ -1641,6 +1658,24 @@ sub _parse_mapping_reverse {
     return $string;
 }
 
+sub ex_source {
+    # so[urce], but only loads the vim_moderc file at the moment
+
+    open my $file, '<', Irssi::get_irssi_dir() . '/vim_moderc' or return;
+
+    while (my $line = <$file>) {
+        next if $line =~ /^\s*$/ or $line =~ /^\s*"/;
+
+        chomp $line;
+        # :map {lhs} {rhs}
+        if ($line =~ /^\s*map (\S+) (\S+)$/) {
+            ex_map($line);
+        } else {
+            _warn_ex('source', "command not supported: $line");
+        }
+    }
+}
+
 sub _warn_ex {
     my ($command, $description) = @_;
     my $message = "Error in ex-mode command $command";
@@ -2204,6 +2239,9 @@ sub vim_mode_init {
     Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
     Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
     Irssi::settings_add_int('vim_mode', 'vim_mode_max_undo_lines', 50);
+
+    # Load the vim_moderc file if it exists.
+    ex_source('source');
 
     setup_changed();
     _reset_undo_buffer();
