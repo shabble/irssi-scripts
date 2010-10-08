@@ -8,9 +8,7 @@
 - marks
 - text-objects
 - 2daW doesn't work at end of line, should do nothing
-- undo/redo positions aren't perfect yet
 - :imap
-- :map <Nop>
 - custom scripts (vim-like functions) which can be mapped
     - surroundings, with an external script if somebody writes it
 - Ctrl-R = to evaluate expressions, first only simple math
@@ -36,8 +34,6 @@
 - support :map gX iINSERT TEXT<ESC> and similar stuff (suggested by estragib)
 - it would be nice if :ls somehow indicated current and alternate buffer
   (maybe activity too?) (suggested by estragib)
-- :map irssi functions, like :map <c-l> /clear (/ sounds good as prefix),
-  suggested by estragib
 - add :mkvimrc to write mappings to .irssi/vim_moderc, suggested by estragib
 - < estragib> oh, i can't map \<something> either
   < estragib> hehe, definitely something to do with escaping. \\ prints \
