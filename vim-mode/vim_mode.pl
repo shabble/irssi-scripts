@@ -1138,7 +1138,7 @@ sub cmd_dollar {
 sub cmd_x {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_operator_d($pos, $pos + $count, 'x');
+    cmd_operator_d($pos, $pos + $count, $commands->{x}, $repeat);
     return (undef, undef);
 }
 sub cmd_X {
@@ -1148,7 +1148,7 @@ sub cmd_X {
 
     my $new = $pos - $count;
     $new = 0 if $new < 0;
-    cmd_operator_d($pos, $new, 'X');
+    cmd_operator_d($pos, $new, $commands->{X}, $repeat);
     return (undef, undef);
 }
 sub cmd_s {
