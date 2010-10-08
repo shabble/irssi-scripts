@@ -67,7 +67,7 @@
 #                      :bp[rev] - switch to previous window
 # * Close window:      :bd[elete]
 # * Display windows:   :ls :buffers
-# * Display registers: :reg[isters] :di[splay] {args}
+# * Display registers: :reg[isters] {args} :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
 # * Source files       :so[urce] - only sources vim_moderc at the moment,
 #                                  {file} not supported
@@ -85,10 +85,10 @@
 # <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
 # commands is supported. Only default mappings can be used in {rhs}.
 # Examples:
-#     :map w  W      # to remap w to work like W
-#     :map gb :bnext # to map gb to call :bnext
+#     :map w  W      - to remap w to work like W
+#     :map gb :bnext - to map gb to call :bnext
 #     :map gB :bprev
-#     :map <C-L> /clear # map Ctrl-L to irssi command /clear
+#     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
 #
