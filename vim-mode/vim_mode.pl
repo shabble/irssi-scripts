@@ -37,9 +37,10 @@
 # * Switch case: ~
 # * Repeat change: .
 # * Repeat ftFT: ; ,
-# * Registers: "a-"z "" "* "+ "_ (black hole)
+# * Registers: "a-"z "" "0 "* "+ "_ (black hole)
 #   Appending to register with "A-"Z
 #   "" is the default yank/delete register.
+#   "0 contains the last yank (if no register was specified).
 #   The special registers "* "+ contain both irssi's cut-buffer.
 # * Line-wise shortcuts: dd cc yy
 # * Shortcuts: s S C D
@@ -68,6 +69,20 @@
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
+# * Mappings:          :map             - display custom mappings
+#                      :map {lhs} {rhs} - add mapping
+#
+# Mappings:
+#
+# {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
+# is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode command is
+# supported. Only default mappings can be used in {rhs}.
+# Examples:
+#     :map gb :bnext # to map gb to call :bnext
+#     :map gB :bprev
+#     :map w  W      # to remap w to work like W
+#
 #
 # The following irssi settings are available:
 #
@@ -223,7 +238,7 @@ my $commands
      # arrow like movement
       h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
       l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<space>', func => \&cmd_space, type => C_NORMAL },
+     ' ' => { char => '<Space>', func => \&cmd_space, type => C_NORMAL },
      # history movement
      j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
      k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
@@ -285,50 +300,51 @@ my $commands
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
             repeatable => 1 },
      # scrolling
-     "\x04" => { char => '<c-d>', func => \&cmd_ctrl_d, type => C_NORMAL,
+     "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
                  repeatable => 1 }, # half screen down
-     "\x15" => { char => '<c-u>', func => \&cmd_ctrl_u, type => C_NORMAL,
+     "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
                  repeatable => 1 }, # half screen up
-     "\x06" => { char => '<c-f>', func => \&cmd_ctrl_f, type => C_NORMAL,
+     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
                  repeatable => 1 }, # screen down
-     "\x02" => { char => '<c-b>', func => \&cmd_ctrl_b, type => C_NORMAL,
+     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
                  repeatable => 1 }, # screen up
      # window switching
-     "\x17j" => { char => '<c-w>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
-     "\x17k" => { char => '<c-w>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
-     "\x1e"  => { char => '<c-6>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
+     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
+     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
+     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
      # misc
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1 },
      '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY },
      '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
      ':'  => { char => ':', type => C_NORMAL },
-     "\n" => { char => '<cr>', type => C_NORMAL }, # return
+     "\n" => { char => '<CR>', type => C_NORMAL }, # return
      # undo
      'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL },
-     "\x12" => { char => '<c-r>', func => \&cmd_redo, type => C_NORMAL },
+     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL },
     };
 
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
-     s         => { func => \&ex_substitute => type => C_EX },
-     bnext     => { func => \&ex_bnext      => type => C_EX },
-     bn        => { func => \&ex_bnext      => type => C_EX },
-     bprev     => { func => \&ex_bprev      => type => C_EX },
-     bp        => { func => \&ex_bprev      => type => C_EX },
-     bdelete   => { func => \&ex_bdelete    => type => C_EX },
-     bd        => { func => \&ex_bdelete    => type => C_EX },
-     buffer    => { func => \&ex_buffer     => type => C_EX },
-     b         => { func => \&ex_buffer     => type => C_EX },
-     registers => { func => \&ex_registers  => type => C_EX },
-     reg       => { func => \&ex_registers  => type => C_EX },
-     display   => { func => \&ex_registers  => type => C_EX },
-     di        => { func => \&ex_registers  => type => C_EX },
-     buffers   => { func => \&ex_buffers    => type => C_EX },
-     ls        => { func => \&ex_buffers    => type => C_EX },
-     undolist  => { func => \&ex_undolist   => type => C_EX },
-     undol     => { func => \&ex_undolist   => type => C_EX },
+     s         => { char => 's',         func => \&ex_substitute, type => C_EX },
+     bnext     => { char => 'bnext',     func => \&ex_bnext,      type => C_EX },
+     bn        => { char => 'bn',        func => \&ex_bnext,      type => C_EX },
+     bprev     => { char => 'bprev',     func => \&ex_bprev,      type => C_EX },
+     bp        => { char => 'bp',        func => \&ex_bprev,      type => C_EX },
+     bdelete   => { char => 'bdelete',   func => \&ex_bdelete,    type => C_EX },
+     bd        => { char => 'bd',        func => \&ex_bdelete,    type => C_EX },
+     buffer    => { char => 'buffer',    func => \&ex_buffer,     type => C_EX },
+     b         => { char => 'b',         func => \&ex_buffer,     type => C_EX },
+     registers => { char => 'registers', func => \&ex_registers,  type => C_EX },
+     reg       => { char => 'reg',       func => \&ex_registers,  type => C_EX },
+     display   => { char => 'display',   func => \&ex_registers,  type => C_EX },
+     di        => { char => 'di',        func => \&ex_registers,  type => C_EX },
+     buffers   => { char => 'buffer',    func => \&ex_buffers,    type => C_EX },
+     ls        => { char => 'ls',        func => \&ex_buffers,    type => C_EX },
+     undolist  => { char => 'undolist',  func => \&ex_undolist,   type => C_EX },
+     undol     => { char => 'undol',     func => \&ex_undolist,   type => C_EX },
+     map       => { char => 'map',       func => \&ex_map,        type => C_EX },
     };
 
 # MAPPINGS
@@ -402,6 +418,7 @@ my $register = '"';
 my $registers
   = {
      '"' => '', # default register
+     '0' => '', # yank register
      '+' => '', # contains irssi's cut buffer
      '*' => '', # same
      '_' => '', # black hole register, always empty
@@ -525,6 +542,10 @@ sub cmd_operator_y {
     } else {
         $registers->{$register} = $string;
         print "Yanked into $register: ", $registers->{$register} if DEBUG;
+        if ($register eq '"') {
+            $registers->{0} = $string;
+            print "Yanked into 0: ", $registers->{0} if DEBUG;
+        }
     }
 
     # Always move to the lower position.
@@ -1520,9 +1541,113 @@ sub ex_undolist {
     _print_undo_buffer();
 }
 
+sub ex_map {
+    my ($arg_str) = @_;
+
+    # :map {lhs} {rhs}
+    if ($arg_str =~ /^map (\S+) (\S+)$/) {
+        my $lhs = _parse_mapping($1);
+        my $rhs = $2;
+
+        if (not defined $lhs) {
+            return _warn_ex('map', 'invalid {lhs}');
+        }
+
+        # Add new mapping.
+        my $command;
+        if (index($rhs, ':') == 0) {
+            $rhs = substr $rhs, 1;
+            if (not exists $commands_ex->{$rhs}) {
+                return _warn_ex('map', "$2 not found");
+            } else {
+                $command = $commands_ex->{$rhs};
+            }
+        } else {
+            $rhs = _parse_mapping($2);
+            if (not defined $rhs) {
+                return _warn_ex('map', 'invalid {rhs}');
+            } elsif (not exists $commands->{$rhs}) {
+                return _warn_ex('map', "$2 not found");
+            } else {
+                $command = $commands->{$rhs};
+            }
+        }
+        add_map($lhs, $command);
+
+    # :map
+    } elsif ($arg_str eq 'map') {
+        my $active_window = Irssi::active_win();
+        foreach my $key (sort keys %$maps) {
+            my $map = $maps->{$key};
+            my $cmd = $map->{cmd};
+            if (defined $map->{char}) {
+                my $char = _parse_mapping_reverse($map->{char});
+                next if $char eq $cmd->{char}; # skip default mappings
+
+                my $cmdc = _parse_mapping_reverse($cmd->{char});
+                if ($cmd->{type} == C_EX) {
+                    $cmdc = ":$cmdc";
+                }
+                $active_window->print(sprintf "%-15s %s", $char, $cmdc);
+            }
+        }
+    } else {
+        _warn_ex('map');
+    }
+}
+sub _parse_mapping {
+    my ($string) = @_;
+
+    $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
+    if (index($string, '<invalid>') != -1) {
+        return undef;
+    }
+    return $string;
+}
+sub _parse_mapping_bracket {
+    my ($string) = @_;
+
+    $string = lc $string;
+
+    # <C-X>, get corresponding CTRL char.
+    if ($string =~ /^c-([a-z])$/i) {
+        $string = chr(ord($1) - 96);
+    # <C-6> and <C-^>
+    } elsif ($string =~ /^c-[6^]$/i) {
+        $string = chr(30);
+    # <Space>
+    } elsif ($string eq 'space') {
+        $string = ' ';
+    # <CR>
+    } elsif ($string eq 'cr') {
+        $string = "\n";
+    # Invalid char, return special string to recognize the error.
+    } else {
+        $string = '<invalid>';
+    }
+    return $string;
+}
+sub _parse_mapping_reverse {
+    my ($string) = @_;
+
+    # Convert char to <char-name>.
+    $string =~ s/ /<Space>/g;
+    $string =~ s/\n/<CR>/g;
+    # Convert Ctrl-X to <C-X>.
+    $string =~ s/([\x01-\x1A])/"<C-" . chr(ord($1) + 64) . ">"/ge;
+    # Convert Ctrl-6 and Ctrl-^ to <C-^>.
+    $string =~ s/\x1E/<C-^>/g;
+
+    return $string;
+}
+
 sub _warn_ex {
-    my ($command) = @_;
-    _warn("Error in ex-mode command $command");
+    my ($command, $description) = @_;
+    my $message = "Error in ex-mode command $command";
+    if (defined $description) {
+        $message .= ": $description";
+    }
+    _warn($message);
 }
 
 sub _matching_windows {
