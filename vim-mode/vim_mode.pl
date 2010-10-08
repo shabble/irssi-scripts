@@ -262,9 +262,9 @@ my $commands
              needs_count => 1 },
      # char movement, take an additional parameter and use $movement
       f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
-              selection_needs_move_left => 1 },
+              selection_needs_move_right => 1 },
       t  => { char => 't', func => \&cmd_t, type => C_NEEDSKEY,
-              selection_needs_move_left => 1 },
+              selection_needs_move_right => 1 },
       F  => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
       T  => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
      ';' => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
@@ -273,15 +273,15 @@ my $commands
      w  => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
      b  => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
      e  => { char => 'e',  func => \&cmd_e,  type => C_NORMAL,
-             selection_needs_move_left => 1 },
+             selection_needs_move_right => 1 },
      ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL,
-             selection_needs_move_left => 1 },
+             selection_needs_move_right => 1 },
      W  => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
      B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL,
-             selection_needs_move_left => 1 },
+             selection_needs_move_right => 1 },
      E  => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
      gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
-             selection_needs_move_left => 1 },
+             selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
      _i => { char => '_i', func => \&cmd__i, type => C_TEXTOBJECT },
      _a => { char => '_a', func => \&cmd__a, type => C_TEXTOBJECT },
@@ -585,7 +585,7 @@ sub _get_pos_and_length {
 
     # Some commands don't move one character after the deletion area which is
     # necessary for all commands moving to the right. Fix it.
-    if ($move_cmd->{selection_needs_move_left}) {
+    if ($move_cmd->{selection_needs_move_right}) {
         $length += 1;
     }
 
