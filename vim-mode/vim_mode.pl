@@ -2210,6 +2210,10 @@ sub handle_command_ex {
         cmd_ex_command();
         _update_mode(M_CMD);
 
+    # Ignore control characters for now.
+    } elsif ($key < 32) {
+        # TODO: use them later, e.g. completion
+
     # Append entered key
     } else {
         push @ex_buf, chr $key;
