@@ -85,6 +85,7 @@
 #     :map gb :bnext # to map gb to call :bnext
 #     :map gB :bprev
 #     :map <C-L> /clear # map Ctrl-L to irssi command /clear
+#     :map <C-G> /window goto 1
 #
 #
 # The following irssi settings are available:
@@ -1559,7 +1560,7 @@ sub ex_map {
     my ($arg_str) = @_;
 
     # :map {lhs} {rhs}
-    if ($arg_str =~ /^map (\S+) (\S+)$/) {
+    if ($arg_str =~ /^map (\S+) (\S.+)$/) {
         my $lhs = _parse_mapping($1);
         my $rhs = $2;
 
@@ -1671,8 +1672,8 @@ sub ex_source {
         next if $line =~ /^\s*$/ or $line =~ /^\s*"/;
 
         chomp $line;
-        # :map {lhs} {rhs}
-        if ($line =~ /^\s*map (\S+) (\S+)$/) {
+        # :map {lhs} {rhs}, keep in sync with ex_map()
+        if ($line =~ /^\s*map (\S+) (\S.+)$/) {
             ex_map($line);
         } else {
             _warn_ex('source', "command not supported: $line");
