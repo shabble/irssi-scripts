@@ -73,6 +73,7 @@
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
+# * Save mappings:     :mkv[imrc] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
 #                              Vim regex
@@ -383,6 +384,8 @@ my $commands_ex
      map       => { char => ':map',       func => \&ex_map,        type => C_EX },
      source    => { char => ':source',    func => \&ex_source,     type => C_EX },
      so        => { char => ':so',        func => \&ex_source,     type => C_EX },
+     mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,    type => C_EX },
+     mkv       => { char => ':mkv',       func => \&ex_mkvimrc,    type => C_EX },
     };
 
 # MAPPINGS
@@ -1698,6 +1701,29 @@ sub ex_source {
             _warn_ex('source', "command not supported: $line");
         }
     }
+}
+
+sub ex_mkvimrc {
+    # :mkv[imrc], [file] not supported
+
+    my $vim_moderc = Irssi::get_irssi_dir(). '/vim_moderc';
+    if (-f $vim_moderc) {
+        return _warn_ex('mkvimrc', "$vim_moderc already exists");
+    }
+
+    open my $file, '>', $vim_moderc or return;
+
+    # copied from ex_map()
+    foreach my $key (sort keys %$maps) {
+        my $map = $maps->{$key};
+        my $cmd = $map->{cmd};
+        if (defined $cmd) {
+            next if $map->{char} eq $cmd->{char}; # skip default mappings
+            print $file "$map->{char} $cmd->{char}\n";
+        }
+    }
+
+    close $file;
 }
 
 sub _warn_ex {
