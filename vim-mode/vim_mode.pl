@@ -2345,6 +2345,7 @@ sub add_map {
                            maps => {}
                          };
     } else {
+        $maps->{$keys}->{char} = $keys;
         $maps->{$keys}->{cmd} = $command;
     }
 }
