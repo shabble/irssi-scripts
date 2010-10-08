@@ -2012,10 +2012,10 @@ sub handle_command_cmd {
     }
 
     # Ex-mode commands can also be bound in command mode. Works only if the
-    # ex-mode command doesn't take any arguments.
+    # ex-mode command doesn't need any additional arguments.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-        $cmd->{func}->();
+        $cmd->{func}->($cmd->{char});
         return 1; # call _stop()
     }
 
