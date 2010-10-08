@@ -44,7 +44,7 @@
 #   The special registers "* "+ contain both irssi's cut-buffer.
 # * Line-wise shortcuts: dd cc yy
 # * Shortcuts: s S C D
-# * Scroll the scrollback buffer: Ctrl-D Ctrl-U Ctrl-F Ctrl-B
+# * Scroll the scrollback buffer: Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B
 # * Switch to last active window: Ctrl-6/Ctrl-^
 # * Switch split windows: Ctrl-W j Ctrl-W k
 # * Undo/Redo: u Ctrl-R
@@ -321,8 +321,10 @@ my $commands
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
             repeatable => 1 },
      # scrolling
+     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL },
      "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
                  needs_count => 1 },
+     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL },
      "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
                  needs_count => 1 },
      "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL },
