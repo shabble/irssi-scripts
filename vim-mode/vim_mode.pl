@@ -1520,10 +1520,16 @@ sub ex_buffer {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
-            my $matches = _matching_windows($buffer);
-            if (scalar @$matches > 0) {
-                $window = @$matches[0]->{window};
-                $item = @$matches[0]->{item};
+            eval {
+                my $matches = _matching_windows($buffer);
+                if (scalar @$matches > 0) {
+                    $window = @$matches[0]->{window};
+                    $item = @$matches[0]->{item};
+                }
+            };
+            # Catch errors in /$buffer/ regex.
+            if ($@) {
+                _warn($@);
             }
         }
 
@@ -1831,8 +1837,14 @@ sub b_windows_cb {
         my $buffer = $1;
         if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
             # Display matching windows.
-            my $matches = _matching_windows($buffer);
-            $windows = join ',', map { $_->{text} } @$matches;
+            eval {
+                my $matches = _matching_windows($buffer);
+                $windows = join ',', map { $_->{text} } @$matches;
+            };
+            # Catch errors in /$buffer/ regex.
+            if ($@) {
+                _warn($@);
+            }
         }
     }
 
