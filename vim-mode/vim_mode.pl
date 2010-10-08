@@ -1719,7 +1719,7 @@ sub ex_mkvimrc {
         my $cmd = $map->{cmd};
         if (defined $cmd) {
             next if $map->{char} eq $cmd->{char}; # skip default mappings
-            print $file "$map->{char} $cmd->{char}\n";
+            print $file "map $map->{char} $cmd->{char}\n";
         }
     }
 
