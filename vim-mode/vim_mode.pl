@@ -78,12 +78,13 @@
 #
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode command is
-# supported. Only default mappings can be used in {rhs}.
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode and irssi commands
+# is supported. Only default mappings can be used in {rhs}.
 # Examples:
+#     :map w  W      # to remap w to work like W
 #     :map gb :bnext # to map gb to call :bnext
 #     :map gB :bprev
-#     :map w  W      # to remap w to work like W
+#     :map <C-L> /clear # map Ctrl-L to irssi command /clear
 #
 #
 # The following irssi settings are available:
@@ -231,6 +232,8 @@ sub C_TEXTOBJECT () { 3 }
 sub C_INSERT () { 4 }
 # ex-mode commands
 sub C_EX () { 5 }
+# irssi commands
+sub C_IRSSI () { 6 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -1566,6 +1569,7 @@ sub ex_map {
 
         # Add new mapping.
         my $command;
+        # Ex-mode command
         if (index($rhs, ':') == 0) {
             $rhs = substr $rhs, 1;
             if (not exists $commands_ex->{$rhs}) {
@@ -1573,6 +1577,13 @@ sub ex_map {
             } else {
                 $command = $commands_ex->{$rhs};
             }
+        # Irssi command
+        } elsif (index($rhs, '/') == 0) {
+            $command = { char => $rhs,
+                         func => substr($rhs, 1),
+                         type => C_IRSSI,
+                       };
+        # command-mode command
         } else {
             $rhs = _parse_mapping($2);
             if (not defined $rhs) {
@@ -2017,6 +2028,11 @@ sub handle_command_cmd {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
         $cmd->{func}->($cmd->{char});
         return 1; # call _stop()
+    # As can irssi commands.
+    } elsif ($cmd->{type} == C_IRSSI) {
+        print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
+        Irssi::command($cmd->{func});
+        return 1; # call _stop();
     }
 
     # text-objects (i a) are simulated with $movement
