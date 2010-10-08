@@ -1300,6 +1300,8 @@ sub cmd_ctrl_d {
         $count = $window->{height} / 2;
     }
     $window->view()->scroll($count);
+
+    Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
 sub cmd_ctrl_u {
@@ -1311,6 +1313,8 @@ sub cmd_ctrl_u {
         $count = $window->{height} / 2;
     }
     $window->view()->scroll($count * -1);
+
+    Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
 sub cmd_ctrl_f {
@@ -1318,13 +1322,14 @@ sub cmd_ctrl_f {
 
     my $window = Irssi::active_win();
     $window->view()->scroll($count * $window->{height});
+
+    Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
 sub cmd_ctrl_b {
     my ($count, $pos, $repeat) = @_;
 
-    cmd_ctrl_f($count * -1, $pos, $repeat);
-    return (undef, undef);
+    return cmd_ctrl_f($count * -1, $pos, $repeat);
 }
 
 sub cmd_ctrl_wj {
