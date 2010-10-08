@@ -1597,15 +1597,14 @@ sub ex_map {
         foreach my $key (sort keys %$maps) {
             my $map = $maps->{$key};
             my $cmd = $map->{cmd};
-            if (defined $map->{char}) {
-                my $char = _parse_mapping_reverse($map->{char});
-                next if $char eq $cmd->{char}; # skip default mappings
+            if (defined $cmd) {
+                next if $map->{char} eq $cmd->{char}; # skip default mappings
 
-                my $cmdc = _parse_mapping_reverse($cmd->{char});
+                my $cmdc = $cmd->{char};
                 if ($cmd->{type} == C_EX) {
                     $cmdc = ":$cmdc";
                 }
-                $active_window->print(sprintf "%-15s %s", $char, $cmdc);
+                $active_window->print(sprintf "%-15s %s", $map->{char}, $cmdc);
             }
         }
     } else {
@@ -2370,7 +2369,10 @@ sub add_map {
     while (length $tmp > 1) {
         my $map = substr $tmp, -1, 1, '';
         if (not exists $maps->{$tmp}) {
-            $maps->{$tmp} = { cmd => undef, maps => {} };
+            $maps->{$tmp} = { char => _parse_mapping_reverse($tmp),
+                               cmd => undef,
+                              maps => {}
+                            };
         }
         if (not exists $maps->{$tmp}->{maps}->{$tmp . $map}) {
             $maps->{$tmp}->{maps}->{$tmp . $map} = undef;
@@ -2378,14 +2380,13 @@ sub add_map {
     }
 
     if (not exists $maps->{$keys}) {
-        $maps->{$keys} = { char => $keys,
-                            cmd => $command,
+        $maps->{$keys} = { char => undef,
+                            cmd => undef,
                            maps => {}
                          };
-    } else {
-        $maps->{$keys}->{char} = $keys;
-        $maps->{$keys}->{cmd} = $command;
     }
+    $maps->{$keys}->{char} = _parse_mapping_reverse($keys);
+    $maps->{$keys}->{cmd} = $command;
 }
 
 
