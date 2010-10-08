@@ -2072,7 +2072,7 @@ sub handle_command_cmd {
     # ex-mode command doesn't need any additional arguments.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-        $cmd->{func}->($cmd->{char});
+        $cmd->{func}->(substr $cmd->{char}, 1);
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
