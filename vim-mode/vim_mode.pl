@@ -261,8 +261,10 @@ my $commands
      G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
              needs_count => 1 },
      # char movement, take an additional parameter and use $movement
-      f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY },
-      t  => { char => 't', func => \&cmd_t, type => C_NEEDSKEY },
+      f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
+              selection_needs_move_left => 1 },
+      t  => { char => 't', func => \&cmd_t, type => C_NEEDSKEY,
+              selection_needs_move_left => 1 },
       F  => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
       T  => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
      ';' => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
@@ -270,12 +272,16 @@ my $commands
      # word movement
      w  => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
      b  => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
-     e  => { char => 'e',  func => \&cmd_e,  type => C_NORMAL },
-     ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL },
+     e  => { char => 'e',  func => \&cmd_e,  type => C_NORMAL,
+             selection_needs_move_left => 1 },
+     ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL,
+             selection_needs_move_left => 1 },
      W  => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
-     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL },
+     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL,
+             selection_needs_move_left => 1 },
      E  => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
-     gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL },
+     gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
+             selection_needs_move_left => 1 },
      # text-objects, leading _ means can't be mapped!
      _i => { char => '_i', func => \&cmd__i, type => C_TEXTOBJECT },
      _a => { char => '_a', func => \&cmd__a, type => C_TEXTOBJECT },
@@ -494,11 +500,12 @@ sub insert_ctrl_r {
 # COMMAND MODE OPERATORS
 
 sub cmd_operator_c {
-    my ($old_pos, $new_pos, $move, $repeat) = @_;
+    my ($old_pos, $new_pos, $move_cmd, $repeat) = @_;
 
     # Changing a word or WORD doesn't delete the last space before a word, but
     # not if we are on that whitespace before the word.
-    if ($move eq 'w' or $move eq 'W') {
+    if ($move_cmd and ($move_cmd == $commands->{w} or
+                       $move_cmd == $commands->{W})) {
         my $input = _input();
         if ($new_pos - $old_pos > 1 and
                 substr($input, $new_pos - 1, 1) =~ /\s/) {
@@ -506,7 +513,7 @@ sub cmd_operator_c {
         }
     }
 
-    cmd_operator_d($old_pos, $new_pos, $move, $repeat, 1);
+    cmd_operator_d($old_pos, $new_pos, $move_cmd, $repeat, 1);
 
     if (!$repeat) {
         _update_mode(M_INS);
@@ -517,9 +524,9 @@ sub cmd_operator_c {
     }
 }
 sub cmd_operator_d {
-    my ($old_pos, $new_pos, $move, $repeat, $change) = @_;
+    my ($old_pos, $new_pos, $move_cmd, $repeat, $change) = @_;
 
-    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
+    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move_cmd);
 
     # Remove the selected string from the input.
     my $input = _input();
@@ -540,15 +547,9 @@ sub cmd_operator_d {
     _input_pos($pos);
 }
 sub cmd_operator_y {
-    my ($old_pos, $new_pos, $move, $repeat) = @_;
+    my ($old_pos, $new_pos, $move_cmd, $repeat) = @_;
 
-    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move);
-
-    # When yanking left of the current char, the current char is not included
-    # in the yank.
-    if ($old_pos > $new_pos) {
-        $length--;
-    }
+    my ($pos, $length) = _get_pos_and_length($old_pos, $new_pos, $move_cmd);
 
     # Extract the selected string and put it in the " register.
     my $input = _input();
@@ -573,7 +574,7 @@ sub cmd_operator_y {
     }
 }
 sub _get_pos_and_length {
-    my ($old_pos, $new_pos, $move) = @_;
+    my ($old_pos, $new_pos, $move_cmd) = @_;
 
     my $length = $new_pos - $old_pos;
     # We need a positive length and $old_pos must be smaller.
@@ -582,16 +583,9 @@ sub _get_pos_and_length {
         $length *= -1;
     }
 
-    # Strip leading _a or _i if a text-object was used.
-    if ($move =~ /^_[ai](.)/) {
-        $move = $1;
-    }
-
-    # Most movement commands don't move one character after the deletion area
-    # (which is what we need). For those increase length to support proper
-    # selection/deletion.
-    if ($move ne 'w' and $move ne 'W' and $move ne 'x' and $move ne 'X' and
-        $move ne 'B' and $move ne 'h' and $move ne 'l') {
+    # Some commands don't move one character after the deletion area which is
+    # necessary for all commands moving to the right. Fix it.
+    if ($move_cmd->{selection_needs_move_left}) {
         $length += 1;
     }
 
@@ -2046,7 +2040,7 @@ sub handle_command_cmd {
                 print "Processing line operator: $map->{char} ($cmd->{char})"
                     if DEBUG;
                 my $pos = _input_pos();
-                $cmd->{func}->(0, _input_len(), '', 0);
+                $cmd->{func}->(0, _input_len(), undef, 0);
                 # Restore position for yy.
                 if ($cmd == $commands->{y}) {
                     _input_pos($pos);
@@ -2153,13 +2147,7 @@ sub handle_command_cmd {
             # problems with e.g. f when the search string doesn't exist).
             if ($operator and $cur_pos != $new_pos) {
                 print "Processing operator: ", $operator->{char} if DEBUG;
-                # If text-objects are used the real move character must also
-                # be passed to the operator.
-                my $tmp_char = $cmd->{char};
-                if ($tmp_char eq '_i' or $tmp_char eq '_a') {
-                   $tmp_char .= $char;
-                }
-                $operator->{func}->($cur_pos, $new_pos, $tmp_char, $repeat);
+                $operator->{func}->($cur_pos, $new_pos, $cmd, $repeat);
             }
 
             # Save an undo checkpoint here for operators, all repeatable
