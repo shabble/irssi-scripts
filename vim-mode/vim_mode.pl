@@ -321,8 +321,10 @@ my $commands
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
             repeatable => 1 },
      # scrolling
-     "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL },
-     "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL },
+     "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
+                 needs_count => 1 },
+     "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
+                 needs_count => 1 },
      "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL },
      "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL },
      # window switching
