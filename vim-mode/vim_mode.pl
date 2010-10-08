@@ -69,6 +69,20 @@
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
+# * Mappings:          :map             - display custom mappings
+#                      :map {lhs} {rhs} - add mapping
+#
+# Mappings:
+#
+# {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
+# is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode command is
+# supported. Only default mappings can be used in {rhs}.
+# Examples:
+#     :map gb :bnext # to map gb to call :bnext
+#     :map gB :bprev
+#     :map w  W      # to remap w to work like W
+#
 #
 # The following irssi settings are available:
 #
@@ -330,6 +344,7 @@ my $commands_ex
      ls        => { char => 'ls',        func => \&ex_buffers,    type => C_EX },
      undolist  => { char => 'undolist',  func => \&ex_undolist,   type => C_EX },
      undol     => { char => 'undol',     func => \&ex_undolist,   type => C_EX },
+     map       => { char => 'map',       func => \&ex_map,        type => C_EX },
     };
 
 # MAPPINGS
@@ -1526,9 +1541,113 @@ sub ex_undolist {
     _print_undo_buffer();
 }
 
+sub ex_map {
+    my ($arg_str) = @_;
+
+    # :map {lhs} {rhs}
+    if ($arg_str =~ /^map (\S+) (\S+)$/) {
+        my $lhs = _parse_mapping($1);
+        my $rhs = $2;
+
+        if (not defined $lhs) {
+            return _warn_ex('map', 'invalid {lhs}');
+        }
+
+        # Add new mapping.
+        my $command;
+        if (index($rhs, ':') == 0) {
+            $rhs = substr $rhs, 1;
+            if (not exists $commands_ex->{$rhs}) {
+                return _warn_ex('map', "$2 not found");
+            } else {
+                $command = $commands_ex->{$rhs};
+            }
+        } else {
+            $rhs = _parse_mapping($2);
+            if (not defined $rhs) {
+                return _warn_ex('map', 'invalid {rhs}');
+            } elsif (not exists $commands->{$rhs}) {
+                return _warn_ex('map', "$2 not found");
+            } else {
+                $command = $commands->{$rhs};
+            }
+        }
+        add_map($lhs, $command);
+
+    # :map
+    } elsif ($arg_str eq 'map') {
+        my $active_window = Irssi::active_win();
+        foreach my $key (sort keys %$maps) {
+            my $map = $maps->{$key};
+            my $cmd = $map->{cmd};
+            if (defined $map->{char}) {
+                my $char = _parse_mapping_reverse($map->{char});
+                next if $char eq $cmd->{char}; # skip default mappings
+
+                my $cmdc = _parse_mapping_reverse($cmd->{char});
+                if ($cmd->{type} == C_EX) {
+                    $cmdc = ":$cmdc";
+                }
+                $active_window->print(sprintf "%-15s %s", $char, $cmdc);
+            }
+        }
+    } else {
+        _warn_ex('map');
+    }
+}
+sub _parse_mapping {
+    my ($string) = @_;
+
+    $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
+    if (index($string, '<invalid>') != -1) {
+        return undef;
+    }
+    return $string;
+}
+sub _parse_mapping_bracket {
+    my ($string) = @_;
+
+    $string = lc $string;
+
+    # <C-X>, get corresponding CTRL char.
+    if ($string =~ /^c-([a-z])$/i) {
+        $string = chr(ord($1) - 96);
+    # <C-6> and <C-^>
+    } elsif ($string =~ /^c-[6^]$/i) {
+        $string = chr(30);
+    # <Space>
+    } elsif ($string eq 'space') {
+        $string = ' ';
+    # <CR>
+    } elsif ($string eq 'cr') {
+        $string = "\n";
+    # Invalid char, return special string to recognize the error.
+    } else {
+        $string = '<invalid>';
+    }
+    return $string;
+}
+sub _parse_mapping_reverse {
+    my ($string) = @_;
+
+    # Convert char to <char-name>.
+    $string =~ s/ /<Space>/g;
+    $string =~ s/\n/<CR>/g;
+    # Convert Ctrl-X to <C-X>.
+    $string =~ s/([\x01-\x1A])/"<C-" . chr(ord($1) + 64) . ">"/ge;
+    # Convert Ctrl-6 and Ctrl-^ to <C-^>.
+    $string =~ s/\x1E/<C-^>/g;
+
+    return $string;
+}
+
 sub _warn_ex {
-    my ($command) = @_;
-    _warn("Error in ex-mode command $command");
+    my ($command, $description) = @_;
+    my $message = "Error in ex-mode command $command";
+    if (defined $description) {
+        $message .= ": $description";
+    }
+    _warn($message);
 }
 
 sub _matching_windows {
