@@ -359,26 +359,26 @@ my $commands
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
-     s         => { char => 's',         func => \&ex_substitute, type => C_EX },
-     bnext     => { char => 'bnext',     func => \&ex_bnext,      type => C_EX },
-     bn        => { char => 'bn',        func => \&ex_bnext,      type => C_EX },
-     bprev     => { char => 'bprev',     func => \&ex_bprev,      type => C_EX },
-     bp        => { char => 'bp',        func => \&ex_bprev,      type => C_EX },
-     bdelete   => { char => 'bdelete',   func => \&ex_bdelete,    type => C_EX },
-     bd        => { char => 'bd',        func => \&ex_bdelete,    type => C_EX },
-     buffer    => { char => 'buffer',    func => \&ex_buffer,     type => C_EX },
-     b         => { char => 'b',         func => \&ex_buffer,     type => C_EX },
-     registers => { char => 'registers', func => \&ex_registers,  type => C_EX },
-     reg       => { char => 'reg',       func => \&ex_registers,  type => C_EX },
-     display   => { char => 'display',   func => \&ex_registers,  type => C_EX },
-     di        => { char => 'di',        func => \&ex_registers,  type => C_EX },
-     buffers   => { char => 'buffer',    func => \&ex_buffers,    type => C_EX },
-     ls        => { char => 'ls',        func => \&ex_buffers,    type => C_EX },
-     undolist  => { char => 'undolist',  func => \&ex_undolist,   type => C_EX },
-     undol     => { char => 'undol',     func => \&ex_undolist,   type => C_EX },
-     map       => { char => 'map',       func => \&ex_map,        type => C_EX },
-     source    => { char => 'source',    func => \&ex_source,     type => C_EX },
-     so        => { char => 'so',        func => \&ex_source,     type => C_EX },
+     s         => { char => ':s',         func => \&ex_substitute, type => C_EX },
+     bnext     => { char => ':bnext',     func => \&ex_bnext,      type => C_EX },
+     bn        => { char => ':bn',        func => \&ex_bnext,      type => C_EX },
+     bprev     => { char => ':bprev',     func => \&ex_bprev,      type => C_EX },
+     bp        => { char => ':bp',        func => \&ex_bprev,      type => C_EX },
+     bdelete   => { char => ':bdelete',   func => \&ex_bdelete,    type => C_EX },
+     bd        => { char => ':bd',        func => \&ex_bdelete,    type => C_EX },
+     buffer    => { char => ':buffer',    func => \&ex_buffer,     type => C_EX },
+     b         => { char => ':b',         func => \&ex_buffer,     type => C_EX },
+     registers => { char => ':registers', func => \&ex_registers,  type => C_EX },
+     reg       => { char => ':reg',       func => \&ex_registers,  type => C_EX },
+     display   => { char => ':display',   func => \&ex_registers,  type => C_EX },
+     di        => { char => ':di',        func => \&ex_registers,  type => C_EX },
+     buffers   => { char => ':buffer',    func => \&ex_buffers,    type => C_EX },
+     ls        => { char => ':ls',        func => \&ex_buffers,    type => C_EX },
+     undolist  => { char => ':undolist',  func => \&ex_undolist,   type => C_EX },
+     undol     => { char => ':undol',     func => \&ex_undolist,   type => C_EX },
+     map       => { char => ':map',       func => \&ex_map,        type => C_EX },
+     source    => { char => ':source',    func => \&ex_source,     type => C_EX },
+     so        => { char => ':so',        func => \&ex_source,     type => C_EX },
     };
 
 # MAPPINGS
@@ -1613,12 +1613,8 @@ sub ex_map {
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
-
-                my $cmdc = $cmd->{char};
-                if ($cmd->{type} == C_EX) {
-                    $cmdc = ":$cmdc";
-                }
-                $active_window->print(sprintf "%-15s %s", $map->{char}, $cmdc);
+                $active_window->print(sprintf "%-15s %s", $map->{char},
+                                                          $cmd->{char});
             }
         }
     } else {
