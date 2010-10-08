@@ -73,6 +73,10 @@
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
+# * Substitute:        :s/// - i and g are supported as flags, only /// can be
+#                              used as separator, uses Perl regex instead of
+#                              Vim regex
+#
 #
 # Mappings:
 #
