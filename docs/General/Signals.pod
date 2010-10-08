@@ -1606,6 +1606,12 @@ B<Requires to work properly:>
 
 =back
 
+This signal is called multiple times for a given print operation, in a fashion
+similar to run-length coding.  A single line of printed output which varies in
+colour may emit this signal multiple times, once for each colour change.  The
+C<$fg>, C<$bg>, and C<$flags> contain the formatting information for C<$text>.
+
+
 =item C<"gui print text finished">
 
 =over

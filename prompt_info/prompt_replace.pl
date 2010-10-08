@@ -130,7 +130,6 @@ sub init {
     Irssi::signal_add('change prompt' => \&change_prompt_sig);
 
     Irssi::signal_register({'prompt changed' => [qw/string int/]});
-
 }
 
 sub change_prompt_sig {
@@ -195,6 +194,7 @@ sub uberprompt_draw {
     my $ret = $sb_item->default_handler($get_size_only, $p_copy, '', 0);
 
     Irssi::signal_emit('prompt changed', $p_copy, $sb_item->{size});
+
     return $ret;
 }
 
