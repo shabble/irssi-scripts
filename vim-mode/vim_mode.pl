@@ -73,7 +73,7 @@
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
-# * Save mappings:     :mkv[imrc] - like in Vim, but [file] not supported
+# * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
 #                              Vim regex
@@ -1704,10 +1704,12 @@ sub ex_source {
 }
 
 sub ex_mkvimrc {
-    # :mkv[imrc], [file] not supported
+    my ($arg_str) = @_;
+
+    # :mkv[imrc][!], [file] not supported
 
     my $vim_moderc = Irssi::get_irssi_dir(). '/vim_moderc';
-    if (-f $vim_moderc) {
+    if (-f $vim_moderc and $arg_str !~ /^mkv(?:imrc)?!$/) {
         return _warn_ex('mkvimrc', "$vim_moderc already exists");
     }
 
