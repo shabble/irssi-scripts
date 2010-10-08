@@ -82,14 +82,15 @@
 #
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode and irssi commands
-# is supported. Only default mappings can be used in {rhs}.
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
+# commands is supported. Only default mappings can be used in {rhs}.
 # Examples:
 #     :map w  W      # to remap w to work like W
 #     :map gb :bnext # to map gb to call :bnext
 #     :map gB :bprev
 #     :map <C-L> /clear # map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
+#     :map <C-E> <Nop> - disable <C-E>, it does nothing now
 #
 #
 # The following irssi settings are available:
@@ -243,6 +244,8 @@ sub C_INSERT () { 4 }
 sub C_EX () { 5 }
 # irssi commands
 sub C_IRSSI () { 6 }
+# does nothing
+sub C_NOP () { 7 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -1598,6 +1601,12 @@ sub ex_map {
                          func => substr($rhs, 1),
                          type => C_IRSSI,
                        };
+        # <Nop> does nothing
+        } elsif (lc $rhs eq '<nop>') {
+            $command = { char => '<Nop>',
+                         func => undef,
+                         type => C_NOP,
+                       };
         # command-mode command
         } else {
             $rhs = _parse_mapping($2);
@@ -2043,6 +2052,10 @@ sub handle_command_cmd {
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
         Irssi::command($cmd->{func});
+        return 1; # call _stop();
+    # <Nop> does nothing.
+    } elsif ($cmd->{type} == C_NOP) {
+        print "Processing <Nop>: $map->{char}" if DEBUG;
         return 1; # call _stop();
     }
 
