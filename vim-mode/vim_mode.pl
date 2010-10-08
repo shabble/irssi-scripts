@@ -156,6 +156,7 @@
 # Known bugs:
 #
 # * count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+# * undo/redo positions are mostly wrong
 #
 #
 # TODO:
