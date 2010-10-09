@@ -67,7 +67,7 @@ use Data::Dumper;
 
 
 
-our $VERSION = "0.1";
+our $VERSION = "0.2";
 our %IRSSI =
   (
    authors         => "shabble",
@@ -83,7 +83,7 @@ sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
 my $prompt_data = undef;
-my $prompt_item = undef;
+#my $prompt_item = undef;
 
 my $prompt_format = '';
 
@@ -126,6 +126,16 @@ sub init {
     # this event to be notified when the prompt changes.
     # arguments are new contents (string), new length (int)
     Irssi::signal_register({'prompt changed' => [qw/string int/]});
+    if (DEBUG) {
+        Irssi::signal_add 'prompt changed', \&debug_prompt_changed;
+    }
+}
+
+sub debug_prompt_changed {
+    my ($text, $len) = @_;
+    my $exp = Irssi::current_theme()->format_expand($text, 0);
+    my $ps = Irssi::parse_special($exp);
+    print "DEBUG: Got $text = $exp = $ps, length: $len";
 }
 
 sub change_prompt_sig {
@@ -191,8 +201,6 @@ sub uberprompt_draw {
     }
 
     print "Redrawing with: $p_copy, size-only: $get_size_only" if DEBUG;
-
-    $prompt_item = $sb_item;
 
     my $ret = $sb_item->default_handler($get_size_only, $p_copy, '', 0);
     # TODO: do this properly, and also make sure it's only emitted once per
