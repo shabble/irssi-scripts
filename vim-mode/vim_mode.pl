@@ -271,11 +271,14 @@ my $commands
       l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
      ' ' => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
-     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
-     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
-     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL },
+     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
+             no_operator => 1 },
+     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
+             no_operator => 1 },
+     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
+             no_operator => 1 },
      G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
-             needs_count => 1 },
+             needs_count => 1, no_operator => 1 },
      # char movement, take an additional parameter and use $movement
       f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
               selection_needs_move_right => 1 },
@@ -307,58 +310,71 @@ my $commands
      '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
      # delete chars
      x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      X => { char => 'X', func => \&cmd_X, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
+          # C_NORMAL is correct, operator c takes care of insert mode
      s => { char => 's', func => \&cmd_s, type => C_NORMAL,
-            repeatable => 1 }, # operator c takes care of insert mode
+            repeatable => 1, no_operator => 1 },
+          # C_NORMAL is correct, operator c takes care of insert mode
      S => { char => 'S', func => \&cmd_S, type => C_NORMAL,
-            repeatable => 1 }, # operator c takes care of insert mode
+            repeatable => 1, no_operator => 1 },
      # insert mode
      i => { char => 'i', func => \&cmd_i, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      I => { char => 'I', func => \&cmd_I, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      a => { char => 'a', func => \&cmd_a, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      A => { char => 'A', func => \&cmd_A, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # replace
      r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # paste
      p => { char => 'p', func => \&cmd_p, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      P => { char => 'P', func => \&cmd_P, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # to end of line
      C => { char => 'C', func => \&cmd_C, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # scrolling
-     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL },
+     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL,
+                 no_operator => 1 },
      "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
-                 needs_count => 1 },
-     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL },
+                 needs_count => 1, no_operator => 1 },
+     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL,
+                 no_operator => 1 },
      "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
-                 needs_count => 1 },
-     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL },
-     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL },
+                 needs_count => 1, no_operator => 1 },
+     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
+                 no_operator => 1 },
+     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
+                 no_operator => 1 },
      # window switching
-     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
-     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
-     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
+     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL,
+                  no_operator => 1 },
      # misc
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
-               repeatable => 1 },
-     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY },
-     '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
+               repeatable => 1, no_operator => 1 },
+     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
+               no_operator => 1 },
+     '.'  => { char => '.', type => C_NORMAL, repeatable => 1,
+               no_operator => 1 },
      ':'  => { char => ':', type => C_NORMAL },
      "\n" => { char => '<CR>', type => C_NORMAL }, # return
      # undo
-     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL },
-     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL },
+     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL,
+                 no_operator => 1 },
+     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL,
+                 no_operator => 1 },
     };
 
 # All available commands in Ex-Mode.
@@ -2172,6 +2188,13 @@ sub handle_command_cmd {
                 print '. pressed but $last->{char} not set' if DEBUG;
                 $skip = 1;
             }
+        }
+
+        # Ignore invalid operator/command combinations.
+        if ($operator and $cmd->{no_operator}) {
+            print "Invalid operator/command: $operator->{char} $cmd->{char}"
+                if DEBUG;
+            $skip = 1;
         }
 
         if ($skip) {
