@@ -73,6 +73,7 @@
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
+#                      :unm[ap] {lhs}   - remove custom mapping
 # * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
@@ -92,6 +93,7 @@
 #     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
+#     :unmap <C-E>     - restore default behavior of <C-E> after disabling it
 #
 #
 # The following irssi settings are available:
@@ -398,6 +400,8 @@ my $commands_ex
      undolist  => { char => ':undolist',  func => \&ex_undolist,   type => C_EX },
      undol     => { char => ':undol',     func => \&ex_undolist,   type => C_EX },
      map       => { char => ':map',       func => \&ex_map,        type => C_EX },
+     unmap     => { char => ':unmap',     func => \&ex_unmap,      type => C_EX },
+     unm       => { char => ':unm',       func => \&ex_unmap,      type => C_EX },
      source    => { char => ':source',    func => \&ex_source,     type => C_EX },
      so        => { char => ':so',        func => \&ex_source,     type => C_EX },
      mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,    type => C_EX },
@@ -1657,6 +1661,25 @@ sub ex_map {
         _warn_ex('map');
     }
 }
+sub ex_unmap {
+    my ($arg_str) = @_;
+
+    # :unm[ap] {lhs}
+    if ($arg_str !~ /^unm(?:ap)? (\S+)$/) {
+        return _warn_ex('unmap');
+    }
+
+    my $lhs = _parse_mapping($1);
+    if (not defined $lhs) {
+        return _warn_ex('unmap', 'invalid {lhs}');
+    # Prevent unmapping of unknown or default mappings.
+    } elsif (not exists $maps->{$lhs} or not defined $maps->{$lhs}->{cmd} or
+             ($commands->{$lhs} and $maps->{$lhs}->{cmd} == $commands->{$lhs})) {
+        return _warn_ex('unmap', "$1 not found");
+    }
+
+    delete_map($lhs);
+}
 sub _parse_mapping {
     my ($string) = @_;
 
@@ -2484,6 +2507,45 @@ sub add_map {
     }
     $maps->{$keys}->{char} = _parse_mapping_reverse($keys);
     $maps->{$keys}->{cmd} = $command;
+}
+sub delete_map {
+    my ($keys) = @_;
+
+    # Abort for non-existent mappings or placeholder mappings.
+    return if not exists $maps->{$keys} or not defined $maps->{$keys}->{cmd};
+
+    my @add = ();
+
+    # If no maps need the current key, then remove it and all other
+    # unnecessary keys in the "tree".
+    if (keys %{$maps->{$keys}->{maps}} == 0) {
+        my $tmp = $keys;
+        while (length $tmp > 1) {
+            my $map = substr $tmp, -1, 1, '';
+            delete $maps->{$tmp}->{maps}->{$tmp . $map};
+            if (not $maps->{$tmp}->{cmd} and keys %{$maps->{$tmp}->{maps}} == 0) {
+                push @add, $tmp;
+                delete $maps->{$tmp};
+            } else {
+                last;
+            }
+        }
+    }
+
+    if (keys %{$maps->{$keys}->{maps}} > 0) {
+        $maps->{$keys}->{cmd} = undef;
+    } else {
+        delete $maps->{$keys};
+    }
+    push @add, $keys;
+
+    # Restore default keybindings in case we :unmaped a <Nop> or a remapped
+    # key.
+    foreach my $key (@add) {
+        if (exists $commands->{$key}) {
+            add_map($key, $commands->{$key});
+        }
+    }
 }
 
 
