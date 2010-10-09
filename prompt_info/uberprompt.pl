@@ -61,6 +61,11 @@ sub init {
     # the actual API signal.
     Irssi::signal_register({'change prompt' => [qw/string/]});
     Irssi::signal_add('change prompt' => \&change_prompt_sig);
+
+    # other scripts (specifically overlay/visual) can subscribe to
+    # this event to be notified when the prompt changes.
+    # arguments are new contents (string), new length (int)
+    Irssi::signal_register({'prompt changed' => [qw/string int/]});
 }
 
 sub change_prompt_sig {
@@ -104,7 +109,7 @@ sub uberprompt_draw {
     my $window = Irssi::active_win;
 
     # hack to produce the same defaults as prompt/prompt_empty sbars.
-
+    print Dumper($sb_item);
     if (scalar( () = $window->items )) {
         $default_prompt = '{uberprompt $[.15]itemname}';
     } else {
@@ -115,19 +120,21 @@ sub uberprompt_draw {
 
     if (defined $prompt_data) {
         # replace the special marker '$p' with the original prompt.
-        $p_copy =~ s/\$p/$default_prompt/;
+        $p_copy =~ s/\$/\$\$/g; # escape all $ symbols
+        $p_copy =~ s/\\/\\\\/g; # escape backslashes.
+
+        $p_copy =~ s/\$\$p/$default_prompt/;
+
     } else {
         $p_copy = $default_prompt;
     }
-    $p_copy =~ s/\$/\$\$/g; # escape all $ symbols
-    $p_copy =~ s/\\/\\\\/g; # escape backslashes.
 
     print "Redrawing with: $p_copy, size-only: $get_size_only" if DEBUG;
 
     $prompt_item = $sb_item;
 
     my $ret = $sb_item->default_handler($get_size_only, $p_copy, '', 0);
-
+    #Irssi::signal_emit('prompt changed', 
     return $ret;
 }
 
