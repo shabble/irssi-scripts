@@ -24,6 +24,18 @@
 # /prompt off   - restore the original irssi prompt and prompt_empty statusbars.
 #                 unloading the script has the same effect.
 #
+# Additionally, the format for the prompt can be set via:
+#
+# /set uberprompt_format <format>
+#
+# The default is [$*], which is the same as the default provided in default.theme.
+# Changing this setting will update the prompt immediately, unlike editing your theme.
+#
+# NOTE: this setting completely overrides the prompt="..." line in your .theme
+#       file, and may cause unexpected behaviour if your theme wishes to set a
+#       different form of prompt. It can be simply copied from the theme file into
+#       the above setting.
+#
 # Usage from other Scripts:
 #
 # signal_emit 'change prompt' 'some_string $p other string';
