@@ -67,12 +67,14 @@
 #                      :bp[rev] - switch to previous window
 # * Close window:      :bd[elete]
 # * Display windows:   :ls :buffers
-# * Display registers: :reg[isters] :di[splay] {args}
+# * Display registers: :reg[isters] {args} :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
 # * Source files       :so[urce] - only sources vim_moderc at the moment,
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs} {rhs} - add mapping
+#                      :unm[ap] {lhs}   - remove custom mapping
+# * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
 #                              Vim regex
@@ -82,14 +84,16 @@
 #
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>. Mapping ex-mode and irssi commands
-# is supported. Only default mappings can be used in {rhs}.
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
+# commands is supported. Only default mappings can be used in {rhs}.
 # Examples:
-#     :map w  W      # to remap w to work like W
-#     :map gb :bnext # to map gb to call :bnext
+#     :map w  W      - to remap w to work like W
+#     :map gb :bnext - to map gb to call :bnext
 #     :map gB :bprev
-#     :map <C-L> /clear # map Ctrl-L to irssi command /clear
+#     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
+#     :map <C-E> <Nop> - disable <C-E>, it does nothing now
+#     :unmap <C-E>     - restore default behavior of <C-E> after disabling it
 #
 #
 # The following irssi settings are available:
@@ -243,6 +247,8 @@ sub C_INSERT () { 4 }
 sub C_EX () { 5 }
 # irssi commands
 sub C_IRSSI () { 6 }
+# does nothing
+sub C_NOP () { 7 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -265,13 +271,16 @@ my $commands
      # arrow like movement
       h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
       l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<Space>', func => \&cmd_space, type => C_NORMAL },
+     ' ' => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
-     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
-     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
-     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL },
+     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
+             no_operator => 1 },
+     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
+             no_operator => 1 },
+     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
+             no_operator => 1 },
      G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
-             needs_count => 1 },
+             needs_count => 1, no_operator => 1 },
      # char movement, take an additional parameter and use $movement
       f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
               selection_needs_move_right => 1 },
@@ -303,58 +312,71 @@ my $commands
      '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
      # delete chars
      x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      X => { char => 'X', func => \&cmd_X, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
+          # C_NORMAL is correct, operator c takes care of insert mode
      s => { char => 's', func => \&cmd_s, type => C_NORMAL,
-            repeatable => 1 }, # operator c takes care of insert mode
+            repeatable => 1, no_operator => 1 },
+          # C_NORMAL is correct, operator c takes care of insert mode
      S => { char => 'S', func => \&cmd_S, type => C_NORMAL,
-            repeatable => 1 }, # operator c takes care of insert mode
+            repeatable => 1, no_operator => 1 },
      # insert mode
      i => { char => 'i', func => \&cmd_i, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      I => { char => 'I', func => \&cmd_I, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      a => { char => 'a', func => \&cmd_a, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      A => { char => 'A', func => \&cmd_A, type => C_INSERT,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # replace
      r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # paste
      p => { char => 'p', func => \&cmd_p, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      P => { char => 'P', func => \&cmd_P, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # to end of line
      C => { char => 'C', func => \&cmd_C, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
-            repeatable => 1 },
+            repeatable => 1, no_operator => 1 },
      # scrolling
-     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL },
+     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL,
+                 no_operator => 1 },
      "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
-                 needs_count => 1 },
-     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL },
+                 needs_count => 1, no_operator => 1 },
+     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL,
+                 no_operator => 1 },
      "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
-                 needs_count => 1 },
-     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL },
-     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL },
+                 needs_count => 1, no_operator => 1 },
+     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
+                 no_operator => 1 },
+     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
+                 no_operator => 1 },
      # window switching
-     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL },
-     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL },
-     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL },
+     "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x17k" => { char => '<C-W>k', func => \&cmd_ctrl_wk, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL,
+                  no_operator => 1 },
      # misc
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
-               repeatable => 1 },
-     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY },
-     '.'  => { char => '.', type => C_NORMAL, repeatable => 1 },
+               repeatable => 1, no_operator => 1 },
+     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
+               no_operator => 1 },
+     '.'  => { char => '.', type => C_NORMAL, repeatable => 1,
+               no_operator => 1 },
      ':'  => { char => ':', type => C_NORMAL },
      "\n" => { char => '<CR>', type => C_NORMAL }, # return
      # undo
-     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL },
-     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL },
+     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL,
+                 no_operator => 1 },
+     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL,
+                 no_operator => 1 },
     };
 
 # All available commands in Ex-Mode.
@@ -378,8 +400,12 @@ my $commands_ex
      undolist  => { char => ':undolist',  func => \&ex_undolist,   type => C_EX },
      undol     => { char => ':undol',     func => \&ex_undolist,   type => C_EX },
      map       => { char => ':map',       func => \&ex_map,        type => C_EX },
+     unmap     => { char => ':unmap',     func => \&ex_unmap,      type => C_EX },
+     unm       => { char => ':unm',       func => \&ex_unmap,      type => C_EX },
      source    => { char => ':source',    func => \&ex_source,     type => C_EX },
      so        => { char => ':so',        func => \&ex_source,     type => C_EX },
+     mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,    type => C_EX },
+     mkv       => { char => ':mkv',       func => \&ex_mkvimrc,    type => C_EX },
     };
 
 # MAPPINGS
@@ -620,10 +646,6 @@ sub cmd_l {
     $pos += $count;
     $pos = _fix_input_pos($pos, $length);
     return (undef, $pos);
-}
-sub cmd_space {
-    my ($count, $pos, $repeat) = @_;
-    return cmd_l($count, $pos);
 }
 
 # later history (down)
@@ -1514,10 +1536,16 @@ sub ex_buffer {
             Irssi::command('window last');
         # Go to best regex matching window.
         } else {
-            my $matches = _matching_windows($buffer);
-            if (scalar @$matches > 0) {
-                $window = @$matches[0]->{window};
-                $item = @$matches[0]->{item};
+            eval {
+                my $matches = _matching_windows($buffer);
+                if (scalar @$matches > 0) {
+                    $window = @$matches[0]->{window};
+                    $item = @$matches[0]->{item};
+                }
+            };
+            # Catch errors in /$buffer/ regex.
+            if ($@) {
+                _warn($@);
             }
         }
 
@@ -1598,6 +1626,12 @@ sub ex_map {
                          func => substr($rhs, 1),
                          type => C_IRSSI,
                        };
+        # <Nop> does nothing
+        } elsif (lc $rhs eq '<nop>') {
+            $command = { char => '<Nop>',
+                         func => undef,
+                         type => C_NOP,
+                       };
         # command-mode command
         } else {
             $rhs = _parse_mapping($2);
@@ -1626,6 +1660,25 @@ sub ex_map {
     } else {
         _warn_ex('map');
     }
+}
+sub ex_unmap {
+    my ($arg_str) = @_;
+
+    # :unm[ap] {lhs}
+    if ($arg_str !~ /^unm(?:ap)? (\S+)$/) {
+        return _warn_ex('unmap');
+    }
+
+    my $lhs = _parse_mapping($1);
+    if (not defined $lhs) {
+        return _warn_ex('unmap', 'invalid {lhs}');
+    # Prevent unmapping of unknown or default mappings.
+    } elsif (not exists $maps->{$lhs} or not defined $maps->{$lhs}->{cmd} or
+             ($commands->{$lhs} and $maps->{$lhs}->{cmd} == $commands->{$lhs})) {
+        return _warn_ex('unmap', "$1 not found");
+    }
+
+    delete_map($lhs);
 }
 sub _parse_mapping {
     my ($string) = @_;
@@ -1689,6 +1742,31 @@ sub ex_source {
             _warn_ex('source', "command not supported: $line");
         }
     }
+}
+
+sub ex_mkvimrc {
+    my ($arg_str) = @_;
+
+    # :mkv[imrc][!], [file] not supported
+
+    my $vim_moderc = Irssi::get_irssi_dir(). '/vim_moderc';
+    if (-f $vim_moderc and $arg_str !~ /^mkv(?:imrc)?!$/) {
+        return _warn_ex('mkvimrc', "$vim_moderc already exists");
+    }
+
+    open my $file, '>', $vim_moderc or return;
+
+    # copied from ex_map()
+    foreach my $key (sort keys %$maps) {
+        my $map = $maps->{$key};
+        my $cmd = $map->{cmd};
+        if (defined $cmd) {
+            next if $map->{char} eq $cmd->{char}; # skip default mappings
+            print $file "map $map->{char} $cmd->{char}\n";
+        }
+    }
+
+    close $file;
 }
 
 sub _warn_ex {
@@ -1794,8 +1872,14 @@ sub b_windows_cb {
         my $buffer = $1;
         if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
             # Display matching windows.
-            my $matches = _matching_windows($buffer);
-            $windows = join ',', map { $_->{text} } @$matches;
+            eval {
+                my $matches = _matching_windows($buffer);
+                $windows = join ',', map { $_->{text} } @$matches;
+            };
+            # Catch errors in /$buffer/ regex.
+            if ($@) {
+                _warn($@);
+            }
         }
     }
 
@@ -2037,12 +2121,16 @@ sub handle_command_cmd {
     # ex-mode command doesn't need any additional arguments.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-        $cmd->{func}->($cmd->{char});
+        $cmd->{func}->(substr $cmd->{char}, 1);
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
         Irssi::command($cmd->{func});
+        return 1; # call _stop();
+    # <Nop> does nothing.
+    } elsif ($cmd->{type} == C_NOP) {
+        print "Processing <Nop>: $map->{char}" if DEBUG;
         return 1; # call _stop();
     }
 
@@ -2123,6 +2211,13 @@ sub handle_command_cmd {
                 print '. pressed but $last->{char} not set' if DEBUG;
                 $skip = 1;
             }
+        }
+
+        # Ignore invalid operator/command combinations.
+        if ($operator and $cmd->{no_operator}) {
+            print "Invalid operator/command: $operator->{char} $cmd->{char}"
+                if DEBUG;
+            $skip = 1;
         }
 
         if ($skip) {
@@ -2412,6 +2507,45 @@ sub add_map {
     }
     $maps->{$keys}->{char} = _parse_mapping_reverse($keys);
     $maps->{$keys}->{cmd} = $command;
+}
+sub delete_map {
+    my ($keys) = @_;
+
+    # Abort for non-existent mappings or placeholder mappings.
+    return if not exists $maps->{$keys} or not defined $maps->{$keys}->{cmd};
+
+    my @add = ();
+
+    # If no maps need the current key, then remove it and all other
+    # unnecessary keys in the "tree".
+    if (keys %{$maps->{$keys}->{maps}} == 0) {
+        my $tmp = $keys;
+        while (length $tmp > 1) {
+            my $map = substr $tmp, -1, 1, '';
+            delete $maps->{$tmp}->{maps}->{$tmp . $map};
+            if (not $maps->{$tmp}->{cmd} and keys %{$maps->{$tmp}->{maps}} == 0) {
+                push @add, $tmp;
+                delete $maps->{$tmp};
+            } else {
+                last;
+            }
+        }
+    }
+
+    if (keys %{$maps->{$keys}->{maps}} > 0) {
+        $maps->{$keys}->{cmd} = undef;
+    } else {
+        delete $maps->{$keys};
+    }
+    push @add, $keys;
+
+    # Restore default keybindings in case we :unmaped a <Nop> or a remapped
+    # key.
+    foreach my $key (@add) {
+        if (exists $commands->{$key}) {
+            add_map($key, $commands->{$key});
+        }
+    }
 }
 
 
