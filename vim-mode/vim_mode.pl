@@ -2066,8 +2066,8 @@ sub handle_command_cmd {
     }
 
     # Counts
-    if (!$movement and ($char =~ m/[1-9]/ or
-                        ($numeric_prefix && $char =~ m/[0-9]/))) {
+    if (!$movement and !$pending_map and
+        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
         return 1; # call _stop()
