@@ -1,3 +1,63 @@
+# This script replaces the default prompt status-bar item with one capable
+# of displaying additional information, under either user control or via
+# scripts.
+#
+# Installation:
+#
+# Place script in ~/.irssi/scripts/ and potentially symlink into autorun/
+# to ensure it starts at irssi startup.
+#
+# If not using autorun, manually load the script via:
+#
+# /script load uberprompt.pl
+#
+# Usage:
+#
+# Although the script is designed primarily for other scripts to set
+# status information into the prompt, the following commands are available:
+#
+# /prompt set   - sets the prompt to the given argument. $p in the argument will
+#                 be replaced by the original prompt content.
+# /prompt clear - clears the additional data provided to the prompt.
+# /prompt on    - enables the uberprompt (things may get confused if this is used
+#                 whilst the prompt is already enabled)
+# /prompt off   - restore the original irssi prompt and prompt_empty statusbars.
+#                 unloading the script has the same effect.
+#
+# Usage from other Scripts:
+#
+# signal_emit 'change prompt' 'some_string $p other string';
+#
+# will set the prompt to include that content.
+#
+# You can also be notified when the prompt changes in response to the previous
+# signal or manual commands via:
+#
+# signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
+#
+# LICENCE:
+#
+# Copyright (c) 2010 Tom Feist
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+
 use strict;
 use warnings;
 
@@ -15,7 +75,7 @@ our %IRSSI =
    name            => "prompt_info",
    description     => "Helper script for dynamically adding text "
    . "into the input-bar prompt.",
-   license         => "Public Domain",
+   license         => "MIT",
    changed         => "24/7/2010"
   );
 
@@ -108,8 +168,9 @@ sub uberprompt_draw {
 
     my $window = Irssi::active_win;
 
+    #print Dumper($sb_item);
+
     # hack to produce the same defaults as prompt/prompt_empty sbars.
-    print Dumper($sb_item);
     if (scalar( () = $window->items )) {
         $default_prompt = '{uberprompt $[.15]itemname}';
     } else {
@@ -134,7 +195,11 @@ sub uberprompt_draw {
     $prompt_item = $sb_item;
 
     my $ret = $sb_item->default_handler($get_size_only, $p_copy, '', 0);
-    #Irssi::signal_emit('prompt changed', 
+    # TODO: do this properly, and also make sure it's only emitted once per
+    # change.
+
+    Irssi::signal_emit('prompt changed', $p_copy, $sb_item->{size});
+
     return $ret;
 }
 
