@@ -34,11 +34,8 @@
 - support :map gX iINSERT TEXT<ESC> and similar stuff (suggested by estragib)
 - it would be nice if :ls somehow indicated current and alternate buffer
   (maybe activity too?) (suggested by estragib)
-- add :mkvimrc to write mappings to .irssi/vim_moderc, suggested by estragib
 - < estragib> oh, i can't map \<something> either
   < estragib> hehe, definitely something to do with escaping. \\ prints \
-- "-- more --" isn't removed when scrolling down with command-mode scroll
-  commands
 - < estragib> there's a minimal difference to vim when yanking with yB:
               abc def ghi jkl<ESC>bhyBP
   < estragib> vim     : abc def ghighi jkl
