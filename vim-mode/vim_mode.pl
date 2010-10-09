@@ -269,7 +269,7 @@ my $commands
      # arrow like movement
       h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
       l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<Space>', func => \&cmd_space, type => C_NORMAL },
+     ' ' => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
      j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL },
      k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL },
@@ -626,10 +626,6 @@ sub cmd_l {
     $pos += $count;
     $pos = _fix_input_pos($pos, $length);
     return (undef, $pos);
-}
-sub cmd_space {
-    my ($count, $pos, $repeat) = @_;
-    return cmd_l($count, $pos);
 }
 
 # later history (down)
