@@ -2064,6 +2064,7 @@ sub flush_pending_map {
               $pending_map ne $old_pending_map;
 
     handle_command_cmd(undef);
+    Irssi::statusbar_items_redraw("vim_mode");
 }
 
 sub handle_numeric_prefix {
