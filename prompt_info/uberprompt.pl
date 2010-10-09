@@ -83,12 +83,10 @@ sub DEBUG () { 1 }
 #sub DEBUG () { 0 }
 
 my $prompt_data = undef;
-#my $prompt_item = undef;
 
 my $prompt_format = '';
 
 init();
-
 
 sub prompt_subcmd_handler {
     my ($data, $server, $item) = @_;
@@ -211,18 +209,9 @@ sub uberprompt_draw {
     return $ret;
 }
 
-
 sub uberprompt_refresh {
     Irssi::statusbar_items_redraw('uberprompt');
 }
-
-
-sub cmd_clear_visual {
-    _clear_visual_region();
-    #refresh_visual_overlay();
-    Irssi::statusbar_items_redraw('input');
-}
-
 
 sub replace_prompt_items {
     # remove existing ones.
@@ -267,8 +256,6 @@ sub _sbar_command {
     print "Running command: $command" if DEBUG;
     Irssi::command($command);
 }
-
-
 
 # bit of fakery so things don't complain about the lack of prompt_info (hoepfully)
 

@@ -95,6 +95,13 @@ sub init {
 
 
 }
+sub cmd_clear_visual {
+    _clear_visual_region();
+    #refresh_visual_overlay();
+    Irssi::statusbar_items_redraw('input');
+}
+
+
 sub augment_redraw {
     print "Redraw called" if DEBUG;
     uberprompt_refresh();
