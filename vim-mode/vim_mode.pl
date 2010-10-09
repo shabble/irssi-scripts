@@ -92,6 +92,7 @@
 #     :map w  W      - to remap w to work like W
 #     :map gb :bnext - to map gb to call :bnext
 #     :map gB :bprev
+#     :map g1 :b 1   - to map g1 to switch to buffer 1
 #     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
@@ -1616,11 +1617,14 @@ sub ex_map {
         my $command;
         # Ex-mode command
         if (index($rhs, ':') == 0) {
-            $rhs = substr $rhs, 1;
-            if (not exists $commands_ex->{$rhs}) {
-                return _warn_ex('map', "$2 not found");
+            $rhs =~ /^:(\S+)(\s.+)?$/;
+            if (not exists $commands_ex->{$1}) {
+                return _warn_ex('map', "$rhs not found");
             } else {
-                $command = $commands_ex->{$rhs};
+                $command = { char => $rhs,
+                             func => $commands_ex->{$1}->{func},
+                             type => C_EX,
+                           };
             }
         # Irssi command
         } elsif (index($rhs, '/') == 0) {
@@ -2119,8 +2123,7 @@ sub handle_command_cmd {
         return 1; # call _stop()
     }
 
-    # Ex-mode commands can also be bound in command mode. Works only if the
-    # ex-mode command doesn't need any additional arguments.
+    # Ex-mode commands can also be bound in command mode.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
 
