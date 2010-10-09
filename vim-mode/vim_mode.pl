@@ -2137,10 +2137,14 @@ sub handle_command_cmd {
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
         Irssi::command($cmd->{func});
+
+        $numeric_prefix = undef;
         return 1; # call _stop();
     # <Nop> does nothing.
     } elsif ($cmd->{type} == C_NOP) {
         print "Processing <Nop>: $map->{char}" if DEBUG;
+
+        $numeric_prefix = undef;
         return 1; # call _stop();
     }
 
