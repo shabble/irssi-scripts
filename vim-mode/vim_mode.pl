@@ -49,7 +49,9 @@
 # * Switch split windows: Ctrl-W j Ctrl-W k
 # * Undo/Redo: u Ctrl-R
 #
-# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>
+# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>. Counts also
+# work with mapped ex-commands (see below), e.g. if you map gb to do :bn, then
+# 2gb will switch to the second next buffer.
 # Repeat also supports counts.
 #
 # The following insert mode mappings are supported:
@@ -2121,7 +2123,15 @@ sub handle_command_cmd {
     # ex-mode command doesn't need any additional arguments.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-        $cmd->{func}->(substr $cmd->{char}, 1);
+
+        if (not $numeric_prefix) {
+            $numeric_prefix = 1;
+        }
+        while ($numeric_prefix-- > 0) {
+            $cmd->{func}->(substr $cmd->{char}, 1);
+        }
+        $numeric_prefix = undef;
+
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
