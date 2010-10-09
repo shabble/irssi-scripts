@@ -35,6 +35,12 @@
 #
 # signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
 #
+# Bugs:
+#
+# * Resizing the terminal rapidly whilst using this script in debug mode
+#    may cause irssi to crash. See bug report at
+#    http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
+#
 # LICENCE:
 #
 # Copyright (c) 2010 Tom Feist
