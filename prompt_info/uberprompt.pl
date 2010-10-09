@@ -97,8 +97,10 @@ our %IRSSI =
    changed         => "24/7/2010"
   );
 
-sub DEBUG () { 1 }
-#sub DEBUG () { 0 }
+
+my $DEBUG_ENABLED = 0;
+
+sub DEBUG { $DEBUG_ENABLED }
 
 my $prompt_data = undef;
 
@@ -117,6 +119,7 @@ sub init {
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
     Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*] ');
+    Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
 
     Irssi::command_bind("prompt",     \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on',  \&replace_prompt_items);
@@ -179,6 +182,9 @@ sub UNLOAD {
 }
 
 sub reload_settings {
+
+    $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
+
     my $new = Irssi::settings_get_str('uberprompt_format');
     if ($prompt_format ne $new) {
         print "Updated prompt format" if DEBUG;
