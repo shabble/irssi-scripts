@@ -22,7 +22,7 @@
 # * Insert/Command mode. Escape and Ctrl-C enter command mode.
 #   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
 #   can be used as well).
-# * Cursor motion: h l 0 ^ $ <space> f t F T
+# * Cursor motion: h l 0 ^ $ <Space> <BS> f t F T
 # * History motion: j k gg G
 #   gg moves to the oldest (first) history line.
 #   G without a count moves to the current input line, with a count it goes to
