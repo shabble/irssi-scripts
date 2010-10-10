@@ -149,7 +149,7 @@ sub init {
 
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
-    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$* $uber] ');
+    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
 
@@ -172,6 +172,12 @@ sub init {
 
     # intialise the prompt format.
     reload_settings();
+
+    # make sure we redraw when necessary.
+    Irssi::signal_add('window changed',           \&uberprompt_draw);
+    Irssi::signal_add('window name changed',      \&uberprompt_draw);
+    Irssi::signal_add('window changed automatic', \&uberprompt_draw);
+    Irssi::signal_add('window item changed',      \&uberprompt_draw);
 
     # install our statusbars if required.
     if (Irssi::settings_get_bool('uberprompt_autostart')) {
