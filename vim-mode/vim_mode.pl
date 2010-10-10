@@ -74,6 +74,7 @@
 # * Source files       :so[urce] - only sources vim_moderc at the moment,
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
+#                      :map {lhs}       - display mappings starting with {lhs}
 #                      :map {lhs} {rhs} - add mapping
 #                      :unm[ap] {lhs}   - remove custom mapping
 # * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
@@ -1733,14 +1734,18 @@ sub ex_map {
         }
         add_map($lhs, $command);
 
-    # :map
-    } elsif ($arg_str eq 'map') {
+    # :map [lhs]
+    } elsif ($arg_str eq 'map' or $arg_str =~ /^map (\S+)$/) {
+        # Necessary for case insensitive matchings. lc alone won't work.
+        my $search = _parse_mapping_reverse(_parse_mapping($1));
+
         my $active_window = Irssi::active_win();
         foreach my $key (sort keys %$maps) {
             my $map = $maps->{$key};
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
+                next if $map->{char} !~ /^\Q$search\E/; # skip non-matches
                 $active_window->print(sprintf "%-15s %s", $map->{char},
                                                           $cmd->{char});
             }
