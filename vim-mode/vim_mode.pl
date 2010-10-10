@@ -561,7 +561,7 @@ sub insert_ctrl_r {
     my ($key) = @_;
 
     my $char = chr($key);
-    return if not defined $registers->{$char} or not $registers->{$char};
+    return if not defined $registers->{$char} or $registers->{$char} eq '';
 
     my $pos = _insert_at_position($registers->{$char}, 1, _input_pos());
     _input_pos($pos + 1);
@@ -1329,7 +1329,7 @@ sub cmd_P {
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
-    return if not $registers->{$register};
+    return if $registers->{$register} eq '';
     return _insert_at_position($registers->{$register}, $count, $pos);
 }
 
