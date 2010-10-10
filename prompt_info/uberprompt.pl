@@ -2,7 +2,7 @@
 # of displaying additional information, under either user control or via
 # scripts.
 #
-# Installation:
+# INSTALL:
 #
 # Place script in ~/.irssi/scripts/ and potentially symlink into autorun/
 # to ensure it starts at irssi startup.
@@ -11,10 +11,15 @@
 #
 # /script load uberprompt.pl
 #
-# Usage:
+# If you have a custom prompt format, you may need to copy it to the
+# uberprompt_format setting. See below for details.
+#
+# USAGE:
 #
 # Although the script is designed primarily for other scripts to set
 # status information into the prompt, the following commands are available:
+#
+# TODO: Document positional settings.
 #
 # /prompt set   - sets the prompt to the given argument. $p in the argument will
 #                 be replaced by the original prompt content.
@@ -26,21 +31,43 @@
 #
 # Additionally, the format for the prompt can be set via:
 #
+# UBERPROMPT FORMAT:
+#
 # /set uberprompt_format <format>
 #
 # The default is [$*], which is the same as the default provided in default.theme.
 # Changing this setting will update the prompt immediately, unlike editing your theme.
+#
+# An additional variable available within this format is '$uber', which expands to
+# the content of prompt data provided with the UP_INNER placement argument. For all
+# other placement arguments, it will expand to the empty string ''.
 #
 # NOTE: this setting completely overrides the prompt="..." line in your .theme
 #       file, and may cause unexpected behaviour if your theme wishes to set a
 #       different form of prompt. It can be simply copied from the theme file into
 #       the above setting.
 #
-# Usage from other Scripts:
+# Usage from other Scripts: signal 'change prompt' => 'string' => position
 #
-# signal_emit 'change prompt' 'some_string $p other string';
+# eg:
 #
-# will set the prompt to include that content.
+# signal_emit 'change prompt' 'some_string', UberPrompt::UP_INNER;
+#
+# will set the prompt to include that content, by default '[$* some_string]'
+#
+# The possible position arguments are:
+#
+# UP_PRE   - place the provided string before the prompt -- $string$prompt
+# UP_INNER - place the provided string inside the prompt -- {prompt $* $string}
+# UP_POST  - place the provided string after the prompt  -- $prompt$string
+# UP_ONLY  - replace the prompt with the provided string -- $string
+#
+# All strings may use the special variable '$prompt' to include the prompt
+# verbatim at that position in the string.  It is probably only useful for
+# the UP_ONLY mode however. '$prompt_nt' will include the prompt, minus any
+# trailing whitespace.
+#
+# NOTIFICATIONS:
 #
 # You can also be notified when the prompt changes in response to the previous
 # signal or manual commands via:
@@ -75,15 +102,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
 use strict;
 use warnings;
 
 use Irssi;
 use Irssi::TextUI;              # for sbar_items_redraw
 use Data::Dumper;
-
-
 
 our $VERSION = "0.2";
 our %IRSSI =
@@ -99,11 +123,10 @@ our %IRSSI =
 
 
 my $DEBUG_ENABLED = 0;
-
 sub DEBUG { $DEBUG_ENABLED }
 
 my $prompt_data = undef;
-
+my $prompt_changed = 0;
 my $prompt_format = '';
 
 init();
@@ -118,8 +141,9 @@ sub init {
 
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
-    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*] ');
+    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$* $uber] ');
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
+    Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
 
     Irssi::command_bind("prompt",     \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on',  \&replace_prompt_items);
@@ -134,34 +158,46 @@ sub init {
     # intialise the prompt format.
     reload_settings();
 
-    # install our statusbars.
-    replace_prompt_items();
+    # install our statusbars if required.
+    if (Irssi::settings_get_bool('uberprompt_autostart')) {
+        replace_prompt_items();
+    }
 
-    # the actual API signal.
-    Irssi::signal_register({'change prompt' => [qw/string/]});
-    Irssi::signal_add('change prompt' => \&change_prompt_sig);
+    # API signals
+
+    Irssi::signal_register({'change prompt' => [qw/string int/]});
+    Irssi::signal_add('change prompt' => \&change_prompt_handler);
 
     # other scripts (specifically overlay/visual) can subscribe to
     # this event to be notified when the prompt changes.
     # arguments are new contents (string), new length (int)
     Irssi::signal_register({'prompt changed' => [qw/string int/]});
+
     if (DEBUG) {
         Irssi::signal_add 'prompt changed', \&debug_prompt_changed;
     }
 }
 
+sub reload_settings {
+
+    $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
+
+    my $new = Irssi::settings_get_str('uberprompt_format');
+    if ($prompt_format ne $new) {
+        print "Updated prompt format" if DEBUG;
+        $prompt_format = $new;
+        Irssi::abstracts_register(['uberprompt', $prompt_format]);
+    }
+}
+
 sub debug_prompt_changed {
     my ($text, $len) = @_;
-    my $exp = Irssi::current_theme()->format_expand($text, 0);
-    my $ps = Irssi::parse_special($exp);
     print "DEBUG: Got $text = $exp = $ps, length: $len";
 }
 
-sub change_prompt_sig {
+sub change_prompt_handler {
     my ($text) = @_;
 
-    # TODO: mroe intelligence about where to insert $p?
-    $text = '$p' . $text;
     print "Got prompt change sig with: $text" if DEBUG;
 
     my $changed;
@@ -181,22 +217,11 @@ sub UNLOAD {
     restore_prompt_items();
 }
 
-sub reload_settings {
-
-    $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
-
-    my $new = Irssi::settings_get_str('uberprompt_format');
-    if ($prompt_format ne $new) {
-        print "Updated prompt format" if DEBUG;
-        $prompt_format = $new;
-        Irssi::abstracts_register(['uberprompt', $prompt_format]);
-    }
-}
 
 sub uberprompt_draw {
     my ($sb_item, $get_size_only) = @_;
 
-    my $default_prompt = '';
+    my $actual_prompt = '';
 
     my $window = Irssi::active_win;
 
@@ -204,19 +229,24 @@ sub uberprompt_draw {
 
     # hack to produce the same defaults as prompt/prompt_empty sbars.
     if (scalar( () = $window->items )) {
-        $default_prompt = '{uberprompt $[.15]itemname}';
+        $actual_prompt = '{uberprompt $[.15]itemname}';
     } else {
-        $default_prompt = '{uberprompt $winname}';
+        $actual_prompt = '{uberprompt $winname}';
     }
 
     my $p_copy = $prompt_data;
 
     if (defined $prompt_data) {
-        # replace the special marker '$p' with the original prompt.
-        $p_copy =~ s/\$/\$\$/g; # escape all $ symbols
+        if ($prompt_data =~ m/\$\$p/) {
+            $p_copy =~ s/\$\$p/$default_prompt/;
+
+            # replace the special marker '$p' with the original prompt.
+        } else {
+            $p_copy = $prompt_format;
+            $p_copy =~ s/\$
+        }
         $p_copy =~ s/\\/\\\\/g; # escape backslashes.
 
-        $p_copy =~ s/\$\$p/$default_prompt/;
 
     } else {
         $p_copy = $default_prompt;
@@ -225,8 +255,12 @@ sub uberprompt_draw {
     print "Redrawing with: $p_copy, size-only: $get_size_only" if DEBUG;
 
     my $ret = $sb_item->default_handler($get_size_only, $p_copy, '', 0);
+
+
     # TODO: do this properly, and also make sure it's only emitted once per
     # change.
+    my $exp = Irssi::current_theme()->format_expand($text, 0);
+    my $ps = Irssi::parse_special($exp);
 
     Irssi::signal_emit('prompt changed', $p_copy, $sb_item->{size});
 
@@ -284,3 +318,10 @@ sub _sbar_command {
 # bit of fakery so things don't complain about the lack of prompt_info (hoepfully)
 
 %Irssi::Script::prompt_info:: = ();
+
+package UberPrompt;
+
+sub UP_PRE    () { 0 }
+sub UP_INNER  () { 1 }
+sub UP_POST   () { 2 }
+sub UP_ONLY   () { 3 }
