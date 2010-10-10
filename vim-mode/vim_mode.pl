@@ -87,7 +87,8 @@
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
 # <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
-# commands is supported. Only default mappings can be used in {rhs}.
+# commands is supported. When mapping ex-mode commands the trailing <Cr> is
+# not necessary. Only default mappings can be used in {rhs}.
 # Examples:
 #     :map w  W      - to remap w to work like W
 #     :map gb :bnext - to map gb to call :bnext
