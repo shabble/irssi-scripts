@@ -19,6 +19,10 @@ my $functions = {};
 
 init();
 
+sub _input {
+    return int rand 1000;
+}
+
 sub load {
     my $file = shift;
     my $funcs;
@@ -26,16 +30,32 @@ sub load {
         print "Loading from file: $file";
         $funcs = do $file;
     }
+    if (not defined $funcs) {
+        if ($@) {
+            print "failed to parse $file: $@";
 
-    return unless ref $funcs eq 'HASH';
-    print "Got hashref from file";
+        } elsif ($!) {
+            print "failed to read $file: $!";
+
+        }
+        return;
+    }
+    my $ref = ref $funcs;
+    if ($ref ne 'HASH') {
+        print "$file didn't return a hashref: ", defined $ref ? $ref : 'undef';
+        return;
+    }
 
     foreach my $name (keys %$funcs) {
         my $func = $funcs->{$name};
+        if (exists $functions->{$name}) {
+            print "Redefining function $name";
+        } else {
+            print "adding function: $name";
+        }
         $functions->{$name} = $func;
     }
 
-    $functions = $funcs;
     print "Loaded " . scalar(keys(%$funcs)) . " functions";
 }
 
