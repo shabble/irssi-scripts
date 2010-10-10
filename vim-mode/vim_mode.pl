@@ -60,14 +60,14 @@
 #
 # Ex-mode supports (activated by : in command mode) the following commands:
 #
-# * Switching buffers: :b <num> - switch to channel number
-#                      :b#      - switch to last channel
+# * Switching buffers: :[N]b [N] - switch to channel number
+#                      :b#       - switch to last channel
 #                      :b <partial-channel-name>
 #                      :b <partial-server>/<partial-channel>
 #                      :buffer {args} (same as :b)
-#                      :bn[ext] - switch to next window
-#                      :bp[rev] - switch to previous window
-# * Close window:      :bd[elete]
+#                      :[N]bn[ext] [N] - switch to next window
+#                      :[N]bp[rev] [N] - switch to previous window
+# * Close window:      :[N]bd[elete] [N]
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] {args} :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
@@ -93,6 +93,7 @@
 #     :map gb :bnext - to map gb to call :bnext
 #     :map gB :bprev
 #     :map g1 :b 1   - to map g1 to switch to buffer 1
+#     :map gb :b     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
 #     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
@@ -388,21 +389,21 @@ my $commands_ex
      s         => { char => ':s',         func => \&ex_substitute,
                     type => C_EX },
      bnext     => { char => ':bnext',     func => \&ex_bnext,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      bn        => { char => ':bn',        func => \&ex_bnext,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      bprev     => { char => ':bprev',     func => \&ex_bprev,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      bp        => { char => ':bp',        func => \&ex_bprev,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      bdelete   => { char => ':bdelete',   func => \&ex_bdelete,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      bd        => { char => ':bd',        func => \&ex_bdelete,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      buffer    => { char => ':buffer',    func => \&ex_buffer,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      b         => { char => ':b',         func => \&ex_buffer,
-                    type => C_EX },
+                    type => C_EX, uses_count => 1 },
      registers => { char => ':registers', func => \&ex_registers,
                     type => C_EX },
      reg       => { char => ':reg',       func => \&ex_registers,
@@ -1490,19 +1491,26 @@ sub _fix_input_pos {
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
 
-    if ($arg_str !~ /^([a-z]+)/) {
+    if ($arg_str !~ /^(\d*)?([a-z]+)/) {
         return _warn("Invalid Ex-mode command!");
     }
 
-    if (not exists $commands_ex->{$1}) {
-        return _warn("Ex-mode $1 doesn't exist!");
+    # Abort if command doesn't exist or used with count for unsupported
+    # commands.
+    if (not exists $commands_ex->{$2} or
+        ($1 ne '' and not $commands_ex->{$2}->{uses_count})) {
+        return _warn("Ex-mode $1$2 doesn't exist!");
     }
 
-    $commands_ex->{$1}->{func}($arg_str);
+    my $count = $1;
+    if ($count eq '') {
+        $count = undef;
+    }
+    $commands_ex->{$2}->{func}($arg_str, $count);
 }
 
 sub ex_substitute {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :s///
     if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
@@ -1538,25 +1546,67 @@ sub ex_substitute {
 }
 
 sub ex_bnext {
-    Irssi::command('window next');
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bn(?:ext)?\s(\d+)$/) {
+            $count = $1;
+        } else {
+            $count = 1;
+        }
+    }
+
+    while ($count-- > 0) {
+        Irssi::command('window next');
+    }
 }
 sub ex_bprev {
-    Irssi::command('window previous');
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bp(?:rev)?\s(\d+)$/) {
+            $count = $1;
+        } else {
+            $count = 1;
+        }
+    }
+
+    while ($count-- > 0) {
+        Irssi::command('window previous');
+    }
 }
 sub ex_bdelete {
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bd(?:elete)?\s(\d+)$/) {
+            $count = $1;
+        }
+    }
+
+    if (defined $count) {
+        my $window = Irssi::window_find_refnum($count);
+        if (not $window) {
+            return;
+        }
+        $window->set_active();
+    }
     Irssi::command('window close');
 }
 sub ex_buffer {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :b[buffer] {args}
-    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
+    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$| or defined $count) {
         my $window;
         my $item;
         my $buffer = $1;
 
+        # :[N]:b[uffer]
+        if (defined $count) {
+            $window = Irssi::window_find_refnum($count);
         # Go to window number.
-        if ($buffer =~ /^[0-9]+$/) {
+        } elsif ($buffer =~ /^[0-9]+$/) {
             $window = Irssi::window_find_refnum($buffer);
         # Go to previous window.
         } elsif ($buffer eq '#') {
@@ -1588,7 +1638,7 @@ sub ex_buffer {
 }
 
 sub ex_registers {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :reg[isters] {arg} and :di[splay] {arg}
     if ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
@@ -1618,15 +1668,19 @@ sub ex_registers {
 }
 
 sub ex_buffers {
+    my ($arg_str, $count) = @_;
+
     Irssi::command('window list');
 }
 
 sub ex_undolist {
+    my ($arg_str, $count) = @_;
+
     _print_undo_buffer();
 }
 
 sub ex_map {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :map {lhs} {rhs}
     if ($arg_str =~ /^map (\S+) (\S.*)$/) {
@@ -1692,7 +1746,7 @@ sub ex_map {
     }
 }
 sub ex_unmap {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :unm[ap] {lhs}
     if ($arg_str !~ /^unm(?:ap)? (\S+)$/) {
@@ -1757,6 +1811,8 @@ sub _parse_mapping_reverse {
 }
 
 sub ex_source {
+    my ($arg_str, $count) = @_;
+
     # :so[urce], but only loads the vim_moderc file at the moment
 
     open my $file, '<', Irssi::get_irssi_dir() . '/vim_moderc' or return;
@@ -1775,7 +1831,7 @@ sub ex_source {
 }
 
 sub ex_mkvimrc {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :mkv[imrc][!], [file] not supported
 
@@ -2152,12 +2208,7 @@ sub handle_command_cmd {
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
 
-        if (not $numeric_prefix) {
-            $numeric_prefix = 1;
-        }
-        while ($numeric_prefix-- > 0) {
-            $cmd->{func}->(substr $cmd->{char}, 1);
-        }
+        $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
         $numeric_prefix = undef;
 
         return 1; # call _stop()
