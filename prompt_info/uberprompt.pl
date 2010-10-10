@@ -352,6 +352,3 @@ sub _sbar_command {
     Irssi::command($command);
 }
 
-# bit of fakery so things don't complain about the lack of prompt_info (hoepfully)
-
-%Irssi::Script::prompt_info:: = ();
