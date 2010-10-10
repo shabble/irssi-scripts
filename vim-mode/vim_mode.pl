@@ -1952,9 +1952,10 @@ sub b_windows_cb {
 
     my $windows = '';
 
-    # A little code duplication of cmd_ex_command()!
+    # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
+    # :bd doesn't display buffers matching d.
     my $arg_str = join '', @ex_buf;
-    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
+    if ($arg_str =~ m|^b(?:uffer)?\s+(.+)$|) {
         my $buffer = $1;
         if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
             # Display matching windows.
