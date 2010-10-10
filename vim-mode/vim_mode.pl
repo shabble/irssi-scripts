@@ -313,8 +313,8 @@ my $commands
      gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
              selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => '_i', func => \&cmd__i, type => C_TEXTOBJECT },
-     _a => { char => '_a', func => \&cmd__a, type => C_TEXTOBJECT },
+     _i => { char => 'i', func => \&cmd__i, type => C_TEXTOBJECT },
+     _a => { char => 'a', func => \&cmd__a, type => C_TEXTOBJECT },
      # line movement
      '0' => { char => '0', func => \&cmd_0, type => C_NORMAL },
      '^' => { char => '^', func => \&cmd_caret, type => C_NORMAL },
