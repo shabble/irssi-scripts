@@ -165,6 +165,9 @@
 # Known bugs:
 #
 # * count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+# * mapping an incomplete ex-command doesn't open the ex-mode with the partial
+#   command (e.g. :map gb :b causes an error instead of opening the ex-mode
+#   and displaying :b<cursor>)
 # * undo/redo positions are mostly wrong
 #
 #
