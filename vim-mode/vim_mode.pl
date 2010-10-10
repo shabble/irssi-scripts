@@ -87,9 +87,9 @@
 #
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
-# commands is supported. When mapping ex-mode commands the trailing <Cr> is
-# not necessary. Only default mappings can be used in {rhs}.
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <BS>, <Nop>. Mapping ex-mode and
+# irssi commands is supported. When mapping ex-mode commands the trailing <Cr>
+# is not necessary. Only default mappings can be used in {rhs}.
 # Examples:
 #     :map w  W      - to remap w to work like W
 #     :map gb :bnext - to map gb to call :bnext
@@ -278,9 +278,10 @@ my $commands
             repeatable => 1 },
 
      # arrow like movement
-      h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
-      l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
+      h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
+      l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
+     ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
      j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
              no_operator => 1 },
@@ -1799,6 +1800,9 @@ sub _parse_mapping_bracket {
     # <CR>
     } elsif ($string eq 'cr') {
         $string = "\n";
+    # <BS>
+    } elsif ($string eq 'bs') {
+        $string = chr(127);
     # Invalid char, return special string to recognize the error.
     } else {
         $string = '<invalid>';
@@ -1811,6 +1815,7 @@ sub _parse_mapping_reverse {
     # Convert char to <char-name>.
     $string =~ s/ /<Space>/g;
     $string =~ s/\n/<CR>/g;
+    $string =~ s/\x7F/<BS>/g;
     # Convert Ctrl-X to <C-X>.
     $string =~ s/([\x01-\x1A])/"<C-" . chr(ord($1) + 64) . ">"/ge;
     # Convert Ctrl-6 and Ctrl-^ to <C-^>.
