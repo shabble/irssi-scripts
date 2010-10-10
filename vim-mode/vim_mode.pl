@@ -1737,7 +1737,9 @@ sub ex_map {
     # :map [lhs]
     } elsif ($arg_str eq 'map' or $arg_str =~ /^map (\S+)$/) {
         # Necessary for case insensitive matchings. lc alone won't work.
-        my $search = _parse_mapping_reverse(_parse_mapping($1));
+        my $search = $1;
+        $search = '' if not defined $search;
+        $search = _parse_mapping_reverse(_parse_mapping($search));
 
         my $active_window = Irssi::active_win();
         foreach my $key (sort keys %$maps) {
