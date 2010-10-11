@@ -32,7 +32,7 @@ sub new {
                         q(find something obviously wrong, or have requests ),
                         q(for further documentation on topics not yet ),
                         q(filled out, please ),
-                        q(<a href="http://github.com/shabble/shab-irssi-scripts/issues#">create an issue</a>),
+                        q(<a href="http://github.com/shabble/irssi-scripts/issues#">create an issue</a>),
                         " on my Github page, and I'll see what I can do.</b></p>",
                        );
 
@@ -90,7 +90,7 @@ package main;
 
 use File::Copy;
 
-my $output_dir = "../../tmp/shab-irssi-scripts/docs/";
+my $output_dir = "../../tmp/irssi-scripts/docs/";
 my $batchconv = Pod::Simple::HTMLBatch::Custom->new;
 my $css = 'podstyle.css';
 
