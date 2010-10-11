@@ -90,7 +90,7 @@ sub script_is_loaded {
 }
 
 unless (script_is_loaded('uberprompt')) {
-    die "This script requires 'prompt_info' in order to work. "
+    die "This script requires 'uberprompt.pl' in order to work. "
       . "Please load it and try again";
 } else {
     history_init();
@@ -119,8 +119,10 @@ sub history_exit {
 }
 
 sub update_history_prompt {
+    my $col = scalar(@search_matches) ? '%g' : '%r';
     Irssi::signal_emit('change prompt',
-                       " reverse-i-search: \`$search_str'",
+                       ' reverse-i-search: `' . $col . $search_str
+                       . '%n' . "'",
                        'UP_INNER');
 }
 
