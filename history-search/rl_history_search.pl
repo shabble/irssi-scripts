@@ -139,7 +139,7 @@ sub update_history_prompt {
 
 sub update_history_matches {
     my ($match_str) = @_;
-    $match_str //= $search_str;
+    $match_str = $search_str unless defined $match_str;
 
     my %unique;
     my @matches = grep { m/\Q$match_str/i } @history_cache;
