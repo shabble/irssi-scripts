@@ -174,10 +174,10 @@ sub init {
     reload_settings();
 
     # make sure we redraw when necessary.
-    Irssi::signal_add('window changed',           \&uberprompt_draw);
-    Irssi::signal_add('window name changed',      \&uberprompt_draw);
-    Irssi::signal_add('window changed automatic', \&uberprompt_draw);
-    Irssi::signal_add('window item changed',      \&uberprompt_draw);
+    Irssi::signal_add('window changed',           \&uberprompt_refresh);
+    Irssi::signal_add('window name changed',      \&uberprompt_refresh);
+    Irssi::signal_add('window changed automatic', \&uberprompt_refresh);
+    Irssi::signal_add('window item changed',      \&uberprompt_refresh);
 
     # install our statusbars if required.
     if (Irssi::settings_get_bool('uberprompt_autostart')) {
