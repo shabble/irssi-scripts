@@ -22,7 +22,7 @@
 # * Insert/Command mode. Escape and Ctrl-C enter command mode.
 #   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
 #   can be used as well).
-# * Cursor motion: h l 0 ^ $ <space> f t F T
+# * Cursor motion: h l 0 ^ $ <Space> <BS> f t F T
 # * History motion: j k gg G
 #   gg moves to the oldest (first) history line.
 #   G without a count moves to the current input line, with a count it goes to
@@ -49,7 +49,9 @@
 # * Switch split windows: Ctrl-W j Ctrl-W k
 # * Undo/Redo: u Ctrl-R
 #
-# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>
+# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>. Counts also
+# work with mapped ex-commands (see below), e.g. if you map gb to do :bn, then
+# 2gb will switch to the second next buffer.
 # Repeat also supports counts.
 #
 # The following insert mode mappings are supported:
@@ -58,20 +60,21 @@
 #
 # Ex-mode supports (activated by : in command mode) the following commands:
 #
-# * Switching buffers: :b <num> - switch to channel number
-#                      :b#      - switch to last channel
+# * Switching buffers: :[N]b [N] - switch to channel number
+#                      :b#       - switch to last channel
 #                      :b <partial-channel-name>
 #                      :b <partial-server>/<partial-channel>
 #                      :buffer {args} (same as :b)
-#                      :bn[ext] - switch to next window
-#                      :bp[rev] - switch to previous window
-# * Close window:      :bd[elete]
+#                      :[N]bn[ext] [N] - switch to next window
+#                      :[N]bp[rev] [N] - switch to previous window
+# * Close window:      :[N]bd[elete] [N]
 # * Display windows:   :ls :buffers
 # * Display registers: :reg[isters] {args} :di[splay] {args}
 # * Display undolist:  :undol[ist] (mostly used for debugging)
 # * Source files       :so[urce] - only sources vim_moderc at the moment,
 #                                  {file} not supported
 # * Mappings:          :map             - display custom mappings
+#                      :map {lhs}       - display mappings starting with {lhs}
 #                      :map {lhs} {rhs} - add mapping
 #                      :unm[ap] {lhs}   - remove custom mapping
 # * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
@@ -84,12 +87,15 @@
 #
 # {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
 # is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <Nop>. Mapping ex-mode and irssi
-# commands is supported. Only default mappings can be used in {rhs}.
+# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <BS>, <Nop>. Mapping ex-mode and
+# irssi commands is supported. When mapping ex-mode commands the trailing <Cr>
+# is not necessary. Only default mappings can be used in {rhs}.
 # Examples:
 #     :map w  W      - to remap w to work like W
 #     :map gb :bnext - to map gb to call :bnext
 #     :map gB :bprev
+#     :map g1 :b 1   - to map g1 to switch to buffer 1
+#     :map gb :b     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
 #     :map <C-L> /clear - map Ctrl-L to irssi command /clear
 #     :map <C-G> /window goto 1
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
@@ -160,6 +166,9 @@
 # Known bugs:
 #
 # * count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+# * mapping an incomplete ex-command doesn't open the ex-mode with the partial
+#   command (e.g. :map gb :b causes an error instead of opening the ex-mode
+#   and displaying :b<cursor>)
 # * undo/redo positions are mostly wrong
 #
 #
@@ -269,9 +278,10 @@ my $commands
             repeatable => 1 },
 
      # arrow like movement
-      h  => { char => 'h', func => \&cmd_h, type => C_NORMAL },
-      l  => { char => 'l', func => \&cmd_l, type => C_NORMAL },
-     ' ' => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
+      h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
+      l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
+     ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
      j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
              no_operator => 1 },
@@ -298,14 +308,13 @@ my $commands
      ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL,
              selection_needs_move_right => 1 },
      W  => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
-     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL,
-             selection_needs_move_right => 1 },
+     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL },
      E  => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
      gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
              selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => '_i', func => \&cmd__i, type => C_TEXTOBJECT },
-     _a => { char => '_a', func => \&cmd__a, type => C_TEXTOBJECT },
+     _i => { char => 'i', func => \&cmd__i, type => C_TEXTOBJECT },
+     _a => { char => 'a', func => \&cmd__a, type => C_TEXTOBJECT },
      # line movement
      '0' => { char => '0', func => \&cmd_0, type => C_NORMAL },
      '^' => { char => '^', func => \&cmd_caret, type => C_NORMAL },
@@ -382,30 +391,54 @@ my $commands
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
-     s         => { char => ':s',         func => \&ex_substitute, type => C_EX },
-     bnext     => { char => ':bnext',     func => \&ex_bnext,      type => C_EX },
-     bn        => { char => ':bn',        func => \&ex_bnext,      type => C_EX },
-     bprev     => { char => ':bprev',     func => \&ex_bprev,      type => C_EX },
-     bp        => { char => ':bp',        func => \&ex_bprev,      type => C_EX },
-     bdelete   => { char => ':bdelete',   func => \&ex_bdelete,    type => C_EX },
-     bd        => { char => ':bd',        func => \&ex_bdelete,    type => C_EX },
-     buffer    => { char => ':buffer',    func => \&ex_buffer,     type => C_EX },
-     b         => { char => ':b',         func => \&ex_buffer,     type => C_EX },
-     registers => { char => ':registers', func => \&ex_registers,  type => C_EX },
-     reg       => { char => ':reg',       func => \&ex_registers,  type => C_EX },
-     display   => { char => ':display',   func => \&ex_registers,  type => C_EX },
-     di        => { char => ':di',        func => \&ex_registers,  type => C_EX },
-     buffers   => { char => ':buffer',    func => \&ex_buffers,    type => C_EX },
-     ls        => { char => ':ls',        func => \&ex_buffers,    type => C_EX },
-     undolist  => { char => ':undolist',  func => \&ex_undolist,   type => C_EX },
-     undol     => { char => ':undol',     func => \&ex_undolist,   type => C_EX },
-     map       => { char => ':map',       func => \&ex_map,        type => C_EX },
-     unmap     => { char => ':unmap',     func => \&ex_unmap,      type => C_EX },
-     unm       => { char => ':unm',       func => \&ex_unmap,      type => C_EX },
-     source    => { char => ':source',    func => \&ex_source,     type => C_EX },
-     so        => { char => ':so',        func => \&ex_source,     type => C_EX },
-     mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,    type => C_EX },
-     mkv       => { char => ':mkv',       func => \&ex_mkvimrc,    type => C_EX },
+     s         => { char => ':s',         func => \&ex_substitute,
+                    type => C_EX },
+     bnext     => { char => ':bnext',     func => \&ex_bnext,
+                    type => C_EX, uses_count => 1 },
+     bn        => { char => ':bn',        func => \&ex_bnext,
+                    type => C_EX, uses_count => 1 },
+     bprev     => { char => ':bprev',     func => \&ex_bprev,
+                    type => C_EX, uses_count => 1 },
+     bp        => { char => ':bp',        func => \&ex_bprev,
+                    type => C_EX, uses_count => 1 },
+     bdelete   => { char => ':bdelete',   func => \&ex_bdelete,
+                    type => C_EX, uses_count => 1 },
+     bd        => { char => ':bd',        func => \&ex_bdelete,
+                    type => C_EX, uses_count => 1 },
+     buffer    => { char => ':buffer',    func => \&ex_buffer,
+                    type => C_EX, uses_count => 1 },
+     b         => { char => ':b',         func => \&ex_buffer,
+                    type => C_EX, uses_count => 1 },
+     registers => { char => ':registers', func => \&ex_registers,
+                    type => C_EX },
+     reg       => { char => ':reg',       func => \&ex_registers,
+                    type => C_EX },
+     display   => { char => ':display',   func => \&ex_registers,
+                    type => C_EX },
+     di        => { char => ':di',        func => \&ex_registers,
+                    type => C_EX },
+     buffers   => { char => ':buffer',    func => \&ex_buffers,
+                    type => C_EX },
+     ls        => { char => ':ls',        func => \&ex_buffers,
+                    type => C_EX },
+     undolist  => { char => ':undolist',  func => \&ex_undolist,
+                    type => C_EX },
+     undol     => { char => ':undol',     func => \&ex_undolist,
+                    type => C_EX },
+     map       => { char => ':map',       func => \&ex_map,
+                    type => C_EX },
+     unmap     => { char => ':unmap',     func => \&ex_unmap,
+                    type => C_EX },
+     unm       => { char => ':unm',       func => \&ex_unmap,
+                    type => C_EX },
+     source    => { char => ':source',    func => \&ex_source,
+                    type => C_EX },
+     so        => { char => ':so',        func => \&ex_source,
+                    type => C_EX },
+     mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,
+                    type => C_EX },
+     mkv       => { char => ':mkv',       func => \&ex_mkvimrc,
+                    type => C_EX },
     };
 
 # MAPPINGS
@@ -528,7 +561,7 @@ sub insert_ctrl_r {
     my ($key) = @_;
 
     my $char = chr($key);
-    return if not defined $registers->{$char} or not $registers->{$char};
+    return if not defined $registers->{$char} or $registers->{$char} eq '';
 
     my $pos = _insert_at_position($registers->{$char}, 1, _input_pos());
     _input_pos($pos + 1);
@@ -1296,7 +1329,7 @@ sub cmd_P {
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
-    return if not $registers->{$register};
+    return if $registers->{$register} eq '';
     return _insert_at_position($registers->{$register}, $count, $pos);
 }
 
@@ -1463,19 +1496,26 @@ sub _fix_input_pos {
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
 
-    if ($arg_str !~ /^([a-z]+)/) {
+    if ($arg_str !~ /^(\d*)?([a-z]+)/) {
         return _warn("Invalid Ex-mode command!");
     }
 
-    if (not exists $commands_ex->{$1}) {
-        return _warn("Ex-mode $1 doesn't exist!");
+    # Abort if command doesn't exist or used with count for unsupported
+    # commands.
+    if (not exists $commands_ex->{$2} or
+        ($1 ne '' and not $commands_ex->{$2}->{uses_count})) {
+        return _warn("Ex-mode $1$2 doesn't exist!");
     }
 
-    $commands_ex->{$1}->{func}($arg_str);
+    my $count = $1;
+    if ($count eq '') {
+        $count = undef;
+    }
+    $commands_ex->{$2}->{func}($arg_str, $count);
 }
 
 sub ex_substitute {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :s///
     if ($arg_str =~ m|^s/(.+)/(.*)/([ig]*)|) {
@@ -1511,25 +1551,67 @@ sub ex_substitute {
 }
 
 sub ex_bnext {
-    Irssi::command('window next');
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bn(?:ext)?\s(\d+)$/) {
+            $count = $1;
+        } else {
+            $count = 1;
+        }
+    }
+
+    while ($count-- > 0) {
+        Irssi::command('window next');
+    }
 }
 sub ex_bprev {
-    Irssi::command('window previous');
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bp(?:rev)?\s(\d+)$/) {
+            $count = $1;
+        } else {
+            $count = 1;
+        }
+    }
+
+    while ($count-- > 0) {
+        Irssi::command('window previous');
+    }
 }
 sub ex_bdelete {
+    my ($arg_str, $count) = @_;
+
+    if (not defined $count) {
+        if ($arg_str =~ /^bd(?:elete)?\s(\d+)$/) {
+            $count = $1;
+        }
+    }
+
+    if (defined $count) {
+        my $window = Irssi::window_find_refnum($count);
+        if (not $window) {
+            return;
+        }
+        $window->set_active();
+    }
     Irssi::command('window close');
 }
 sub ex_buffer {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :b[buffer] {args}
-    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
+    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$| or defined $count) {
         my $window;
         my $item;
         my $buffer = $1;
 
+        # :[N]:b[uffer]
+        if (defined $count) {
+            $window = Irssi::window_find_refnum($count);
         # Go to window number.
-        if ($buffer =~ /^[0-9]+$/) {
+        } elsif ($buffer =~ /^[0-9]+$/) {
             $window = Irssi::window_find_refnum($buffer);
         # Go to previous window.
         } elsif ($buffer eq '#') {
@@ -1561,7 +1643,7 @@ sub ex_buffer {
 }
 
 sub ex_registers {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :reg[isters] {arg} and :di[splay] {arg}
     if ($arg_str =~ /^(?:reg(?:isters)?|di(?:splay)?)(?:\s+(.+)$)?/) {
@@ -1591,15 +1673,19 @@ sub ex_registers {
 }
 
 sub ex_buffers {
+    my ($arg_str, $count) = @_;
+
     Irssi::command('window list');
 }
 
 sub ex_undolist {
+    my ($arg_str, $count) = @_;
+
     _print_undo_buffer();
 }
 
 sub ex_map {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :map {lhs} {rhs}
     if ($arg_str =~ /^map (\S+) (\S.*)$/) {
@@ -1614,11 +1700,14 @@ sub ex_map {
         my $command;
         # Ex-mode command
         if (index($rhs, ':') == 0) {
-            $rhs = substr $rhs, 1;
-            if (not exists $commands_ex->{$rhs}) {
-                return _warn_ex('map', "$2 not found");
+            $rhs =~ /^:(\S+)(\s.+)?$/;
+            if (not exists $commands_ex->{$1}) {
+                return _warn_ex('map', "$rhs not found");
             } else {
-                $command = $commands_ex->{$rhs};
+                $command = { char => $rhs,
+                             func => $commands_ex->{$1}->{func},
+                             type => C_EX,
+                           };
             }
         # Irssi command
         } elsif (index($rhs, '/') == 0) {
@@ -1645,14 +1734,20 @@ sub ex_map {
         }
         add_map($lhs, $command);
 
-    # :map
-    } elsif ($arg_str eq 'map') {
+    # :map [lhs]
+    } elsif ($arg_str eq 'map' or $arg_str =~ /^map (\S+)$/) {
+        # Necessary for case insensitive matchings. lc alone won't work.
+        my $search = $1;
+        $search = '' if not defined $search;
+        $search = _parse_mapping_reverse(_parse_mapping($search));
+
         my $active_window = Irssi::active_win();
         foreach my $key (sort keys %$maps) {
             my $map = $maps->{$key};
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
+                next if $map->{char} !~ /^\Q$search\E/; # skip non-matches
                 $active_window->print(sprintf "%-15s %s", $map->{char},
                                                           $cmd->{char});
             }
@@ -1662,7 +1757,7 @@ sub ex_map {
     }
 }
 sub ex_unmap {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :unm[ap] {lhs}
     if ($arg_str !~ /^unm(?:ap)? (\S+)$/) {
@@ -1706,6 +1801,9 @@ sub _parse_mapping_bracket {
     # <CR>
     } elsif ($string eq 'cr') {
         $string = "\n";
+    # <BS>
+    } elsif ($string eq 'bs') {
+        $string = chr(127);
     # Invalid char, return special string to recognize the error.
     } else {
         $string = '<invalid>';
@@ -1718,6 +1816,7 @@ sub _parse_mapping_reverse {
     # Convert char to <char-name>.
     $string =~ s/ /<Space>/g;
     $string =~ s/\n/<CR>/g;
+    $string =~ s/\x7F/<BS>/g;
     # Convert Ctrl-X to <C-X>.
     $string =~ s/([\x01-\x1A])/"<C-" . chr(ord($1) + 64) . ">"/ge;
     # Convert Ctrl-6 and Ctrl-^ to <C-^>.
@@ -1727,6 +1826,8 @@ sub _parse_mapping_reverse {
 }
 
 sub ex_source {
+    my ($arg_str, $count) = @_;
+
     # :so[urce], but only loads the vim_moderc file at the moment
 
     open my $file, '<', Irssi::get_irssi_dir() . '/vim_moderc' or return;
@@ -1745,7 +1846,7 @@ sub ex_source {
 }
 
 sub ex_mkvimrc {
-    my ($arg_str) = @_;
+    my ($arg_str, $count) = @_;
 
     # :mkv[imrc][!], [file] not supported
 
@@ -1866,9 +1967,10 @@ sub b_windows_cb {
 
     my $windows = '';
 
-    # A little code duplication of cmd_ex_command()!
+    # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
+    # :bd doesn't display buffers matching d.
     my $arg_str = join '', @ex_buf;
-    if ($arg_str =~ m|^b(?:uffer)?\s*(.+)$|) {
+    if ($arg_str =~ m|^b(?:uffer)?\s+(.+)$|) {
         my $buffer = $1;
         if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
             # Display matching windows.
@@ -2034,6 +2136,7 @@ sub flush_pending_map {
               $pending_map ne $old_pending_map;
 
     handle_command_cmd(undef);
+    Irssi::statusbar_items_redraw("vim_mode");
 }
 
 sub handle_numeric_prefix {
@@ -2064,8 +2167,8 @@ sub handle_command_cmd {
     }
 
     # Counts
-    if (!$movement and ($char =~ m/[1-9]/ or
-                        ($numeric_prefix && $char =~ m/[0-9]/))) {
+    if (!$movement and !$pending_map and
+        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
         return 1; # call _stop()
@@ -2117,20 +2220,26 @@ sub handle_command_cmd {
         return 1; # call _stop()
     }
 
-    # Ex-mode commands can also be bound in command mode. Works only if the
-    # ex-mode command doesn't need any additional arguments.
+    # Ex-mode commands can also be bound in command mode.
     if ($cmd->{type} == C_EX) {
         print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-        $cmd->{func}->(substr $cmd->{char}, 1);
+
+        $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
+        $numeric_prefix = undef;
+
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
         Irssi::command($cmd->{func});
+
+        $numeric_prefix = undef;
         return 1; # call _stop();
     # <Nop> does nothing.
     } elsif ($cmd->{type} == C_NOP) {
         print "Processing <Nop>: $map->{char}" if DEBUG;
+
+        $numeric_prefix = undef;
         return 1; # call _stop();
     }
 
