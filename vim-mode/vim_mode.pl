@@ -2261,8 +2261,11 @@ sub handle_command_cmd {
         if ($operator) {
             # But allow cc/dd/yy.
             if ($operator == $cmd) {
-                print "Processing line operator: $map->{char} ($cmd->{char})"
+                print "Processing line operator: ",
+                  $map->{char}, " (",
+                  $cmd->{char} ,")"
                     if DEBUG;
+
                 my $pos = _input_pos();
                 $cmd->{func}->(0, _input_len(), undef, 0);
                 # Restore position for yy.
@@ -2284,8 +2287,8 @@ sub handle_command_cmd {
 
     # Start Ex mode.
     } elsif ($cmd == $commands->{':'}) {
-        if (not script_is_loaded('prompt_info')) {
-            _warn("Warning: Ex mode requires the 'prompt_info' script. " .
+        if (not script_is_loaded('uberprompt')) {
+            _warn("Warning: Ex mode requires the 'uberprompt' script. " .
                     "Please load it and try again.");
         } else {
             _update_mode(M_EX);
@@ -2783,7 +2786,7 @@ sub _set_prompt {
     my $msg = shift;
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
-    Irssi::signal_emit('change prompt', $msg);
+    Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
 }
 
 sub _warn {
