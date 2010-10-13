@@ -125,7 +125,7 @@ our %IRSSI =
 my $DEBUG_ENABLED = 0;
 sub DEBUG { $DEBUG_ENABLED }
 
-my $prompt_data     = undef;
+my $prompt_data     = '';
 my $prompt_data_pos = 'UP_INNER';
 
 my $prompt_last     = '';
