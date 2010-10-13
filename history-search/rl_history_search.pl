@@ -75,7 +75,8 @@ my @search_matches = ();
 my $match_index = 0;
 
 
-sub DEBUG () { 0 }
+my $DEBUG_ENABLED = 0;
+sub DEBUG () { $DEBUG_ENABLED }
 
 # check we have uberprompt loaded.
 
@@ -97,10 +98,20 @@ unless (script_is_loaded('uberprompt')) {
 }
 
 sub history_init {
+    Irssi::settings_add_bool('history_search', 'histsearch_debug', 0);
+
     Irssi::command_bind('history_search_start', \&history_search);
-    #Irssi::command_bind('history_search_exit', \&history_search_exit);
+
+    Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
+
+    setup_changed();
 }
+
+sub setup_changed {
+    $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
+}
+
 
 sub history_search {
     $search_active = 1;
