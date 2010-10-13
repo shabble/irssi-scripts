@@ -240,5 +240,5 @@ sub set_prompt {
     my $msg = shift;
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
-    Irssi::signal_emit('change prompt', $msg);
+    Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
 }
