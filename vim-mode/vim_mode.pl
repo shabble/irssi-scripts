@@ -1924,9 +1924,12 @@ sub ex_set {
             my $name = $1;
             my $value = $2;
             # Also accept numeric values for boolean options.
-            if ($settings->{$name}->{type} == S_BOOL and
-                    $value !~ /^(on|off)$/i) {
-                $value = $value ? 'on' : 'off';
+            if ($settings->{$name}->{type} == S_BOOL) {
+                if ($value =~ /^(on|off)$/i) {
+                    $value = lc $value eq 'on' ? 1 : 0;
+                } elsif ($value eq '') {
+                    $value = 0;
+                }
             }
             _setting_set($name, $value);
             Irssi::signal_emit('setup changed');
