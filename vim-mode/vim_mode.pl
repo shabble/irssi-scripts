@@ -118,6 +118,11 @@
 #
 # In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
 # settings, but only vim_mode's settings can be set/displayed.
+# Examples:
+#    :set cmd_seq=j   # set cmd_seq to j
+#    :set cmd_seq=    # disable cmd_seq
+#    :set debug=on    # enable debug
+#    :set debug=off   # disable debug
 #
 #
 # The following statusbar items are available:
@@ -1910,7 +1915,7 @@ sub ex_set {
     my ($arg_str, $count) = @_;
 
     # :se[t] [option] [value]
-    if ($arg_str =~ /^se(?:t)?(?:\s(\S+)(?:\s(.+)$)?)?/) {
+    if ($arg_str =~ /^se(?:t)?(?:\s([^=]+)(?:=(.*)$)?)?/) {
         # :se[t] {option} {value}
         if (defined $1 and defined $2) {
             if (not exists $settings->{$1}) {
