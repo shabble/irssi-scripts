@@ -454,12 +454,20 @@ foreach my $char (keys %$commands) {
 
 # GLOBAL VARIABLES
 
-my $DEBUG_ENABLED = 0;
+# all vim_mode settings, must be enabled in vim_mode_init() before usage
+my $settings
+  = {
+     # print debug output
+     debug          => 0,
+     # use UTF-8 internally for string calculations/manipulations
+     utf8           => 1,
+     # esc-shortcut in insert mode
+     cmd_seq        => '',
+     # not used yet
+     max_undo_lines => 50,
+    };
 
-sub DEBUG { $DEBUG_ENABLED }
-
-# use UTF-8 internally for string calculations/manipulations
-my $utf8 = 1;
+sub DEBUG { $settings->{debug} }
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
@@ -712,7 +720,7 @@ sub cmd_j {
     } elsif ($history_index >= 0) {
         my $history = $history[$history_index];
         # History is not in UTF-8!
-        if ($utf8) {
+        if ($settings->{utf8}) {
             $history = decode_utf8($history);
         }
         _input($history);
@@ -744,7 +752,7 @@ sub cmd_k {
     if ($history_index >= 0) {
         my $history = $history[$history_index];
         # History is not in UTF-8!
-        if ($utf8) {
+        if ($settings->{utf8}) {
             $history = decode_utf8($history);
         }
         _input($history);
@@ -781,7 +789,7 @@ sub cmd_G {
 
     my $history = $history[$history_index];
     # History is not in UTF-8!
-    if ($utf8) {
+    if ($settings->{utf8}) {
         $history = decode_utf8($history);
     }
     _input($history);
@@ -2481,38 +2489,40 @@ sub vim_mode_init {
 sub setup_changed {
     my $value;
 
-    # Delete all possible imaps created by /set vim_mode_cmd_seq.
-    foreach my $char ('a' .. 'z') {
-        delete $imaps->{$char};
+    if ($settings->{cmd_seq} ne '') {
+        delete $imaps->{$settings->{cmd_seq}};
     }
-
     $value = Irssi::settings_get_str('vim_mode_cmd_seq');
-    if ($value) {
+    if ($value eq '') {
+        $settings->{cmd_seq} = $value;
+    } else {
         if (length $value == 1) {
             $imaps->{$value} = { 'map'  => $value,
                                  'func' => sub { _update_mode(M_CMD) }
                                };
+            $settings->{cmd_seq} = $value;
         } else {
             _warn("Error: vim_mode_cmd_seq must be a single character");
         }
     }
 
-    $DEBUG_ENABLED = Irssi::settings_get_bool('vim_mode_debug');
+    $settings->{debug} = Irssi::settings_get_bool('vim_mode_debug');
 
     my $new_utf8 = Irssi::settings_get_bool('vim_mode_utf8');
-
-    if ($new_utf8 != $utf8) {
+    if ($new_utf8 != $settings->{utf8}) {
         # recompile the patterns when switching to/from utf-8
         $word     = qr/[\w_]/o;
         $non_word = qr/[^\w_\s]/o;
-    }
 
+        $settings->{utf8} = $new_utf8;
+    }
     if ($new_utf8 and (!$^V or $^V lt v5.8.1)) {
         _warn("Warning: UTF-8 isn't supported very well in perl < 5.8.1! " .
               "Please disable the vim_mode_utf8 setting.");
     }
 
-    $utf8 = $new_utf8;
+    $settings->{max_undo_lines}
+        = Irssi::settings_get_int('vim_mode_max_undo_lines');
 }
 
 sub UNLOAD {
@@ -2545,7 +2555,7 @@ sub _add_undo_entry {
         unshift @undo_buffer, [$line, $pos];
         $undo_index = 0;
     }
-    my $max = Irssi::settings_get_int('vim_mode_max_undo_lines');
+    my $max = $settings->{max_undo_lines};
 }
 
 sub _restore_undo_entry {
@@ -2671,12 +2681,12 @@ sub _input {
 
     my $current_data = Irssi::parse_special('$L', 0, 0);
 
-    if ($utf8) {
+    if ($settings->{utf8}) {
         $current_data = decode_utf8($current_data);
     }
 
     if (defined $data) {
-        if ($utf8) {
+        if ($settings->{utf8}) {
             Irssi::gui_input_set(encode_utf8($data));
         } else {
             Irssi::gui_input_set($data);
