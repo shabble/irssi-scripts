@@ -142,19 +142,6 @@ my $prompt_format   = '';
 pre_init();
 
 sub pre_init {
-    # my $start_time = Irssi::parse_special('$F');
-    # my $now = time();
-    # my $delta = $now - $start_time;
-
-    # print "Delta is $delta";
-    # if ($delta < 2) {
-    #     print "starting a bit later";
-    #     Irssi::timeout_add_once(5000, \&init, undef);
-    # } else {
-    #     print "starting immediately";
-
-    #     init();
-    # }
     Irssi::command('statusbar prompt reset');
     init();
 }
@@ -229,6 +216,7 @@ sub reload_settings {
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
 
     my $new = Irssi::settings_get_str('uberprompt_format');
+
     if ($prompt_format ne $new) {
         print "Updated prompt format" if DEBUG;
         $prompt_format = $new;
