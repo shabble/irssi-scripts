@@ -286,7 +286,8 @@ sub uberprompt_draw {
     my $prompt = '';            # rendered content of the prompt.
     my $theme = Irssi::current_theme;
 
-    $prompt = $theme->format_expand("{uberprompt $prompt_arg}");
+    $prompt = $theme->format_expand
+      ("{uberprompt $prompt_arg}", Irssi::EXPAND_FLAG_IGNORE_REPLACES);
 
     if ($prompt_data_pos eq 'UP_ONLY') {
         $prompt =~ s/\$\$uber//; # no need for recursive prompting, I hope.
