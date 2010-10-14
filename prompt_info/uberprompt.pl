@@ -80,6 +80,14 @@
 #    may cause irssi to crash. See bug report at
 #    http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
 #
+# TODO:
+#
+# * report failure (somehow) to clients if hte prompt is disabled.
+# * fix issue at autorun startup with sbar item doesn't exist.
+#
+#
+#
+#
 # LICENCE:
 #
 # Copyright (c) 2010 Tom Feist
@@ -114,7 +122,7 @@ our %IRSSI =
   (
    authors         => "shabble",
    contact         => 'shabble+irssi@metavore.org, shabble@#irssi/Freenode',
-   name            => "prompt_info",
+   name            => "uberprompt",
    description     => "Helper script for dynamically adding text "
    . "into the input-bar prompt.",
    license         => "MIT",
@@ -131,7 +139,25 @@ my $prompt_data_pos = 'UP_INNER';
 my $prompt_last     = '';
 my $prompt_format   = '';
 
-init();
+pre_init();
+
+sub pre_init {
+    # my $start_time = Irssi::parse_special('$F');
+    # my $now = time();
+    # my $delta = $now - $start_time;
+
+    # print "Delta is $delta";
+    # if ($delta < 2) {
+    #     print "starting a bit later";
+    #     Irssi::timeout_add_once(5000, \&init, undef);
+    # } else {
+    #     print "starting immediately";
+
+    #     init();
+    # }
+    Irssi::command('statusbar prompt reset');
+    init();
+}
 
 sub prompt_subcmd_handler {
     my ($data, $server, $item) = @_;
@@ -146,7 +172,6 @@ sub UNLOAD {
 }
 
 sub init {
-
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
     Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
