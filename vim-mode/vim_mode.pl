@@ -114,6 +114,7 @@
 # * utf8: support UTF-8 characters, boolean, default on
 # * debug: enable debug output, boolean, default off
 # * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
+# * start_cmd: start every line in command mode, boolean, default off
 #
 # In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
 # settings, but only vim_mode's settings can be set/displayed.
@@ -488,6 +489,8 @@ my $settings
      utf8           => { type => S_BOOL, value => 1 },
      # esc-shortcut in insert mode
      cmd_seq        => { type => S_STR,  value => '' },
+     # start every line in command mode
+     start_cmd      => { type => S_BOOL, value => 0 },
      # not used yet
      max_undo_lines => { type => S_INT,  value => 50 },
     };
@@ -2744,6 +2747,9 @@ sub delete_map {
 sub _commit_line {
     _update_mode(M_INS);
     _reset_undo_buffer('', 0);
+    # separate from call above as _update_mode() does additional internal work
+    # and we need to make sure it gets correctly called.
+    _update_mode(M_CMD) if $settings->{start_cmd}->{value};
 }
 
 sub _input {
