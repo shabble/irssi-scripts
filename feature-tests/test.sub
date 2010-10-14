@@ -1,0 +1,7 @@
+{
+    'moo' => sub { print "Moo" },
+    'hello' => sub { print join(", ", @_) },
+    'inp' => sub { print "input is : ", _input(); },
+};
+
+

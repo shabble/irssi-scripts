@@ -165,7 +165,9 @@ aliases = {
   xxx = "/dump Irssi::bindings()";
   showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
   botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
-  vim = "/script load vim_mode.pl";
+  vim = "script load vim_mode.pl";
+  unvim = "/script unload vim_mode";
+  pl = "script load prompt_replace.pl";
 };
 
 statusbar = {
@@ -271,6 +273,7 @@ statusbar = {
         prompt_empty = { };
         input = { priority = "10"; };
       };
+      position = "100";
     };
     promptadd = { disabled = "yes"; };
   };
@@ -287,6 +290,9 @@ settings = {
     autoinstall_custom_prompt = "yes";
     mass_hilight_action = "/echo $nick";
     mass_hilight_threshold = "0";
+    vim_mode_debug = "yes";
+    superprompt_format = "%K[%W$tag%c/%K$cumode%n$*%K]%n ";
+    uberprompt_format = "[$*] ";
   };
   "fe-common/core" = { bell_beeps = "yes"; };
   "irc/core" = { ctcp_userinfo_reply = ""; };
@@ -302,5 +308,10 @@ keyboard = (
   { key = "^R"; id = "command"; data = "history_search_start "; },
   { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
   { key = "meta-q"; id = "command"; data = "echo bacons"; },
-  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; }
+  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; },
+  { key = "meta-l"; id = "command"; data = "visual "; },
+  { key = "meta-m"; id = "command"; data = "redraw "; },
+  { key = "^V"; id = "command"; data = "visual "; },
+  { key = "^F"; id = "command"; data = "visual toggle"; },
+  { key = "^G"; id = "command"; data = "visual clear"; }
 );

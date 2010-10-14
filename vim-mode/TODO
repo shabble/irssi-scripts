@@ -1,0 +1,42 @@
+- fix known bugs and known todos!
+- esc is a little slow as ins->cmd mode key
+- 3"ap doesn't work but "a3p does
+- search with / and ? in history
+  first search on current line, then wrap to history
+- implement tab completion for ex-mode
+- recheck everything end of the line related
+- marks
+- text-objects
+- 2daW doesn't work at end of line, should do nothing
+- :imap
+- custom scripts (vim-like functions) which can be mapped
+    - surroundings, with an external script if somebody writes it
+- Ctrl-R = to evaluate expressions, first only simple math
+- Ctrl-R shouldn't have a timeout in insert mode
+- %
+
+            # Ignore invalid operator/char combinations.
+            #} elsif ($operator and ($char eq 'j' or $char eq 'k')) {
+            #    # FIXME
+            #    print "Invalid operator/char: $operator $char" if DEBUG;
+            #    $skip = 1;
+
+- undo/redo positions _suck_
+- cc/dd . doesn't work
+
+- daw is not correctly displayed in status line, it shows d_a instead of da
+
+- :map ,, w
+  :map ,,, b
+  ,,, - very short pause - ,,, doesn't work; possibly because of
+  flush_pending_map().
+
+- support :map gX iINSERT TEXT<ESC> and similar stuff (suggested by estragib)
+- it would be nice if :ls somehow indicated current and alternate buffer
+  (maybe activity too?) (suggested by estragib)
+- < estragib> oh, i can't map \<something> either
+  < estragib> hehe, definitely something to do with escaping. \\ prints \
+- < estragib> there's a minimal difference to vim when yanking with yB:
+              abc def ghi jkl<ESC>bhyBP
+  < estragib> vim     : abc def ghighi jkl
+  < estragib> vim-mode: abc def ghi ghi jkl

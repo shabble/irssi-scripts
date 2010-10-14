@@ -1,29 +1,39 @@
 # Search within your typed history as you type (like ctrl-R in bash)
-# Usage:
-
+#
+# INSTALL:
+#
+# This script requires that you have first installed and loaded 'uberprompt.pl'
+# Uberprompt can be downloaded from:
+#
+# http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
+#
+# and follow the instructions at the top of that file for installation.
+#
+# USAGE:
+#
 # * Setup: /bind ^R /history_search_start
-
+#
 # * Then type ctrl-R and type what you're searching for
-
+#
 # * You can cycle through multiple matches with ^R (older matches), and
 #   ^S (newer matches)
-
+#
 # NOTE: Ctrl-S may not work if you have software flow control configured for
 # your terminal. It may appear to freeze irssi entirely. If this happens, it can
 # be restored with Ctrl-Q, but you will be unable to use the Ctrl-S binding.
 # You can disable flow control by running the command `stty -ixon' in your
 # terminal, or setting `defflow off' in your ~/.screenrc if using GNU Screen.
-
+#
 # * Hitting enter selects a match and terminates search mode.
-
+#
 # * You can use ^G to exit search mode without selecting.
-
+#
 # * Any other ctrl- or meta- key binding will terminate search mode, leaving the
 #   selected item in the input line.
-
+#
 # Original script Copyright 2007  Wouter Coekaerts <coekie@irssi.org>
 # Heavy modifications by Shabble <shabble+irssi@metavore.org>, 2010.
-
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -53,7 +63,7 @@ $VERSION = '1.0';
    description => 'Search within your typed history as you type'
                 . ' (like ctrl-R in readline applications)',
    license     => 'GPLv2 or later',
-   url         => 'http://github.com/shabble/shab-irssi-scripts/tree/master/history-search/',
+   url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
    changed     => '24/7/2010'
   );
 
@@ -65,9 +75,10 @@ my @search_matches = ();
 my $match_index = 0;
 
 
-sub DEBUG () { 0 }
+my $DEBUG_ENABLED = 0;
+sub DEBUG () { $DEBUG_ENABLED }
 
-# check we have prompt_info loaded.
+# check we have uberprompt loaded.
 
 sub script_is_loaded {
     my $name = shift;
@@ -79,18 +90,28 @@ sub script_is_loaded {
     return $retval;
 }
 
-unless (script_is_loaded('prompt_info')) {
-    die "This script requires 'prompt_info' in order to work. "
+unless (script_is_loaded('uberprompt')) {
+    die "This script requires 'uberprompt.pl' in order to work. "
       . "Please load it and try again";
 } else {
     history_init();
 }
 
 sub history_init {
+    Irssi::settings_add_bool('history_search', 'histsearch_debug', 0);
+
     Irssi::command_bind('history_search_start', \&history_search);
-    #Irssi::command_bind('history_search_exit', \&history_search_exit);
+
+    Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
+
+    setup_changed();
 }
+
+sub setup_changed {
+    $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
+}
+
 
 sub history_search {
     $search_active = 1;
@@ -105,16 +126,20 @@ sub history_search {
 
 sub history_exit {
     $search_active = 0;
-    Irssi::signal_emit('change prompt', '');
+    Irssi::signal_emit('change prompt', '', 'UP_INNER');
 }
 
 sub update_history_prompt {
-    Irssi::signal_emit('change prompt', " reverse-i-search: \`$search_str'");
+    my $col = scalar(@search_matches) ? '%g' : '%r';
+    Irssi::signal_emit('change prompt',
+                       ' reverse-i-search: `' . $col . $search_str
+                       . '%n' . "'",
+                       'UP_INNER');
 }
 
 sub update_history_matches {
     my ($match_str) = @_;
-    $match_str //= $search_str;
+    $match_str = $search_str unless defined $match_str;
 
     my %unique;
     my @matches = grep { m/\Q$match_str/i } @history_cache;
