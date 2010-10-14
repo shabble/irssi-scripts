@@ -2538,10 +2538,10 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
-    Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
-    Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
-    Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
-    Irssi::settings_add_int('vim_mode', 'vim_mode_max_undo_lines', 50);
+    # Register all available settings.
+    foreach my $name (keys %$settings) {
+        _setting_register($name);
+    }
 
     # Load the vim_moderc file if it exists.
     ex_source('source');
@@ -2556,7 +2556,7 @@ sub setup_changed {
     if ($settings->{cmd_seq}->{value} ne '') {
         delete $imaps->{$settings->{cmd_seq}->{value}};
     }
-    $value = Irssi::settings_get_str('vim_mode_cmd_seq');
+    $value = _setting_get('cmd_seq');
     if ($value eq '') {
         $settings->{cmd_seq}->{value} = $value;
     } else {
@@ -2570,9 +2570,7 @@ sub setup_changed {
         }
     }
 
-    $settings->{debug}->{value} = Irssi::settings_get_bool('vim_mode_debug');
-
-    my $new_utf8 = Irssi::settings_get_bool('vim_mode_utf8');
+    my $new_utf8 = _setting_get('utf8');
     if ($new_utf8 != $settings->{utf8}->{value}) {
         # recompile the patterns when switching to/from utf-8
         $word     = qr/[\w_]/o;
@@ -2585,8 +2583,13 @@ sub setup_changed {
               "Please disable the vim_mode_utf8 setting.");
     }
 
-    $settings->{max_undo_lines}->{value}
-        = Irssi::settings_get_int('vim_mode_max_undo_lines');
+    # Sync $settings with current irssi values.
+    foreach my $name (keys %$settings) {
+        # These were already handled above.
+        next if $name eq 'cmd_seq' or $name eq 'cmd_seq';
+
+        $settings->{$name}->{value} = _setting_get($name);
+    }
 }
 
 sub UNLOAD {
@@ -2861,6 +2864,57 @@ sub _set_prompt {
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
+}
+
+sub _setting_get {
+    my ($name) = @_;
+
+    my $type = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        return Irssi::settings_get_bool($name);
+    } elsif ($type == S_INT) {
+        return Irssi::settings_get_int($name);
+    } elsif ($type == S_STR) {
+        return Irssi::settings_get_str($name);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
+    return undef;
+}
+sub _setting_set {
+    my ($name, $value) = @_;
+
+    my $type = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        Irssi::settings_set_bool($name, $value);
+    } elsif ($type == S_INT) {
+        Irssi::settings_set_int($name, $value);
+    } elsif ($type == S_STR) {
+        Irssi::settings_set_str($name, $value);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
+}
+sub _setting_register {
+    my ($name) = @_;
+
+    my $value = $settings->{$name}->{value};
+    my $type  = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        Irssi::settings_add_bool('vim_mode', $name, $value);
+    } elsif ($type == S_INT) {
+        Irssi::settings_add_int('vim_mode', $name, $value);
+    } elsif ($type == S_STR) {
+        Irssi::settings_add_str('vim_mode', $name, $value);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
 }
 
 sub _warn {
