@@ -335,13 +335,7 @@ sub restore_prompt_items {
 
     print "Restoring original prompt" if DEBUG;
 
-    _sbar_command('prompt', 'add', 'prompt',
-                  qw/-alignment left -before input -priority '-1'/);
-    _sbar_command('prompt', 'add', 'prompt_empty',
-                  qw/-alignment left -after prompt -priority '-1'/);
-
-    _sbar_command('prompt', 'position', '100');
-
+    _sbar_command('prompt', 'reset');
 }
 
 sub _sbar_command {
