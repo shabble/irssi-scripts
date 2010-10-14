@@ -1928,7 +1928,8 @@ sub ex_set {
                     $value !~ /^(on|off)$/i) {
                 $value = $value ? 'on' : 'off';
             }
-            Irssi::command("set vim_mode_$name $value");
+            _setting_set($name, $value);
+            Irssi::signal_emit('setup changed');
 
         # :se[t] [option]
         } else {
