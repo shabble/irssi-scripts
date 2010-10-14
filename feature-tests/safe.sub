@@ -1,0 +1,4 @@
+sub moo { print "Moo" }
+sub hello { print join( ", ", @_) }
+
+bless {}, __PACKAGE__;
