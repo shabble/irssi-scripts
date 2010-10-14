@@ -2567,6 +2567,9 @@ sub setup_changed {
             $settings->{cmd_seq}->{value} = $value;
         } else {
             _warn("Error: vim_mode_cmd_seq must be a single character");
+            # Restore the value so $settings and irssi settings are
+            # consistent.
+            _setting_set('cmd_seq', $settings->{cmd_seq}->{value});
         }
     }
 
