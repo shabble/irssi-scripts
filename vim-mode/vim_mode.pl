@@ -81,6 +81,9 @@
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
 #                              Vim regex
+# * Settings:          :se[t]                  - display all options
+#                      :se[t] {option}         - display all matching options
+#                      :se[t] {option} {value} - change option to value
 #
 #
 # Mappings:
@@ -102,11 +105,19 @@
 #     :unmap <C-E>     - restore default behavior of <C-E> after disabling it
 #
 #
-# The following irssi settings are available:
+# Settings:
 #
-# * vim_mode_utf8: support UTF-8 characters, default on
-# * vim_mode_debug: enable debug output, default off
-# * vim_mode_cmd_seq: char that when double-pressed simulates <esc>
+# The settings are stored as irssi settings and can be set using /set as usual
+# (prepend vim_mode_ to setting name) or using the :set ex-command. The
+# following settings are available:
+#
+# * utf8: support UTF-8 characters, boolean, default on
+# * debug: enable debug output, boolean, default off
+# * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
+#
+# In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
+# settings, but only vim_mode's settings can be set/displayed.
+#
 #
 # The following statusbar items are available:
 #
@@ -258,6 +269,11 @@ sub C_EX () { 5 }
 sub C_IRSSI () { 6 }
 # does nothing
 sub C_NOP () { 7 }
+
+# setting types, match irssi types as they are stored as irssi settings
+sub S_BOOL () { 0 }
+sub S_INT  () { 1 }
+sub S_STR  () { 2 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -439,6 +455,10 @@ my $commands_ex
                     type => C_EX },
      mkv       => { char => ':mkv',       func => \&ex_mkvimrc,
                     type => C_EX },
+     se        => { char => ':se',        func => \&ex_set,
+                    type => C_EX },
+     set       => { char => ':set',       func => \&ex_set,
+                    type => C_EX },
     };
 
 # MAPPINGS
@@ -454,12 +474,20 @@ foreach my $char (keys %$commands) {
 
 # GLOBAL VARIABLES
 
-my $DEBUG_ENABLED = 0;
+# all vim_mode settings, must be enabled in vim_mode_init() before usage
+my $settings
+  = {
+     # print debug output
+     debug          => { type => S_BOOL, value => 0 },
+     # use UTF-8 internally for string calculations/manipulations
+     utf8           => { type => S_BOOL, value => 1 },
+     # esc-shortcut in insert mode
+     cmd_seq        => { type => S_STR,  value => '' },
+     # not used yet
+     max_undo_lines => { type => S_INT,  value => 50 },
+    };
 
-sub DEBUG { $DEBUG_ENABLED }
-
-# use UTF-8 internally for string calculations/manipulations
-my $utf8 = 1;
+sub DEBUG { $settings->{debug}->{value} }
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
@@ -712,7 +740,7 @@ sub cmd_j {
     } elsif ($history_index >= 0) {
         my $history = $history[$history_index];
         # History is not in UTF-8!
-        if ($utf8) {
+        if ($settings->{utf8}->{value}) {
             $history = decode_utf8($history);
         }
         _input($history);
@@ -744,7 +772,7 @@ sub cmd_k {
     if ($history_index >= 0) {
         my $history = $history[$history_index];
         # History is not in UTF-8!
-        if ($utf8) {
+        if ($settings->{utf8}->{value}) {
             $history = decode_utf8($history);
         }
         _input($history);
@@ -781,7 +809,7 @@ sub cmd_G {
 
     my $history = $history[$history_index];
     # History is not in UTF-8!
-    if ($utf8) {
+    if ($settings->{utf8}->{value}) {
         $history = decode_utf8($history);
     }
     _input($history);
@@ -1870,6 +1898,45 @@ sub ex_mkvimrc {
     close $file;
 }
 
+sub ex_set {
+    my ($arg_str, $count) = @_;
+
+    # :se[t] [option] [value]
+    if ($arg_str =~ /^se(?:t)?(?:\s(\S+)(?:\s(.+)$)?)?/) {
+        # :se[t] {option} {value}
+        if (defined $1 and defined $2) {
+            if (not exists $settings->{$1}) {
+                return _warn_ex('map', "setting '$1' not found");
+            }
+            my $name = $1;
+            my $value = $2;
+            # Also accept numeric values for boolean options.
+            if ($settings->{$name}->{type} == S_BOOL and
+                    $value !~ /^(on|off)$/) {
+                $value = $value ? 'on' : 'off';
+            }
+            Irssi::command("set vim_mode_$name $value");
+
+        # :se[t] [option]
+        } else {
+            my $search = defined $1 ? $1 : '';
+            my $active_window = Irssi::active_win();
+            foreach my $setting (sort keys %$settings) {
+                next if $setting !~ /^\Q$search\E/; # skip non-matches
+                my $value = $settings->{$setting}->{value};
+                # Irssi only accepts 'on' and 'off' as values for boolean
+                # options.
+                if ($settings->{$setting}->{type} == S_BOOL) {
+                    $value = $value ? 'on' : 'off';
+                }
+                $active_window->print($setting . '=' . $value);
+            }
+        }
+    } else {
+        _warn_ex('map');
+    }
+}
+
 sub _warn_ex {
     my ($command, $description) = @_;
     my $message = "Error in ex-mode command $command";
@@ -2481,38 +2548,40 @@ sub vim_mode_init {
 sub setup_changed {
     my $value;
 
-    # Delete all possible imaps created by /set vim_mode_cmd_seq.
-    foreach my $char ('a' .. 'z') {
-        delete $imaps->{$char};
+    if ($settings->{cmd_seq}->{value} ne '') {
+        delete $imaps->{$settings->{cmd_seq}->{value}};
     }
-
     $value = Irssi::settings_get_str('vim_mode_cmd_seq');
-    if ($value) {
+    if ($value eq '') {
+        $settings->{cmd_seq}->{value} = $value;
+    } else {
         if (length $value == 1) {
             $imaps->{$value} = { 'map'  => $value,
                                  'func' => sub { _update_mode(M_CMD) }
                                };
+            $settings->{cmd_seq}->{value} = $value;
         } else {
             _warn("Error: vim_mode_cmd_seq must be a single character");
         }
     }
 
-    $DEBUG_ENABLED = Irssi::settings_get_bool('vim_mode_debug');
+    $settings->{debug}->{value} = Irssi::settings_get_bool('vim_mode_debug');
 
     my $new_utf8 = Irssi::settings_get_bool('vim_mode_utf8');
-
-    if ($new_utf8 != $utf8) {
+    if ($new_utf8 != $settings->{utf8}->{value}) {
         # recompile the patterns when switching to/from utf-8
         $word     = qr/[\w_]/o;
         $non_word = qr/[^\w_\s]/o;
-    }
 
+        $settings->{utf8}->{value} = $new_utf8;
+    }
     if ($new_utf8 and (!$^V or $^V lt v5.8.1)) {
         _warn("Warning: UTF-8 isn't supported very well in perl < 5.8.1! " .
               "Please disable the vim_mode_utf8 setting.");
     }
 
-    $utf8 = $new_utf8;
+    $settings->{max_undo_lines}->{value}
+        = Irssi::settings_get_int('vim_mode_max_undo_lines');
 }
 
 sub UNLOAD {
@@ -2545,7 +2614,7 @@ sub _add_undo_entry {
         unshift @undo_buffer, [$line, $pos];
         $undo_index = 0;
     }
-    my $max = Irssi::settings_get_int('vim_mode_max_undo_lines');
+    my $max = $settings->{max_undo_lines}->{value};
 }
 
 sub _restore_undo_entry {
@@ -2671,12 +2740,12 @@ sub _input {
 
     my $current_data = Irssi::parse_special('$L', 0, 0);
 
-    if ($utf8) {
+    if ($settings->{utf8}->{value}) {
         $current_data = decode_utf8($current_data);
     }
 
     if (defined $data) {
-        if ($utf8) {
+        if ($settings->{utf8}->{value}) {
             Irssi::gui_input_set(encode_utf8($data));
         } else {
             Irssi::gui_input_set($data);

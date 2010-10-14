@@ -133,6 +133,7 @@ aliases = {
   KB = "kickban";
   KN = "knockout";
   BANS = "ban";
+  B = "ban";
   MUB = "unban *";
   UB = "unban";
   IG = "ignore";
@@ -268,7 +269,8 @@ statusbar = {
     };
     prompt = {
       items = {
-        uberprompt = { priority = "-1"; };
+        prompt = { };
+        prompt_empty = { };
         input = { priority = "10"; };
       };
       position = "100";
