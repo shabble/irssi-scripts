@@ -116,7 +116,7 @@
 # * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
 #
 # In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
-# settings.
+# settings, but only vim_mode's settings can be set/displayed.
 #
 #
 # The following statusbar items are available:
