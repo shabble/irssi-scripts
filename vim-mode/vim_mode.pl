@@ -2586,9 +2586,9 @@ sub setup_changed {
 
 sub UNLOAD {
     Irssi::signal_remove('gui key pressed' => \&got_key);
+    Irssi::signal_remove('setup changed' => \&setup_changed);
     Irssi::statusbar_item_unregister ('vim_mode');
     Irssi::statusbar_item_unregister ('vim_windows');
-
 }
 
 sub _add_undo_entry {
