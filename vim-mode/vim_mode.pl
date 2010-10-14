@@ -193,6 +193,11 @@
 # WONTFIX - things we're not ever likely to do
 # * Macros
 #
+# THANKS:
+#
+# * estragib: a lot of testing and many bug reports and feature requests
+# * iaj: testing
+#
 # LICENCE:
 #
 # Copyright (c) 2010 Tom Feist & Simon Ruderich
