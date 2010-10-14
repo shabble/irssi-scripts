@@ -1917,7 +1917,7 @@ sub ex_set {
             my $value = $2;
             # Also accept numeric values for boolean options.
             if ($settings->{$name}->{type} == S_BOOL and
-                    $value !~ /^(on|off)$/) {
+                    $value !~ /^(on|off)$/i) {
                 $value = $value ? 'on' : 'off';
             }
             Irssi::command("set vim_mode_$name $value");
