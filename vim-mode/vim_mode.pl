@@ -403,7 +403,7 @@ my $commands
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1, no_operator => 1 },
      '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
-               no_operator => 1 },
+               no_operator => 1, dont_clear_partial_keys => 1 },
      '.'  => { char => '.', type => C_NORMAL, repeatable => 1,
                no_operator => 1 },
      ':'  => { char => ':', type => C_NORMAL },
@@ -527,6 +527,10 @@ my $numeric_prefix = undef;
 my $operator = undef;
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
+
+# current partial command = all pending keys currently entered
+my $partial_command = '';
+
 # last vi command, used by .
 my $last
   = {
@@ -1472,6 +1476,8 @@ sub cmd_register {
         return (undef, undef);
     }
 
+    $partial_command .= $char;
+
     # make sure black hole register is always empty
     if ($char eq '_') {
         $registers->{_} = '';
@@ -2025,21 +2031,8 @@ sub vim_mode_cb {
         $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
-        if ($register ne '"' or $numeric_prefix or $operator or $movement) {
-            $mode_str .= ' (';
-            if ($register ne '"') {
-                $mode_str .= '"' . $register;
-            }
-            if ($numeric_prefix) {
-                $mode_str .= $numeric_prefix;
-            }
-            if ($operator) {
-                $mode_str .= $operator->{char};
-            }
-            if ($movement) {
-                $mode_str .= $movement->{char};
-            }
-            $mode_str .= ')';
+        if ($partial_command) {
+            $mode_str .= " ($partial_command)";
         }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
@@ -2255,6 +2248,7 @@ sub handle_command_cmd {
         ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
+        $partial_command .= $char;
         return 1; # call _stop()
     }
 
@@ -2272,6 +2266,8 @@ sub handle_command_cmd {
 
     } elsif (exists $maps->{$char}) {
         $map = $maps->{$char};
+
+        $partial_command .= $char;
 
         # We have multiple mappings starting with this key sequence.
         if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
@@ -2292,6 +2288,7 @@ sub handle_command_cmd {
         print "No mapping found for $char" if DEBUG;
         $pending_map = undef;
         $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop()
     }
 
@@ -2302,6 +2299,7 @@ sub handle_command_cmd {
     # Make sure we have a valid $cmd.
     if (not defined $cmd) {
         print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
+        $partial_command = '';
         return 1; # call _stop()
     }
 
@@ -2312,6 +2310,7 @@ sub handle_command_cmd {
         $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
         $numeric_prefix = undef;
 
+        $partial_command = '';
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
@@ -2319,12 +2318,14 @@ sub handle_command_cmd {
         Irssi::command($cmd->{func});
 
         $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop();
     # <Nop> does nothing.
     } elsif ($cmd->{type} == C_NOP) {
         print "Processing <Nop>: $map->{char}" if DEBUG;
 
         $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop();
     }
 
@@ -2365,6 +2366,7 @@ sub handle_command_cmd {
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
+            $partial_command = '';
         # Set new operator.
         } else {
             $operator = $cmd;
@@ -2487,6 +2489,10 @@ sub handle_command_cmd {
                 $last->{operator} = $operator;
                 $last->{movement} = $movement;
                 $last->{register} = $register;
+            }
+
+            if (!$cmd->{dont_clear_partial_keys}) {
+                $partial_command = '';
             }
         }
 
@@ -2851,9 +2857,13 @@ sub _update_mode {
     # It's necessary when pressing enter so the next line can be repeated.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{cmd} = $commands->{i};
+
+        $partial_command = '';
     # Make sure prompt is cleared when leaving ex mode.
     } elsif ($mode == M_EX and $new_mode != M_EX) {
         _set_prompt('');
+
+        $partial_command = '';
     }
 
     $mode = $new_mode;
