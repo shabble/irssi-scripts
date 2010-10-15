@@ -297,7 +297,7 @@ sub uberprompt_draw {
     my $prompt = '';            # rendered content of the prompt.
     my $theme = Irssi::current_theme;
 
-    my $arg = $use_replaces ? Irssi::EXPAND_FLAG_IGNORE_REPLACES : 0;
+    my $arg = $use_replaces ? 0 : Irssi::EXPAND_FLAG_IGNORE_REPLACES;
     $prompt = $theme->format_expand("{uberprompt $prompt_arg}", $arg);
 
     if ($prompt_data_pos eq 'UP_ONLY') {
