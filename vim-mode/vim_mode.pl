@@ -2776,10 +2776,12 @@ sub delete_map {
 
 sub _commit_line {
     _update_mode(M_INS);
-    _reset_undo_buffer('', 0);
+
     # separate from call above as _update_mode() does additional internal work
     # and we need to make sure it gets correctly called.
     _update_mode(M_CMD) if $settings->{start_cmd}->{value};
+
+    _reset_undo_buffer('', 0);
 }
 
 sub _input {
