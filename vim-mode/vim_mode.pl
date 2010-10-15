@@ -1865,6 +1865,16 @@ sub _parse_mapping_reverse {
 
     return $string;
 }
+sub _parse_partial_command_reverse {
+    my ($string) = @_;
+
+    # Convert Ctrl-X to ^X.
+    $string =~ s/([\x01-\x1A])/"^" . chr(ord($1) + 64)/ge;
+    # Convert Ctrl-6 and Ctrl-^ to <C-^>.
+    $string =~ s/\x1E/^^/g;
+
+    return $string;
+}
 
 sub ex_source {
     my ($arg_str, $count) = @_;
@@ -2043,7 +2053,7 @@ sub vim_mode_cb {
             if (defined $pending_map) {
                 $partial .= $pending_map;
             }
-            $partial = _parse_mapping_reverse($partial);
+            $partial = _parse_partial_command_reverse($partial);
             $partial =~ s/\\/\\\\\\\\/g;
             $mode_str .= " ($partial)";
         }
