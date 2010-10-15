@@ -2032,7 +2032,9 @@ sub vim_mode_cb {
     } else {
         $mode_str = '%_Command%_';
         if ($partial_command) {
-            $mode_str .= " ($partial_command)";
+            my $p_copy = $partial_command;
+            $p_copy =~ s/\\/\\\\\\\\/g;
+            $mode_str .= " ($p_copy)";
         }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
