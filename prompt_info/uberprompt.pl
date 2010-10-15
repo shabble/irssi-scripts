@@ -139,6 +139,10 @@ my $prompt_data_pos = 'UP_INNER';
 my $prompt_last     = '';
 my $prompt_format   = '';
 
+# flag to indicate whether rendering of hte prompt should allow the replaces
+# theme formats to be applied to the content.
+my $use_replaces = 0;
+
 pre_init();
 
 sub pre_init {
@@ -175,6 +179,8 @@ sub init {
     Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
+    Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
+
 
     Irssi::command_bind("prompt",     \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on',  \&replace_prompt_items);
@@ -223,6 +229,8 @@ sub init {
 }
 
 sub reload_settings {
+
+    $use_replaces = Irssi::settings_get_bool('uberprompt_use_replaces');
 
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
 
@@ -289,8 +297,8 @@ sub uberprompt_draw {
     my $prompt = '';            # rendered content of the prompt.
     my $theme = Irssi::current_theme;
 
-    $prompt = $theme->format_expand
-      ("{uberprompt $prompt_arg}", Irssi::EXPAND_FLAG_IGNORE_REPLACES);
+    my $arg = $use_replaces ? Irssi::EXPAND_FLAG_IGNORE_REPLACES : 0;
+    $prompt = $theme->format_expand("{uberprompt $prompt_arg}", $arg);
 
     if ($prompt_data_pos eq 'UP_ONLY') {
         $prompt =~ s/\$\$uber//; # no need for recursive prompting, I hope.
