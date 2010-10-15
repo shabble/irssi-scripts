@@ -114,9 +114,15 @@
 # * utf8: support UTF-8 characters, boolean, default on
 # * debug: enable debug output, boolean, default off
 # * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
+# * start_cmd: start every line in command mode, boolean, default off
 #
 # In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
 # settings, but only vim_mode's settings can be set/displayed.
+# Examples:
+#    :set cmd_seq=j   # set cmd_seq to j
+#    :set cmd_seq=    # disable cmd_seq
+#    :set debug=on    # enable debug
+#    :set debug=off   # disable debug
 #
 #
 # The following statusbar items are available:
@@ -192,6 +198,11 @@
 #
 # WONTFIX - things we're not ever likely to do
 # * Macros
+#
+# THANKS:
+#
+# * estragib: a lot of testing and many bug reports and feature requests
+# * iaj: testing
 #
 # LICENCE:
 #
@@ -392,7 +403,7 @@ my $commands
      '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
                repeatable => 1, no_operator => 1 },
      '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
-               no_operator => 1 },
+               no_operator => 1, dont_clear_partial_keys => 1 },
      '.'  => { char => '.', type => C_NORMAL, repeatable => 1,
                no_operator => 1 },
      ':'  => { char => ':', type => C_NORMAL },
@@ -483,6 +494,8 @@ my $settings
      utf8           => { type => S_BOOL, value => 1 },
      # esc-shortcut in insert mode
      cmd_seq        => { type => S_STR,  value => '' },
+     # start every line in command mode
+     start_cmd      => { type => S_BOOL, value => 0 },
      # not used yet
      max_undo_lines => { type => S_INT,  value => 50 },
     };
@@ -514,6 +527,10 @@ my $numeric_prefix = undef;
 my $operator = undef;
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
+
+# current partial command = all pending keys currently entered
+my $partial_command = '';
+
 # last vi command, used by .
 my $last
   = {
@@ -1459,6 +1476,8 @@ sub cmd_register {
         return (undef, undef);
     }
 
+    $partial_command .= $char;
+
     # make sure black hole register is always empty
     if ($char eq '_') {
         $registers->{_} = '';
@@ -1902,7 +1921,7 @@ sub ex_set {
     my ($arg_str, $count) = @_;
 
     # :se[t] [option] [value]
-    if ($arg_str =~ /^se(?:t)?(?:\s(\S+)(?:\s(.+)$)?)?/) {
+    if ($arg_str =~ /^se(?:t)?(?:\s([^=]+)(?:=(.*)$)?)?/) {
         # :se[t] {option} {value}
         if (defined $1 and defined $2) {
             if (not exists $settings->{$1}) {
@@ -1911,11 +1930,15 @@ sub ex_set {
             my $name = $1;
             my $value = $2;
             # Also accept numeric values for boolean options.
-            if ($settings->{$name}->{type} == S_BOOL and
-                    $value !~ /^(on|off)$/) {
-                $value = $value ? 'on' : 'off';
+            if ($settings->{$name}->{type} == S_BOOL) {
+                if ($value =~ /^(on|off)$/i) {
+                    $value = lc $value eq 'on' ? 1 : 0;
+                } elsif ($value eq '') {
+                    $value = 0;
+                }
             }
-            Irssi::command("set vim_mode_$name $value");
+            _setting_set($name, $value);
+            setup_changed();
 
         # :se[t] [option]
         } else {
@@ -2008,21 +2031,10 @@ sub vim_mode_cb {
         $mode_str = '%_Ex%_';
     } else {
         $mode_str = '%_Command%_';
-        if ($register ne '"' or $numeric_prefix or $operator or $movement) {
-            $mode_str .= ' (';
-            if ($register ne '"') {
-                $mode_str .= '"' . $register;
-            }
-            if ($numeric_prefix) {
-                $mode_str .= $numeric_prefix;
-            }
-            if ($operator) {
-                $mode_str .= $operator->{char};
-            }
-            if ($movement) {
-                $mode_str .= $movement->{char};
-            }
-            $mode_str .= ')';
+        if ($partial_command) {
+            my $p_copy = $partial_command;
+            $p_copy =~ s/\\/\\\\\\\\/g;
+            $mode_str .= " ($p_copy)";
         }
     }
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
@@ -2238,6 +2250,7 @@ sub handle_command_cmd {
         ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
+        $partial_command .= $char;
         return 1; # call _stop()
     }
 
@@ -2255,6 +2268,8 @@ sub handle_command_cmd {
 
     } elsif (exists $maps->{$char}) {
         $map = $maps->{$char};
+
+        $partial_command .= $char;
 
         # We have multiple mappings starting with this key sequence.
         if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
@@ -2274,6 +2289,8 @@ sub handle_command_cmd {
     } else {
         print "No mapping found for $char" if DEBUG;
         $pending_map = undef;
+        $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop()
     }
 
@@ -2284,6 +2301,7 @@ sub handle_command_cmd {
     # Make sure we have a valid $cmd.
     if (not defined $cmd) {
         print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
+        $partial_command = '';
         return 1; # call _stop()
     }
 
@@ -2294,6 +2312,7 @@ sub handle_command_cmd {
         $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
         $numeric_prefix = undef;
 
+        $partial_command = '';
         return 1; # call _stop()
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
@@ -2301,12 +2320,14 @@ sub handle_command_cmd {
         Irssi::command($cmd->{func});
 
         $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop();
     # <Nop> does nothing.
     } elsif ($cmd->{type} == C_NOP) {
         print "Processing <Nop>: $map->{char}" if DEBUG;
 
         $numeric_prefix = undef;
+        $partial_command = '';
         return 1; # call _stop();
     }
 
@@ -2347,6 +2368,7 @@ sub handle_command_cmd {
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
+            $partial_command = '';
         # Set new operator.
         } else {
             $operator = $cmd;
@@ -2470,6 +2492,10 @@ sub handle_command_cmd {
                 $last->{movement} = $movement;
                 $last->{register} = $register;
             }
+
+            if (!$cmd->{dont_clear_partial_keys}) {
+                $partial_command = '';
+            }
         }
 
         # Reset the count unless we go into insert mode, _update_mode() needs
@@ -2533,16 +2559,20 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
-    Irssi::settings_add_str('vim_mode', 'vim_mode_cmd_seq', '');
-    Irssi::settings_add_bool('vim_mode', 'vim_mode_debug', 0);
-    Irssi::settings_add_bool('vim_mode', 'vim_mode_utf8', 1);
-    Irssi::settings_add_int('vim_mode', 'vim_mode_max_undo_lines', 50);
+    # Register all available settings.
+    foreach my $name (keys %$settings) {
+        _setting_register($name);
+    }
 
     # Load the vim_moderc file if it exists.
     ex_source('source');
 
     setup_changed();
     _reset_undo_buffer();
+
+    if ($settings->{start_cmd}->{value}) {
+        _update_mode(M_CMD);
+    }
 }
 
 sub setup_changed {
@@ -2551,7 +2581,7 @@ sub setup_changed {
     if ($settings->{cmd_seq}->{value} ne '') {
         delete $imaps->{$settings->{cmd_seq}->{value}};
     }
-    $value = Irssi::settings_get_str('vim_mode_cmd_seq');
+    $value = _setting_get('cmd_seq');
     if ($value eq '') {
         $settings->{cmd_seq}->{value} = $value;
     } else {
@@ -2562,12 +2592,13 @@ sub setup_changed {
             $settings->{cmd_seq}->{value} = $value;
         } else {
             _warn("Error: vim_mode_cmd_seq must be a single character");
+            # Restore the value so $settings and irssi settings are
+            # consistent.
+            _setting_set('cmd_seq', $settings->{cmd_seq}->{value});
         }
     }
 
-    $settings->{debug}->{value} = Irssi::settings_get_bool('vim_mode_debug');
-
-    my $new_utf8 = Irssi::settings_get_bool('vim_mode_utf8');
+    my $new_utf8 = _setting_get('utf8');
     if ($new_utf8 != $settings->{utf8}->{value}) {
         # recompile the patterns when switching to/from utf-8
         $word     = qr/[\w_]/o;
@@ -2580,15 +2611,20 @@ sub setup_changed {
               "Please disable the vim_mode_utf8 setting.");
     }
 
-    $settings->{max_undo_lines}->{value}
-        = Irssi::settings_get_int('vim_mode_max_undo_lines');
+    # Sync $settings with current irssi values.
+    foreach my $name (keys %$settings) {
+        # These were already handled above.
+        next if $name eq 'cmd_seq' or $name eq 'cmd_seq';
+
+        $settings->{$name}->{value} = _setting_get($name);
+    }
 }
 
 sub UNLOAD {
     Irssi::signal_remove('gui key pressed' => \&got_key);
+    Irssi::signal_remove('setup changed' => \&setup_changed);
     Irssi::statusbar_item_unregister ('vim_mode');
     Irssi::statusbar_item_unregister ('vim_windows');
-
 }
 
 sub _add_undo_entry {
@@ -2733,6 +2769,9 @@ sub delete_map {
 sub _commit_line {
     _update_mode(M_INS);
     _reset_undo_buffer('', 0);
+    # separate from call above as _update_mode() does additional internal work
+    # and we need to make sure it gets correctly called.
+    _update_mode(M_CMD) if $settings->{start_cmd}->{value};
 }
 
 sub _input {
@@ -2824,6 +2863,8 @@ sub _update_mode {
     # It's necessary when pressing enter so the next line can be repeated.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{cmd} = $commands->{i};
+
+        $partial_command = '';
     # Make sure prompt is cleared when leaving ex mode.
     } elsif ($mode == M_EX and $new_mode != M_EX) {
         _set_prompt('');
@@ -2843,6 +2884,7 @@ sub _update_mode {
         $register = '"';
 
         $pending_map = undef;
+        $partial_command = '';
 
         # Also clear ex-mode buffer.
         @ex_buf = ();
@@ -2855,7 +2897,63 @@ sub _set_prompt {
     my $msg = shift;
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
+
+    # escape % symbols. This prevents any _set_prompt calls from using
+    # colouring sequences.
+    $msg =~ s/%/%%/g;
+
     Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
+}
+
+sub _setting_get {
+    my ($name) = @_;
+
+    my $type = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        return Irssi::settings_get_bool($name);
+    } elsif ($type == S_INT) {
+        return Irssi::settings_get_int($name);
+    } elsif ($type == S_STR) {
+        return Irssi::settings_get_str($name);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
+    return undef;
+}
+sub _setting_set {
+    my ($name, $value) = @_;
+
+    my $type = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        Irssi::settings_set_bool($name, $value);
+    } elsif ($type == S_INT) {
+        Irssi::settings_set_int($name, $value);
+    } elsif ($type == S_STR) {
+        Irssi::settings_set_str($name, $value);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
+}
+sub _setting_register {
+    my ($name) = @_;
+
+    my $value = $settings->{$name}->{value};
+    my $type  = $settings->{$name}->{type};
+    $name = "vim_mode_$name";
+
+    if ($type == S_BOOL) {
+        Irssi::settings_add_bool('vim_mode', $name, $value);
+    } elsif ($type == S_INT) {
+        Irssi::settings_add_int('vim_mode', $name, $value);
+    } elsif ($type == S_STR) {
+        Irssi::settings_add_str('vim_mode', $name, $value);
+    } else {
+        _warn("Unknown setting type '$type', please report.");
+    }
 }
 
 sub _warn {
