@@ -2567,6 +2567,10 @@ sub vim_mode_init {
 
     setup_changed();
     _reset_undo_buffer();
+
+    if ($settings->{start_cmd}) {
+        _update_mode(M_CMD);
+    }
 }
 
 sub setup_changed {
