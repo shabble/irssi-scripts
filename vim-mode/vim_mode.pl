@@ -2897,6 +2897,11 @@ sub _set_prompt {
     my $msg = shift;
     # add a leading space unless we're trying to clear it entirely.
     $msg = ' ' . $msg if length $msg;
+
+    # escape % symbols. This prevents any _set_prompt calls from using
+    # colouring sequences.
+    $msg =~ s/%/%%/g;
+
     Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
 }
 
