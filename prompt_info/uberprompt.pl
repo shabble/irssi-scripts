@@ -153,13 +153,24 @@ sub prompt_subcmd_handler {
 }
 
 sub UNLOAD {
+    deinit();
+}
+
+sub exp_lbrace { '{' }
+sub exp_rbrace { '}' }
+
+sub deinit {
+    Irssi::expando_destroy('brace');
     # remove uberprompt and return the original ones.
     print "Removing uberprompt and restoring original";
     restore_prompt_items();
 }
-
 sub init {
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
+
+    # TODO: flags to prevent these from being recomputed?
+    Irssi::expando_create('lbrace', \&exp_lbrace, {});
+    Irssi::expando_create('rbrace', \&exp_rbrace, {});
 
     Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
@@ -255,6 +266,10 @@ sub _escape_prompt_special {
     my $str = shift;
     $str =~ s/\$/\$\$/g;
     $str =~ s/\\/\\\\/g;
+    #$str =~ s/%/%%/g;
+    $str =~ s/{/\$lbrace/g;
+    $str =~ s/}/\$rbrace/g;
+
     return $str;
 }
 
@@ -292,6 +307,7 @@ sub uberprompt_draw {
         $prompt = $pdata_copy;
 
     } elsif ($prompt_data_pos eq 'UP_INNER' && defined $prompt_data) {
+
         my $esc = _escape_prompt_special($prompt_data);
         $prompt =~ s/\$\$uber/$esc/;
 
