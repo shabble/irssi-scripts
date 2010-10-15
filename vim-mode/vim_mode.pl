@@ -1932,7 +1932,7 @@ sub ex_set {
                 }
             }
             _setting_set($name, $value);
-            Irssi::signal_emit('setup changed');
+            setup_changed();
 
         # :se[t] [option]
         } else {
