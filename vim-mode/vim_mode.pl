@@ -2291,6 +2291,7 @@ sub handle_command_cmd {
     } else {
         print "No mapping found for $char" if DEBUG;
         $pending_map = undef;
+        $numeric_prefix = undef;
         return 1; # call _stop()
     }
 
