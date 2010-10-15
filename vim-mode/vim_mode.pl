@@ -2372,6 +2372,9 @@ sub handle_command_cmd {
                 # Restore position for yy.
                 if ($cmd == $commands->{y}) {
                     _input_pos($pos);
+                # And save undo for other operators.
+                } else {
+                    _add_undo_entry(_input(), _input_pos());
                 }
                 if ($register ne '"') {
                     print 'Changing register to "' if DEBUG;
