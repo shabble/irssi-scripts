@@ -2032,7 +2032,7 @@ sub vim_mode_cb {
     } else {
         $mode_str = '%_Command%_';
         if ($partial_command) {
-            my $p_copy = $partial_command;
+            my $p_copy = _parse_mapping_reverse($partial_command);
             $p_copy =~ s/\\/\\\\\\\\/g;
             $mode_str .= " ($p_copy)";
         }
