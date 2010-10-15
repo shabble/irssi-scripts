@@ -2866,8 +2866,6 @@ sub _update_mode {
     # Make sure prompt is cleared when leaving ex mode.
     } elsif ($mode == M_EX and $new_mode != M_EX) {
         _set_prompt('');
-
-        $partial_command = '';
     }
 
     $mode = $new_mode;
@@ -2884,6 +2882,7 @@ sub _update_mode {
         $register = '"';
 
         $pending_map = undef;
+        $partial_command = '';
 
         # Also clear ex-mode buffer.
         @ex_buf = ();
