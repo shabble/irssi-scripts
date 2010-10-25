@@ -1711,7 +1711,9 @@ sub ex_registers {
         foreach my $key (sort @regs) {
             next if $key eq '_'; # skip black hole
             if (defined $registers->{$key}) {
-                $active_window->print("register $key: $registers->{$key}");
+                my $register_val = $registers->{$key};
+                $register_val =~ s/%/%%/g;
+                $active_window->print("register $key: $register_val");
             }
         }
     } else {
