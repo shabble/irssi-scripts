@@ -1718,12 +1718,13 @@ sub ex_item_prev {
     $win->item_prev for (1..$count);
 }
 
+# TODO: factor out the shared search code for server next/prev.
 sub ex_server_next {
     my ($arg_str, $count) = @_;
 
-    my @server_ids = map { $_->{tag} . '/' . $_->{nick} } Irssi::servers;
+    my @server_ids = map { $_->{tag} . "\x1d" . $_->{nick} } Irssi::servers;
     my $server = Irssi::active_server;
-    my $current_id = $server->{tag} . '/' . $server->{nick};
+    my $current_id = $server->{tag} . "\x1d" . $server->{nick};
     my $next = 0;
     my $server_count = scalar @server_ids;
     for my $i (0..$server_count - 1) {
@@ -1736,7 +1737,7 @@ sub ex_server_next {
     }
 
     my $next_server = $server_ids[$next];
-    $next_server =~ s|^([^/]+)/.*$|$1|;
+    $next_server =~ s|^([^\x1d]+)\x1d.*$|$1|;
 
     print "Changing to server: $next: $next_server" if DEBUG;
     Irssi::command("window server $next_server");
@@ -1745,9 +1746,9 @@ sub ex_server_next {
 sub ex_server_prev {
     my ($arg_str, $count) = @_;
 
-    my @server_ids = map { $_->{tag} . '/' . $_->{nick} } Irssi::servers;
+    my @server_ids = map { $_->{tag} . "\x1d" . $_->{nick} } Irssi::servers;
     my $server = Irssi::active_server;
-    my $current_id = $server->{tag} . '/' . $server->{nick};
+    my $current_id = $server->{tag} . "\x1d" . $server->{nick};
     my $prev = 0;
     my $server_count = scalar @server_ids;
 
@@ -1761,7 +1762,7 @@ sub ex_server_prev {
     }
 
     my $prev_server = $server_ids[$prev];
-    $prev_server =~ s|^([^/]+)/.*$|$1|;
+    $prev_server =~ s|^([^\x1d]+)\x1d.*$|$1|;
 
     print "Changing to server: $prev: $prev_server" if DEBUG;
     Irssi::command("window server $prev_server");
@@ -2451,7 +2452,7 @@ sub handle_command_cmd {
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
-        Irssi::command($cmd->{func});
+        Irssi::active_server->command($cmd->{func});
 
         $numeric_prefix = undef;
         return 1; # call _stop();
