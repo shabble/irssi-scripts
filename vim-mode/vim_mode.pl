@@ -470,6 +470,23 @@ my $commands_ex
                     type => C_EX },
      set       => { char => ':set',       func => \&ex_set,
                     type => C_EX },
+     itemnext  => { char => ':itemnext',  func => \&ex_item_next,
+                    type => C_EX },
+     inext     => { char => ':itemnext',  func => \&ex_item_next,
+                    type => C_EX },
+     itemprev  => { char => ':itemprev',  func => \&ex_item_prev,
+                    type => C_EX },
+     iprev     => { char => ':itemprev',  func => \&ex_item_prev,
+                    type => C_EX },
+     servernext  => { char => ':servernext', func => \&ex_server_next,
+                    type => C_EX },
+     snext       => { char => ':servernext', func => \&ex_server_next,
+                    type => C_EX },
+     serverprev  => { char => ':serverprev', func => \&ex_server_prev,
+                    type => C_EX },
+     sprev       => { char => ':serverprev', func => \&ex_server_prev,
+                    type => C_EX },
+
     };
 
 # MAPPINGS
@@ -1501,6 +1518,7 @@ sub cmd_undo {
     }
     return (undef, undef);
 }
+
 sub cmd_redo {
     print "Redo!" if DEBUG;
 
@@ -1639,6 +1657,7 @@ sub ex_bdelete {
     }
     Irssi::command('window close');
 }
+
 sub ex_buffer {
     my ($arg_str, $count) = @_;
 
@@ -1681,6 +1700,72 @@ sub ex_buffer {
     } else {
         _warn_ex('buffer');
     }
+}
+
+sub ex_item_next {
+    my ($arg_str, $count) = @_;
+    my $win = Irssi::active_win;
+    $count = 1 unless defined $count;
+
+    $win->item_next for (1..$count);
+}
+
+sub ex_item_prev {
+    my ($arg_str, $count) = @_;
+    my $win = Irssi::active_win;
+    $count = 1 unless defined $count;
+
+    $win->item_prev for (1..$count);
+}
+
+sub ex_server_next {
+    my ($arg_str, $count) = @_;
+
+    my @server_ids = map { $_->{tag} . '/' . $_->{nick} } Irssi::servers;
+    my $server = Irssi::active_server;
+    my $current_id = $server->{tag} . '/' . $server->{nick};
+    my $next = 0;
+    my $server_count = scalar @server_ids;
+    for my $i (0..$server_count - 1) {
+        my $s_id = $server_ids[$i];
+        if (defined($s_id) and ($s_id eq $current_id)) {
+            print "Found match at $i" if DEBUG;
+            $next = ($i + 1) % $server_count;
+            last;
+        }
+    }
+
+    my $next_server = $server_ids[$next];
+    $next_server =~ s|^([^/]+)/.*$|$1|;
+
+    print "Changing to server: $next: $next_server" if DEBUG;
+    Irssi::command("window server $next_server");
+}
+
+sub ex_server_prev {
+    my ($arg_str, $count) = @_;
+
+    my @server_ids = map { $_->{tag} . '/' . $_->{nick} } Irssi::servers;
+    my $server = Irssi::active_server;
+    my $current_id = $server->{tag} . '/' . $server->{nick};
+    my $prev = 0;
+    my $server_count = scalar @server_ids;
+
+    for my $i (0..$server_count - 1) {
+        my $s_id = $server_ids[$i];
+        if (defined($s_id) and ($s_id eq $current_id)) {
+            print "Found match at $i" if DEBUG;
+            $prev = ($i - 1) % $server_count;
+            last;
+        }
+    }
+
+    my $prev_server = $server_ids[$prev];
+    $prev_server =~ s|^([^/]+)/.*$|$1|;
+
+    print "Changing to server: $prev: $prev_server" if DEBUG;
+    Irssi::command("window server $prev_server");
+
 }
 
 sub ex_registers {
