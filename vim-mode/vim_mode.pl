@@ -1707,14 +1707,46 @@ sub ex_registers {
         $registers->{'+'} = Irssi::parse_special('$U');
         $registers->{'*'} = $registers->{'+'};
 
+        my @empty_regs;
+        my $special_regs = { '+' => 1, '*' => 1, '_' => 1, '"' => 1, '0' => 1 };
+
         my $active_window = Irssi::active_win;
         foreach my $key (sort @regs) {
             next if $key eq '_'; # skip black hole
             if (defined $registers->{$key}) {
                 my $register_val = $registers->{$key};
-                $register_val =~ s/%/%%/g;
-                $active_window->print("register $key: $register_val");
+                if (length $register_val or exists $special_regs->{$key}) {
+                    $register_val =~ s/%/%%/g;
+                    $active_window->print("register $key: $register_val");
+                } else {
+                    push @empty_regs, $key;
+                }
             }
+        }
+
+        # coalesce empty registers into a single line.
+        if (@empty_regs) {
+            my @runs;
+            my $run_start;
+            foreach my $i (0..$#empty_regs) {
+                my $cur  = $empty_regs[$i];
+                my $next = $empty_regs[$i+1];
+
+                $run_start = $cur unless $run_start;
+                if (defined $next and ord($cur) + 1 == ord($next)) {
+                    # extend range.
+                } else {
+                    # terminate range and restart
+                    my $run_str = $run_start;
+
+                    if ($cur ne $run_start) {
+                        $run_str .= "-$cur";
+                    }
+                    push @runs, $run_str;
+                    $run_start = undef;
+                }
+            }
+            $active_window->print("Empty registers: " . join(', ', @runs));
         }
     } else {
         _warn_ex(':registers');
