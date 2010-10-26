@@ -652,6 +652,7 @@ sub cmd_operator_c {
         _input_pos($pos);
     }
 }
+
 sub cmd_operator_d {
     my ($old_pos, $new_pos, $move_cmd, $repeat, $change) = @_;
 
@@ -675,6 +676,7 @@ sub cmd_operator_d {
 
     _input_pos($pos);
 }
+
 sub cmd_operator_y {
     my ($old_pos, $new_pos, $move_cmd, $repeat) = @_;
 
@@ -702,6 +704,7 @@ sub cmd_operator_y {
         _input_pos($old_pos);
     }
 }
+
 sub _get_pos_and_length {
     my ($old_pos, $new_pos, $move_cmd) = @_;
 
@@ -730,6 +733,7 @@ sub cmd_h {
     $pos = 0 if $pos < 0;
     return (undef, $pos);
 }
+
 sub cmd_l {
     my ($count, $pos, $repeat) = @_;
 
@@ -778,6 +782,7 @@ sub cmd_j {
     }
     return (undef, undef);
 }
+
 # earlier history (up)
 sub cmd_k {
     my ($count, $pos, $repeat) = @_;
@@ -810,6 +815,7 @@ sub cmd_k {
     }
     return (undef, undef);
 }
+
 sub cmd_G {
     my ($count, $pos, $repeat) = @_;
 
@@ -847,6 +853,7 @@ sub cmd_G {
 
     return (undef, undef);
 }
+
 sub cmd_gg {
     my ($count, $pos, $repeat) = @_;
 
@@ -861,6 +868,7 @@ sub cmd_f {
     $last_ftFT = { type => 'f', char => $char };
     return (undef, $pos);
 }
+
 sub cmd_t {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -872,6 +880,7 @@ sub cmd_t {
     $last_ftFT = { type => 't', char => $char };
     return (undef, $pos);
 }
+
 sub cmd_F {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -884,6 +893,7 @@ sub cmd_F {
     $last_ftFT = { type => 'F', char => $char };
     return (undef, $pos);
 }
+
 sub cmd_T {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -896,6 +906,7 @@ sub cmd_T {
     $last_ftFT = { type => 'T', char => $char };
     return (undef, $pos);
 }
+
 # Find $count-th next occurrence of $char.
 sub _next_occurrence {
     my ($input, $char, $count, $pos) = @_;
@@ -919,6 +930,7 @@ sub cmd_semicolon {
                    ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     return (undef, $pos);
 }
+
 sub cmd_comma {
     my ($count, $pos, $repeat) = @_;
 
@@ -945,6 +957,7 @@ sub cmd_w {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
+
 sub cmd_b {
     my ($count, $pos, $repeat) = @_;
 
@@ -957,6 +970,7 @@ sub cmd_b {
     $pos = 0 if ($pos < 0);
     return (undef, $pos);
 }
+
 sub cmd_e {
     my ($count, $pos, $repeat) = @_;
 
@@ -965,6 +979,7 @@ sub cmd_e {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
+
 sub cmd_ge {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -978,6 +993,7 @@ sub cmd_ge {
 
     return (undef, $pos);
 }
+
 # Go to the beginning of $count-th word, like vi's w.
 sub _beginning_of_word {
     my ($input, $count, $pos) = @_;
@@ -997,6 +1013,7 @@ sub _beginning_of_word {
 
     return $pos;
 }
+
 # Go to the end of $count-th word, like vi's e.
 sub _end_of_word {
     my ($input, $count, $pos) = @_;
@@ -1033,6 +1050,7 @@ sub _end_of_word {
 
     return $pos;
 }
+
 sub cmd_W {
     my ($count, $pos, $repeat) = @_;
 
@@ -1041,6 +1059,7 @@ sub cmd_W {
     $pos = _fix_input_pos($pos, length $input);
     return (undef, $pos);
 }
+
 sub cmd_B {
     my ($count, $pos, $repeat) = @_;
 
@@ -1052,6 +1071,7 @@ sub cmd_B {
         return (undef, length($input) - $pos - 1);
     }
 }
+
 sub cmd_E {
     my ($count, $pos, $repeat) = @_;
 
@@ -1062,6 +1082,7 @@ sub cmd_E {
         return (undef, $pos);
     }
 }
+
 sub cmd_gE {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -1075,6 +1096,7 @@ sub cmd_gE {
 
     return (undef, $pos);
 }
+
 # Go to beginning of $count-th WORD, like vi's W.
 sub _beginning_of_WORD {
     my ($input, $count, $pos) = @_;
@@ -1095,6 +1117,7 @@ sub _beginning_of_WORD {
 
     return $pos;
 }
+
 # Go to end of $count-th WORD, like vi's E.
 sub _end_of_WORD {
     my ($input, $count, $pos) = @_;
@@ -1122,6 +1145,7 @@ sub cmd__i {
     _warn("i_ not implemented yet");
     return (undef, undef);
 }
+
 sub cmd__a {
     my ($count, $pos, $repeat, $char) = @_;
 
@@ -1164,9 +1188,17 @@ sub cmd__a {
             # word
             } elsif ($char eq 'w') {
                 # Start at the beginning of this WORD.
-                if (not defined $cur_pos and $pos > 0 and substr($input, $pos - 1, 2) !~ /(\s.|$word$non_word|$non_word$word)/) {
+                if (not defined $cur_pos and $pos > 0
+                    and substr($input, $pos - 1, 2)
+                    !~ /(\s.|$word$non_word|$non_word$word)/) {
 
-                    $cur_pos = _find_regex_before($input, "^($word+$non_word|$non_word+$word|$word+\\s|$non_word+\\s)", $pos, 1);
+                    $cur_pos = _find_regex_before
+                      (
+                       $input,
+                       "^($word+$non_word|$non_word+$word|$word+\\s|$non_word+\\s)",
+                       $pos, 1
+                      );
+
                     if ($cur_pos < 0) {
                         $cur_pos = 0;
                     } else {
@@ -1174,14 +1206,23 @@ sub cmd__a {
                     }
                 }
                 # Delete to the end of the word.
-                if (substr($input, $pos) =~ /^($word+$non_word|$non_word+$word|$word+\s+\S|$non_word+\s+\S)/) {
+                if (substr($input, $pos) =~
+                    /^($word+$non_word|$non_word+$word|$word+\s+\S|$non_word+\s+\S)/) {
+
                     $pos += $+[0] - 1;
                 } else {
                     $pos = length($input);
                     # If we are at the end of the line, whitespace before
                     # the word is also deleted.
-                    my $new_pos = _find_regex_before($input, "^($word+\\s+|$non_word+\\s+)", $pos, 1);
-                    if ($new_pos != -1 and (not defined $cur_pos or $cur_pos > $new_pos + 1)) {
+                    my $new_pos = _find_regex_before
+                      ($input,
+                       "^($word+\\s+|$non_word+\\s+)",
+                       $pos, 1);
+
+                    if ($new_pos != -1 and 
+                        (not defined $cur_pos or
+                         $cur_pos > $new_pos + 1)) {
+
                         $cur_pos = $new_pos + 1;
                     }
                 }
@@ -1216,6 +1257,7 @@ sub cmd__a {
 
     return ($cur_pos, $pos);
 }
+
 # Find regex as close as possible before the current position. If $end is true
 # the end of the match is returned, otherwise the beginning.
 sub _find_regex_before {
@@ -1240,6 +1282,7 @@ sub _find_regex_before {
 sub cmd_0 {
     return (undef, 0);
 }
+
 sub cmd_caret {
     my $input = _input();
     my $pos;
@@ -1255,6 +1298,7 @@ sub cmd_caret {
     }
     return (undef, $pos);
 }
+
 sub cmd_dollar {
     my $length = _input_len();
     return (undef, _fix_input_pos($length, $length));
@@ -1266,6 +1310,7 @@ sub cmd_x {
     cmd_operator_d($pos, $pos + $count, $commands->{x}, $repeat);
     return (undef, undef);
 }
+
 sub cmd_X {
     my ($count, $pos, $repeat) = @_;
 
@@ -1276,12 +1321,14 @@ sub cmd_X {
     cmd_operator_d($pos, $new, $commands->{X}, $repeat);
     return (undef, undef);
 }
+
 sub cmd_s {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{c};
     return (undef, $pos + 1);
 }
+
 sub cmd_S {
     my ($count, $pos, $repeat) = @_;
 
@@ -1299,6 +1346,7 @@ sub cmd_i {
     }
     return (undef, $pos);
 }
+
 sub cmd_I {
     my ($count, $pos, $repeat) = @_;
 
@@ -1310,6 +1358,7 @@ sub cmd_I {
     }
     return (undef, $pos);
 }
+
 sub cmd_a {
     my ($count, $pos, $repeat) = @_;
 
@@ -1326,6 +1375,7 @@ sub cmd_a {
     }
     return (undef, $pos);
 }
+
 sub cmd_A {
     my ($count, $pos, $repeat) = @_;
 
@@ -1338,11 +1388,13 @@ sub cmd_A {
     }
     return (undef, $pos);
 }
+
 # Add @insert_buf to _input() at the given position.
 sub _insert_buffer {
     my ($count, $pos) = @_;
     return _insert_at_position(join('', @insert_buf), $count, $pos);
 }
+
 sub _insert_at_position {
     my ($string, $count, $pos) = @_;
 
@@ -1379,11 +1431,13 @@ sub cmd_p {
     $pos = _paste_at_position($count, $pos + 1);
     return (undef, $pos);
 }
+
 sub cmd_P {
     my ($count, $pos, $repeat) = @_;
     $pos = _paste_at_position($count, $pos);
     return (undef, $pos);
 }
+
 sub _paste_at_position {
     my ($count, $pos) = @_;
 
@@ -1397,6 +1451,7 @@ sub cmd_C {
     $operator = $commands->{c};
     return (undef, _input_len());
 }
+
 sub cmd_D {
     my ($count, $pos, $repeat) = @_;
 
@@ -1417,6 +1472,7 @@ sub cmd_ctrl_d {
     Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
+
 sub cmd_ctrl_u {
     my ($count, $pos, $repeat) = @_;
 
@@ -1430,6 +1486,7 @@ sub cmd_ctrl_u {
     Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
+
 sub cmd_ctrl_f {
     my ($count, $pos, $repeat) = @_;
 
@@ -1439,6 +1496,7 @@ sub cmd_ctrl_f {
     Irssi::statusbar_items_redraw('more');
     return (undef, undef);
 }
+
 sub cmd_ctrl_b {
     my ($count, $pos, $repeat) = @_;
 
@@ -1454,6 +1512,7 @@ sub cmd_ctrl_wj {
 
     return (undef, undef);
 }
+
 sub cmd_ctrl_wk {
     my ($count, $pos, $repeat) = @_;
 
@@ -1463,6 +1522,7 @@ sub cmd_ctrl_wk {
 
     return (undef, undef);
 }
+
 sub cmd_ctrl_6 {
     # like :b#
     Irssi::command('window last');
@@ -1624,6 +1684,7 @@ sub ex_bnext {
         Irssi::command('window next');
     }
 }
+
 sub ex_bprev {
     my ($arg_str, $count) = @_;
 
@@ -1639,6 +1700,7 @@ sub ex_bprev {
         Irssi::command('window previous');
     }
 }
+
 sub ex_bdelete {
     my ($arg_str, $count) = @_;
 
@@ -2292,6 +2354,8 @@ sub got_key {
     }
 }
 
+# TODO: merge this with 'flush_input_buffer' below.
+
 sub handle_input_buffer {
 
     #Irssi::timeout_remove($input_buf_timer);
@@ -2453,7 +2517,6 @@ sub handle_command_cmd {
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
         Irssi::active_server->command($cmd->{func});
-
         $numeric_prefix = undef;
         return 1; # call _stop();
     # <Nop> does nothing.
@@ -2683,7 +2746,6 @@ sub handle_command_ex {
     _stop();
 }
 
-
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
     Irssi::signal_add 'setup changed' => \&setup_changed;
@@ -2825,7 +2887,6 @@ sub _reset_undo_buffer {
     $undo_index  = 0;
 }
 
-
 sub add_map {
     my ($keys, $command) = @_;
 
@@ -2856,6 +2917,7 @@ sub add_map {
     $maps->{$keys}->{char} = _parse_mapping_reverse($keys);
     $maps->{$keys}->{cmd} = $command;
 }
+
 sub delete_map {
     my ($keys) = @_;
 
