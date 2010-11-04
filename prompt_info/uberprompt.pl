@@ -143,6 +143,8 @@ my $prompt_format   = '';
 # theme formats to be applied to the content.
 my $use_replaces = 0;
 
+my $emit_request = 0;
+
 pre_init();
 
 sub pre_init {
@@ -222,10 +224,19 @@ sub init {
     # this event to be notified when the prompt changes.
     # arguments are new contents (string), new length (int)
     Irssi::signal_register({'prompt changed' => [qw/string int/]});
+    Irssi::signal_register({'prompt length request' => []});
+
+    Irssi::signal_add('prompt length request', \&length_request_handler);
 
     if (DEBUG) {
         Irssi::signal_add 'prompt changed', \&debug_prompt_changed;
     }
+}
+
+sub length_request_handler {
+    $emit_request = 1;
+    uberprompt_render_prompt();
+    $emit_request = 0;
 }
 
 sub reload_settings {
@@ -281,8 +292,7 @@ sub _escape_prompt_special {
     return $str;
 }
 
-sub uberprompt_draw {
-    my ($sb_item, $get_size_only) = @_;
+sub uberprompt_render_prompt {
 
     my $window = Irssi::active_win;
     my $prompt_arg = '';
@@ -331,10 +341,10 @@ sub uberprompt_draw {
         }
     }
 
-    print "Redrawing with: $prompt, size-only: $get_size_only" if DEBUG;
+    #print "Redrawing with: $prompt, size-only: $get_size_only" if DEBUG;
 
 
-    if ($prompt ne $prompt_last) {
+    if (($prompt ne $prompt_last) or $emit_request) {
 
         # print "Emitting prompt changed signal" if DEBUG;
         # my $exp = Irssi::current_theme()->format_expand($text, 0);
@@ -343,6 +353,14 @@ sub uberprompt_draw {
         Irssi::signal_emit('prompt changed', $ps, length($ps));
         $prompt_last = $prompt;
     }
+    return $prompt;
+}
+
+sub uberprompt_draw {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $prompt = uberprompt_render_prompt();
+
     my $ret = $sb_item->default_handler($get_size_only, $prompt, '', 0);
 
     return $ret;
