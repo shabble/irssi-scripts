@@ -161,14 +161,15 @@
 #
 # Dependencies:
 #
-# For proper :ex mode support, requires the installation of prompt_info.pl
-#  http://github.com/shabble/irssi-scripts/raw/master/prompt_info/prompt_info.pl
+# For proper :ex mode support, requires the installation of uberprompt.pl
+# Uberprompt can be downloaded from:
 #
-# and follow the instructions in the top of that file for installation
-# instructions.
+# http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
+#
+# and follow the instructions at the top of that file for installation.
 #
 # If you don't need Ex-mode, you can run vim_mode.pl without the
-# prompt_info.pl script.
+# uberprompt.pl script, but it is recommended.
 #
 #
 # Irssi requirements:
@@ -2579,6 +2580,7 @@ sub handle_command_cmd {
 
     # Start Ex mode.
     } elsif ($cmd == $commands->{':'}) {
+
         if (not script_is_loaded('uberprompt')) {
             _warn("Warning: Ex mode requires the 'uberprompt' script. " .
                     "Please load it and try again.");
