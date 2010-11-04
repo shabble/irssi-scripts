@@ -516,6 +516,8 @@ my $settings
      start_cmd      => { type => S_BOOL, value => 0 },
      # not used yet
      max_undo_lines => { type => S_INT,  value => 50 },
+     # prompt_leading_space
+     prompt_leading_space => { type => S_BOOL, value => 1 },
     };
 
 sub DEBUG { $settings->{debug}->{value} }
@@ -601,7 +603,7 @@ my $history_pos = 0;
 my @undo_buffer;
 my $undo_index = undef;
 
-
+# tab completion state vars
 my @tab_candidates;
 my $completion_active = 0;
 my $completion_string = '';
@@ -3111,8 +3113,11 @@ sub _update_mode {
 
 sub _set_prompt {
     my $msg = shift;
+
     # add a leading space unless we're trying to clear it entirely.
-    $msg = ' ' . $msg if length $msg;
+    if  (length($msg) and $settings->{prompt_leading_space}->{value}) {
+        $msg = ' ' . $msg;
+    }
 
     # escape % symbols. This prevents any _set_prompt calls from using
     # colouring sequences.
@@ -3127,17 +3132,21 @@ sub _setting_get {
     my $type = $settings->{$name}->{type};
     $name = "vim_mode_$name";
 
+    my $ret = undef;
+
     if ($type == S_BOOL) {
-        return Irssi::settings_get_bool($name);
+        $ret = Irssi::settings_get_bool($name);
     } elsif ($type == S_INT) {
-        return Irssi::settings_get_int($name);
+        $ret = Irssi::settings_get_int($name);
     } elsif ($type == S_STR) {
-        return Irssi::settings_get_str($name);
+        $ret = Irssi::settings_get_str($name);
     } else {
         _warn("Unknown setting type '$type', please report.");
     }
-    return undef;
+
+    return $ret;
 }
+
 sub _setting_set {
     my ($name, $value) = @_;
 
