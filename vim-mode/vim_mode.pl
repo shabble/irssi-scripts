@@ -1964,7 +1964,7 @@ sub ex_map {
         add_map($lhs, $command);
 
     # :map [lhs]
-    } elsif ($arg_str eq 'map' or $arg_str =~ /^map (\S+)$/) {
+    } elsif ($arg_str =~ m/^map\s*$/ or $arg_str =~ m/^map (\S+)$/) {
         # Necessary for case insensitive matchings. lc alone won't work.
         my $search = $1;
         $search = '' if not defined $search;
