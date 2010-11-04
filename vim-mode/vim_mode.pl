@@ -600,6 +600,11 @@ my $history_pos = 0;
 my @undo_buffer;
 my $undo_index = undef;
 
+
+my @tab_candidates;
+my $completion_active = 0;
+my $completion_string = '';
+
 sub script_is_loaded {
     my $name = shift;
     print "Checking if $name is loaded" if DEBUG;
@@ -1219,7 +1224,7 @@ sub cmd__a {
                        "^($word+\\s+|$non_word+\\s+)",
                        $pos, 1);
 
-                    if ($new_pos != -1 and 
+                    if ($new_pos != -1 and
                         (not defined $cur_pos or
                          $cur_pos > $new_pos + 1)) {
 
@@ -2731,6 +2736,11 @@ sub handle_command_ex {
         cmd_ex_command();
         _update_mode(M_CMD);
 
+    } elsif ($key == 9) { # TAB
+        print "Tab pressed" if DEBUG;
+        print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
+        @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
+
     # Ignore control characters for now.
     } elsif ($key < 32) {
         # TODO: use them later, e.g. completion
@@ -2744,6 +2754,18 @@ sub handle_command_ex {
     Irssi::statusbar_items_redraw("vim_windows");
 
     _stop();
+}
+
+sub _tab_complete {
+    my ($input, $source) = @_;
+    my @out;
+    foreach my $item (@$source) {
+        if ($item =~ m/^\Q$input\E/) {
+            push @out, $item;
+        }
+    }
+
+    return sort { $a cmp $b } @out;
 }
 
 sub vim_mode_init {
