@@ -1,8 +1,9 @@
 servers = (
   { address = "eu.irc6.net"; chatnet = "IRCnet"; port = "6667"; },
+  { address = "open.ircnet.net"; chatnet = "IRCnet"; port = "6667"; },
   { 
-    address = "irc.open-ircnet.net";
-    chatnet = "IRCnet";
+    address = "chat.freenode.net";
+    chatnet = "Freenode";
     port = "6667";
   },
   { address = "irc.efnet.org"; chatnet = "EFNet"; port = "6667"; },
@@ -26,14 +27,7 @@ servers = (
   { address = "irc.webchat.org"; chatnet = "WebChat"; port = "6667"; },
   { address = "irc.rizon.net"; chatnet = "Rizon"; port = "6667"; },
   { address = "irc.link-net.org"; chatnet = "LinkNet"; port = "6667"; },
-  { address = "silc.silcnet.org"; chatnet = "SILC"; port = "706"; },
-  {
-    address = "blondu.dyndns.ws";
-    chatnet = "botnettest";
-    port = "6667";
-    use_ssl = "no";
-    ssl_verify = "no";
-  }
+  { address = "silc.silcnet.org"; chatnet = "SILC"; port = "706"; }
 );
 
 chatnets = {
@@ -48,6 +42,12 @@ chatnets = {
     type = "IRC";
     max_kicks = "4";
     max_msgs = "3";
+    max_whois = "1";
+  };
+  Freenode = {
+    type = "IRC";
+    max_kicks = "1";
+    max_msgs = "4";
     max_whois = "1";
   };
   Undernet = {
@@ -99,7 +99,6 @@ chatnets = {
     max_whois = "30";
   };
   SILC = { type = "SILC"; };
-  botnettest = { type = "IRC"; };
 };
 
 channels = (
@@ -146,7 +145,7 @@ aliases = {
   GOTO = "sb goto";
   CHAT = "dcc chat";
   RUN = "SCRIPT LOAD";
-  CALC = "exec - if which bc &>/dev/null\\; then echo '$*' | bc | awk '{print \"$*=\"$$1}'\\; else echo bc was not found\\; fi";
+  CALC = "exec - if command -v bc >/dev/null 2>&1\\; then printf '%s=' '$*'\\; echo '$*' | bc -l\\; else echo bc was not found\\; fi";
   SBAR = "STATUSBAR";
   INVITELIST = "mode $C +I";
   Q = "QUERY";
@@ -155,19 +154,7 @@ aliases = {
   ATAG = "WINDOW SERVER";
   UNSET = "set -clear";
   RESET = "set -default";
-  s = "script";
-  rltest = "/script unload history_search; /script load history_search.pl";
-  DUMP = "script exec use Data::Dumper\\; print Data::Dumper->new([\\\\$0-])->Dump";
-  funcs_for = "/dump [map *\\$_{NAME}, grep ref(\\$_) eq 'GLOB' && *\\$_{CODE} && *\\$_{PACKAGE} eq 'Irssi::UI::Window', values \\%Irssi::UI::Window::]";
-  et = "/script unload expando_test.pl; /script load expando_test";
-  se = "script exec";
-  detach = "eval exec - screen -X detach";
-  xxx = "/dump Irssi::bindings()";
-  showbind = "/script exec \\%foo = Irssi::UI::bindings()\\; print \\$foo{\"\\\\$0\"}\\;";
-  botaway = "/away auto-away [\002BX\002-MsgLog On] (Away since 1:43 am Mon Aug 24)";
-  vim = "script load vim_mode.pl";
-  unvim = "/script unload vim_mode";
-  pl = "script load prompt_replace.pl";
+  "/vim" = "/script load vim_mode.pl";
 };
 
 statusbar = {
@@ -190,7 +177,7 @@ statusbar = {
 
     # treated specially .. window is printed with non-empty windows,
     # window_empty is printed with empty windows
-    window = "{sb $winref:$tag/$itemname{sbmode $M_nopass}}";
+    window = "{sb $winref:$tag/$itemname{sbmode $M}}";
     window_empty = "{sb $winref{sbservertag $tag}}";
     prompt = "{prompt $[.15]itemname}";
     prompt_empty = "{prompt $winname}";
@@ -267,51 +254,34 @@ statusbar = {
         topicbarend = { priority = "100"; alignment = "right"; };
       };
     };
+    add = { };
     prompt = {
       items = {
-        prompt = { };
-        prompt_empty = { };
+        uberprompt = { priority = "-1"; };
         input = { priority = "10"; };
       };
       position = "100";
     };
-    promptadd = { disabled = "yes"; };
   };
 };
 settings = {
   core = {
-    real_name = "fjkdlafad";
+    real_name = "shabble";
     user_name = "tomfeist";
     nick = "tomfeist";
-    timestamp_format = "%+";
   };
-  "fe-text" = { actlist_sort = "refnum"; indent = "1"; };
+  "fe-text" = { actlist_sort = "refnum"; };
   "perl/core/scripts" = {
-    autoinstall_custom_prompt = "yes";
-    mass_hilight_action = "/echo $nick";
-    mass_hilight_threshold = "0";
+    vim_mode_prompt_leading_space = "no";
     vim_mode_debug = "yes";
-    superprompt_format = "%K[%W$tag%c/%K$cumode%n$*%K]%n ";
-    uberprompt_format = "[$*] ";
   };
-  "fe-common/core" = { bell_beeps = "yes"; };
-  "irc/core" = { ctcp_userinfo_reply = ""; };
 };
 keyboard = (
+  { key = "^C"; id = "command"; data = "region_start "; },
   {
-    key = "meta-g";
+    key = "meta-q";
     id = "command";
-    data = "se print defined(Irssi::gui_input_set(\"hello\"))?1:0";
+    data = "script exec print Irssi::gui_input_get_pos()";
   },
-  { key = "meta-x"; id = "command"; data = "history_search "; },
-  { key = "^Z"; id = "command"; data = "echo moo"; },
-  { key = "^R"; id = "command"; data = "history_search_start "; },
-  { key = "meta-h"; id = "command"; data = "echo moo /echo moo"; },
-  { key = "meta-q"; id = "command"; data = "echo bacons"; },
-  { key = "meta-c"; id = "command"; data = "echo moo ; /echo bar"; },
-  { key = "meta-l"; id = "command"; data = "visual "; },
-  { key = "meta-m"; id = "command"; data = "redraw "; },
-  { key = "^V"; id = "command"; data = "visual "; },
-  { key = "^F"; id = "command"; data = "visual toggle"; },
-  { key = "^G"; id = "command"; data = "visual clear"; }
+  { key = "^R"; id = "command"; data = "history_search_start "; }
 );
