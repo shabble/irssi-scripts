@@ -54,7 +54,7 @@ use Irssi::TextUI;
 use Data::Dumper;
 
 use vars qw($VERSION %IRSSI);
-$VERSION = '1.0';
+$VERSION = '2.0';
 %IRSSI =
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
