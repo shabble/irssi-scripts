@@ -600,10 +600,12 @@ my $history_input = undef;
 my $history_pos = 0;
 
 # Undo/redo buffer.
+
 my @undo_buffer;
 my $undo_index = undef;
 
 # tab completion state vars
+
 my @tab_candidates;
 my $completion_active = 0;
 my $completion_string = '';
