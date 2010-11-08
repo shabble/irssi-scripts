@@ -79,7 +79,7 @@ our %IRSSI =
                   . 'tree/master/scrolled-reminder/',
              );
 
-# check we have prompt_info loaded.
+# check we have uberprompt loaded.
 
 sub script_is_loaded {
     my $name = shift;
@@ -111,9 +111,9 @@ sub scroll_reminder_init {
     Irssi::settings_add_bool('scrollminder', 'scrollminder_debug', 0);
 
     # we need to be first so we can intercept stuff.
-    Irssi::signal_add_first('send text', \&handle_send_text);
-    Irssi::signal_add_first('gui key pressed', \&handle_keypress);
-    Irssi::signal_add('setup changed' => \&setup_changed);
+    Irssi::signal_add_first('send text'       => \&handle_send_text);
+    Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
+    Irssi::signal_add('setup changed'         => \&setup_changed);
 
     setup_changed();
 }
@@ -214,7 +214,7 @@ sub handle_keypress {
         # and restore the prompt
         set_prompt('');
 
-    } elsif ($key == 32) {
+    } elsif ($key == 32) { # space
 
         $pending_input->{win_item}->command("scrollback end");
         Irssi::signal_stop();
