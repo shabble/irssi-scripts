@@ -1336,7 +1336,7 @@ sub cmd_s {
     my ($count, $pos, $repeat) = @_;
 
     $operator = $commands->{c};
-    return (undef, $pos + 1);
+    return (undef, $pos + $count);
 }
 
 sub cmd_S {
