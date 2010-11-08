@@ -604,6 +604,13 @@ my @undo_buffer;
 my $undo_index = undef;
 
 # tab completion state vars
+my $tab_complete_state = {
+                          user_query => '',
+                          candidates => [],
+                          prev_context => '',
+                          buf_position => 0,
+                          active => 0,
+                         };
 my @tab_candidates;
 my $completion_active = 0;
 my $completion_string = '';
@@ -2740,10 +2747,54 @@ sub handle_command_ex {
         cmd_ex_command();
         _update_mode(M_CMD);
 
+    } elsif ($key == 3) { # C-c
+        # drop back to cmd mode.
+        _update_mode(M_CMD);
+        _set_prompt('');
+
     } elsif ($key == 9) { # TAB
+
         print "Tab pressed" if DEBUG;
-        print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
-        @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
+        my $buf = join '', @ex_buf;
+
+        print "Ex buf contains: $buf" if DEBUG;
+
+        my $completion = '';
+
+        $tab_complete_state->{active} = 0 if $buf eq '';
+        $tab_complete_state->{active} = 0
+          if $buf ne $tab_complete_state->{user_query};
+
+
+        if (not $tab_complete_state->{active}) {
+            $tab_complete_state->{user_query} = $buf;
+                # $buf ne ''
+                # && $buf ne $tab_complete_state->{prev_context}) {
+
+            print "Generating new tab complete list" if DEBUG;
+            #generate new abbrev list.
+            my @candidates = _tab_complete($buf, [keys %$commands_ex]);
+            $tab_complete_state = {
+                                   candidates => \@candidates,
+                                   prev_context => $buf,
+                                   buf_position => 0,
+                                   active => 1
+                                  };
+            print "Candidates: " . join(", ", @candidates) if DEBUG;
+        }
+
+        # cycle through abbrevs
+        my @candidates = @{ $tab_complete_state->{candidates} };
+
+        if (@candidates) {
+            my $index = ($tab_complete_state->{buf_position} + 1) % scalar @candidates;
+            $completion = $candidates[$index];
+            $tab_complete_state->{buf_position} = $index;
+            @ex_buf = split '', $completion;
+            _set_prompt(':' . join '', @ex_buf);
+            print "Tab complete candidate: $completion" if DEBUG;
+        }
+
 
     # Ignore control characters for now.
     } elsif ($key < 32) {
@@ -2761,10 +2812,10 @@ sub handle_command_ex {
 }
 
 sub _tab_complete {
-    my ($input, $source) = @_;
+    my ($context, $candidates) = @_;
     my @out;
-    foreach my $item (@$source) {
-        if ($item =~ m/^\Q$input\E/) {
+    foreach my $item (@$candidates) {
+        if ($item =~ m/^\Q$context\E/) {
             push @out, $item;
         }
     }
