@@ -266,6 +266,9 @@ sub debug_prompt_changed {
 sub change_prompt_handler {
     my ($text, $pos) = @_;
 
+    # fix for people who used prompt_info and hence the signal won't
+    # pass the second argument.
+    $pos = 'UP_INNER' unless defined $pos;
     print "Got prompt change signal with: $text, $pos" if DEBUG;
 
     my ($changed_text, $changed_pos);
