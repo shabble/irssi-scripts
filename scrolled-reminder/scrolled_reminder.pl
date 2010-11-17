@@ -217,6 +217,9 @@ sub handle_keypress {
     } elsif ($key == 32) {
 
         $pending_input->{win_item}->command("scrollback end");
+
+        set_prompt('Scrolled Alert: C-k confirms, C-c cancels');
+
         Irssi::signal_stop();
 
     } else {
