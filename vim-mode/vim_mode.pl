@@ -1796,6 +1796,9 @@ sub ex_server_next {
 
     my @server_ids = map { $_->{tag} . "\x1d" . $_->{nick} } Irssi::servers;
     my $server = Irssi::active_server;
+
+    return unless $server;
+
     my $current_id = $server->{tag} . "\x1d" . $server->{nick};
     my $next = 0;
     my $server_count = scalar @server_ids;
@@ -1820,6 +1823,9 @@ sub ex_server_prev {
 
     my @server_ids = map { $_->{tag} . "\x1d" . $_->{nick} } Irssi::servers;
     my $server = Irssi::active_server;
+
+    return unless $server;
+
     my $current_id = $server->{tag} . "\x1d" . $server->{nick};
     my $prev = 0;
     my $server_count = scalar @server_ids;
