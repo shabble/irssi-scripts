@@ -2532,7 +2532,15 @@ sub handle_command_cmd {
     # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
-        Irssi::active_server->command($cmd->{func});
+
+        # TODO: fix me more better (general server/win/none context?)
+        my $server = Irssi::active_server;
+        if (defined $server) {
+            $server->command($cmd->{func});
+        } else {
+            Irssi::command($cmd->{func});
+        }
+
         $numeric_prefix = undef;
         return 1; # call _stop();
     # <Nop> does nothing.
