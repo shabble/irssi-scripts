@@ -214,6 +214,8 @@ sub init {
     Irssi::signal_add('window item changed',        \&uberprompt_refresh);
     Irssi::signal_add('window item server changed', \&uberprompt_refresh);
     Irssi::signal_add('window server changed',      \&uberprompt_refresh);
+    Irssi::signal_add('server nick changed',        \&uberprompt_refresh);
+
 
     # install our statusbars if required.
     if (Irssi::settings_get_bool('uberprompt_autostart')) {
