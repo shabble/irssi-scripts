@@ -165,8 +165,8 @@ sub UNLOAD {
     deinit();
 }
 
-sub exp_lbrace { '{' }
-sub exp_rbrace { '}' }
+sub exp_lbrace() { '{' }
+sub exp_rbrace() { '}' }
 
 sub deinit {
     Irssi::expando_destroy('brace');
@@ -254,6 +254,7 @@ sub refresh_if_me {
     my $my_chan = $window->{active}->{name};
     my $my_nick = $server->parse_special('$N');
 
+    return unless $my_chan and $my_nick;
 
     print "Chan: $channel->{name}, "
      . "nick: $nick->{nick}, "
