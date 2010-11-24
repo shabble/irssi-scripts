@@ -145,6 +145,9 @@ my $use_replaces = 0;
 
 my $emit_request = 0;
 
+my $expando_refresh_timer;
+my $expando_vars = {};
+
 pre_init();
 
 sub pre_init {
@@ -205,10 +208,12 @@ sub init {
     reload_settings();
 
     # make sure we redraw when necessary.
-    Irssi::signal_add('window changed',           \&uberprompt_refresh);
-    Irssi::signal_add('window name changed',      \&uberprompt_refresh);
-    Irssi::signal_add('window changed automatic', \&uberprompt_refresh);
-    Irssi::signal_add('window item changed',      \&uberprompt_refresh);
+    Irssi::signal_add('window changed',             \&uberprompt_refresh);
+    Irssi::signal_add('window name changed',        \&uberprompt_refresh);
+    Irssi::signal_add('window changed automatic',   \&uberprompt_refresh);
+    Irssi::signal_add('window item changed',        \&uberprompt_refresh);
+    Irssi::signal_add('window item server changed', \&uberprompt_refresh);
+    Irssi::signal_add('window server changed',      \&uberprompt_refresh);
 
     # install our statusbars if required.
     if (Irssi::settings_get_bool('uberprompt_autostart')) {
@@ -252,6 +257,17 @@ sub reload_settings {
         $prompt_format = $new;
         $prompt_format =~ s/\$uber/\$\$uber/;
         Irssi::abstracts_register(['uberprompt', $prompt_format]);
+
+        $expando_vars = {};
+
+        # TODO: something clever here to check if we need to schedule
+        # an update timer or something, rather than just refreshing on
+        # every possible activity in init()
+        while ($prompt_format =~ m/(?<!\$)(\$[A-Za-z,.:;][a-z_]*)/g) {
+            print "Detected Irssi expando variable $1" if DEBUG;
+            my $var_name = substr $1, 1; # strip the $
+            $expando_vars->{$var_name} = Irssi::parse_special($1);
+        }
     }
 }
 
