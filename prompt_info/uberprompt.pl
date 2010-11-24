@@ -216,6 +216,7 @@ sub init {
     Irssi::signal_add('window server changed',      \&uberprompt_refresh);
     Irssi::signal_add('server nick changed',        \&uberprompt_refresh);
 
+    Irssi::signal_add('nick mode changed', \&refresh_if_me);
 
     # install our statusbars if required.
     if (Irssi::settings_get_bool('uberprompt_autostart')) {
@@ -237,6 +238,29 @@ sub init {
 
     if (DEBUG) {
         Irssi::signal_add 'prompt changed', \&debug_prompt_changed;
+    }
+}
+
+sub refresh_if_me {
+    my ($channel, $nick) = @_;
+
+    return unless $channel and $nick;
+
+    my $server = Irssi::active_server;
+    my $window = Irssi::active_win;
+
+    return unless $server and $window;
+
+    my $my_chan = $window->{active}->{name};
+    my $my_nick = $server->parse_special('$N');
+
+
+    print "Chan: $channel->{name}, "
+     . "nick: $nick->{nick}, "
+     . "me: $my_nick, chan: $my_chan" if DEBUG;
+
+    if ($my_chan eq $channel->{name} and $my_nick eq $nick->{nick}) {
+        uberprompt_refresh();
     }
 }
 
@@ -423,7 +447,7 @@ sub _sbar_command {
     $args_str .= ' ' if length $args_str && defined $item;
 
     my $command = sprintf 'STATUSBAR %s %s %s%s',
-      $bar, $cmd, $args_str, defined($item)?$item:'';
+     $bar, $cmd, $args_str, defined $item ? $item : '';
 
     print "Running command: $command" if DEBUG;
     Irssi::command($command);
