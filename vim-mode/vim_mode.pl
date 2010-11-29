@@ -104,6 +104,10 @@
 #     :map <C-E> <Nop> - disable <C-E>, it does nothing now
 #     :unmap <C-E>     - restore default behavior of <C-E> after disabling it
 #
+# Note that you must use / for irssi commands (like /clear), the current value
+# of cmdchars does _not_ work! This is necessary do differentiate between
+# ex-commands and irssi commands.
+#
 #
 # Settings:
 #
