@@ -90,7 +90,7 @@ package main;
 
 use File::Copy;
 
-my $output_dir = "../../tmp/irssi-scripts/docs/";
+my $output_dir = "../../tmp/irssi/docs/";
 my $batchconv = Pod::Simple::HTMLBatch::Custom->new;
 my $css = 'podstyle.css';
 

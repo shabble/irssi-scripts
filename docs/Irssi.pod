@@ -262,9 +262,7 @@ all other signal handlers).
 =head4 C<signal_remove $sig_name, $func>
 
 Unbind C<$sig_name> from function C<$func>.
-
-B<Note: Only stringified function names can be removed using this function.  A
-signal handler added via C<CODEREF> cannot be removed.>
+B<TODO: Can you unbind a signal from a C<sub { ...}> coderef? What happens?>
 
 
 =head3 Controlling Signal Propagation
