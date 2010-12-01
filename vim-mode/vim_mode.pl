@@ -487,6 +487,8 @@ my $commands_ex
                     type => C_EX },
      sprev       => { char => ':serverprev', func => \&ex_server_prev,
                     type => C_EX },
+     exinsert    => { char => ':exins', func => \&ex_insert_str,
+                    type => C_EX },
 
     };
 
@@ -1621,6 +1623,18 @@ sub _fix_input_pos {
 
 
 # EX MODE COMMANDS
+sub ex_insert {
+    my ($arg_str, $count) = @_;
+    $count = defined $count ? $count : 1;
+    print "EX-Inserting: $arg_str cnt: $count" if DEBUG;
+
+    push @ex_buf, split '', $arg_str;
+    _set_prompt(':' . join '', @ex_buf);
+    _update_mode(M_EX);
+
+    Irssi::statusbar_items_redraw("vim_windows");
+
+}
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
@@ -1937,8 +1951,8 @@ sub ex_map {
 
         # Add new mapping.
         my $command;
-        # Ex-mode command
-        if (index($rhs, ':') == 0) {
+
+        if (index($rhs, ':') == 0) { # Ex-mode command
             $rhs =~ /^:(\S+)(\s.+)?$/;
             if (not exists $commands_ex->{$1}) {
                 return _warn_ex('map', "$rhs not found");
@@ -1948,8 +1962,21 @@ sub ex_map {
                              type => C_EX,
                            };
             }
-        # Irssi command
-        } elsif (index($rhs, '/') == 0) {
+        } elsif (index($rhs, '#') == 0) { # partial ex-mode command (insert)
+            if ($rhs =~ /^#(.+)/) {
+                my $parsed_rhs = _parse_mapping($1);
+                $command = {
+                    char => $parsed_rhs,
+                    func => \&ex_insert,
+                    type => C_EX,
+                };
+            } else {
+                _warn_ex('invalid partial ex-mode mapping ' . $rhs);
+            }
+        } elsif (index($rhs, '/') == 0) { # Irssi command
+            # TODO: check for $cmdchars instead of just /?
+            # except when it interferes with : for ex.
+
             $command = { char => $rhs,
                          func => substr($rhs, 1),
                          type => C_IRSSI,
