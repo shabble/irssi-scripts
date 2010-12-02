@@ -20,8 +20,10 @@
 use strict;
 use warnings;
 
-use Irssi ();
+use Irssi;
 use POSIX qw(ceil);
+
+{ package Irssi::Nick }
 
 our $VERSION = '0.1';
 our %IRSSI = (
@@ -36,20 +38,22 @@ our %IRSSI = (
 my ($buf, $size, $pos, $height);
 my ($pages, $cur_page, $buf_percent);
 
-# (re-)register it so we can access the WIN_REC object directly.
-Irssi::signal_register({'gui page scrolled' => [qw/Irssi::UI::Window/]});
-# primary update signal.
-Irssi::signal_add('gui page scrolled', \&update_position);
-Irssi::statusbar_item_register('position', 0, 'position_statusbar');
-
-Irssi::signal_add("window changed",          \&update_position);
-Irssi::signal_add_last("command clear",      \&update_position);
-Irssi::signal_add_last("command scrollback", \&update_position);
-# Irssi::signal_add_last("gui print text finished", sig_statusbar_more_updated);
 
 init();
 
 sub init {
+
+    # (re-)register it so we can access the WIN_REC object directly.
+    Irssi::signal_register({'gui page scrolled' => [qw/Irssi::UI::Window/]});
+    # primary update signal.
+    Irssi::signal_add('gui page scrolled', \&update_position);
+    Irssi::statusbar_item_register('position', 0, 'position_statusbar');
+
+    Irssi::signal_add("window changed",          \&update_position);
+    Irssi::signal_add_last("command clear",      \&update_position);
+    Irssi::signal_add_last("command scrollback", \&update_position);
+    # Irssi::signal_add_last("gui print text finished", sig_statusbar_more_updated);
+
     update_position(Irssi::active_win());
 }
 
