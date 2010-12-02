@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use Irssi;
+use Irssi::TextUI;
 use POSIX qw(ceil);
 
 { package Irssi::Nick }
@@ -35,8 +36,8 @@ our %IRSSI = (
     changed     => '2010-12-02'
 );
 
-my ($buf, $size, $pos, $height);
-my ($pages, $cur_page, $buf_percent);
+my ($buf, $size, $pos, $height, $empty);
+my ($pages, $cur_page, $buf_pos_cache);
 
 
 init();
@@ -76,10 +77,18 @@ sub update_position {
     $height = $view->{height};
     $size   = $buf->{lines_count};
 
-    $pages    = ceil($size / $height);
-    $pages    = 1 unless $pages;
+    $empty  = $view->{empty_linecount};
+    $empty  = 0 unless $empty;
 
-    $cur_page = ceil(($size - $pos + $height -1) / $height);
+    # $size -= $empty;
+
+    $pages = ceil($size / $height);
+    $pages = 1 unless $pages;
+
+    $pos   = $pos < 0 ? 0 : $pos;
+
+    $buf_pos_cache = $size - $pos + ($height - $empty) - 1;
+    $cur_page      = ceil($buf_pos_cache / $height);
 
     Irssi::statusbar_items_redraw('position');
 }
@@ -91,11 +100,12 @@ sub position_statusbar {
     if ($size < $height) {
         $percent = 100;
     } else {
-        $percent = ceil(($size - $pos - 1 + $height) / $size * 100);
+        $percent = ceil($buf_pos_cache / $size * 100);
     }
 
     # Alternate view.
     #my $sb = "p=$pos, s=$size, h=$height, pp:$cur_page/$pages $percent%%";
     my $sb = "Page: $cur_page/$pages $percent%%";
+
     $statusbar_item->default_handler($get_size_only, "{sb $sb}", 0, 1);
 }
