@@ -37,7 +37,7 @@ our %IRSSI = (
 );
 
 my ($buf, $size, $pos, $height, $empty);
-my ($pages, $cur_page, $buf_pos_cache);
+my ($pages, $cur_page, $percent);
 
 
 init();
@@ -60,8 +60,9 @@ sub init {
 
 sub update_cmd_shim {
     my ($cmd, $server, $witem) = @_;
-    return unless $witem;
-    my $win = $witem->window;
+
+    my $win = $witem ? $witem->window : Irssi::active_win;
+
     update_position($win);
 }
 
@@ -80,15 +81,22 @@ sub update_position {
     $empty  = $view->{empty_linecount};
     $empty  = 0 unless $empty;
 
-    # $size -= $empty;
 
     $pages = ceil($size / $height);
     $pages = 1 unless $pages;
 
-    $pos   = $pos < 0 ? 0 : $pos;
+    my $buf_pos_cache = $size - $pos + ($height - $empty) - 1;
 
-    $buf_pos_cache = $size - $pos + ($height - $empty) - 1;
-    $cur_page      = ceil($buf_pos_cache / $height);
+    if ($pos == -1 or $size < $height) {
+        $cur_page = $pages;
+        $percent  = 100;
+    } elsif ($pos > ($size - $height)) {
+        $cur_page = 1;
+        $percent  = 0;
+    } else {
+        $cur_page = ceil($buf_pos_cache / $height);
+        $percent  = ceil($buf_pos_cache / $size * 100);
+    }
 
     Irssi::statusbar_items_redraw('position');
 }
@@ -96,16 +104,9 @@ sub update_position {
 sub position_statusbar {
     my ($statusbar_item, $get_size_only) = @_;
 
-    my $percent;
-    if ($size < $height) {
-        $percent = 100;
-    } else {
-        $percent = ceil($buf_pos_cache / $size * 100);
-    }
-
     # Alternate view.
-    #my $sb = "p=$pos, s=$size, h=$height, pp:$cur_page/$pages $percent%%";
-    my $sb = "Page: $cur_page/$pages $percent%%";
+    my $sb = "p=$pos, s=$size, h=$height, pp:$cur_page/$pages $percent%%";
+    #my $sb = "Page: $cur_page/$pages $percent%%";
 
     $statusbar_item->default_handler($get_size_only, "{sb $sb}", 0, 1);
 }
