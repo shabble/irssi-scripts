@@ -105,8 +105,8 @@ sub position_statusbar {
     my ($statusbar_item, $get_size_only) = @_;
 
     # Alternate view.
-    my $sb = "p=$pos, s=$size, h=$height, pp:$cur_page/$pages $percent%%";
-    #my $sb = "Page: $cur_page/$pages $percent%%";
+    #my $sb = "p=$pos, s=$size, h=$height, pp:$cur_page/$pages $percent%%";
+    my $sb = "Page: $cur_page/$pages $percent%%";
 
     $statusbar_item->default_handler($get_size_only, "{sb $sb}", 0, 1);
 }
