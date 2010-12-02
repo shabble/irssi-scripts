@@ -50,11 +50,18 @@ sub init {
     Irssi::statusbar_item_register('position', 0, 'position_statusbar');
 
     Irssi::signal_add("window changed",          \&update_position);
-    Irssi::signal_add_last("command clear",      \&update_position);
-    Irssi::signal_add_last("command scrollback", \&update_position);
+    Irssi::signal_add_last("command clear",      \&update_cmd_shim);
+    Irssi::signal_add_last("command scrollback", \&update_cmd_shim);
     # Irssi::signal_add_last("gui print text finished", sig_statusbar_more_updated);
 
     update_position(Irssi::active_win());
+}
+
+sub update_cmd_shim {
+    my ($cmd, $server, $witem) = @_;
+    return unless $witem;
+    my $win = $witem->window;
+    update_position($win);
 }
 
 sub update_position {
