@@ -235,10 +235,6 @@ sub init {
     Irssi::signal_register({'prompt length request' => []});
 
     Irssi::signal_add('prompt length request', \&length_request_handler);
-
-    if (DEBUG) {
-        Irssi::signal_add 'prompt changed', \&debug_prompt_changed;
-    }
 }
 
 sub refresh_if_me {
@@ -276,6 +272,13 @@ sub reload_settings {
     $use_replaces = Irssi::settings_get_bool('uberprompt_use_replaces');
 
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
+
+    if (DEBUG) {
+        Irssi::signal_add 'prompt changed', 'debug_prompt_changed';
+    } else {
+        Irssi::signal_remove 'prompt changed', 'debug_prompt_changed';
+    }
+
 
     my $new = Irssi::settings_get_str('uberprompt_format');
 
