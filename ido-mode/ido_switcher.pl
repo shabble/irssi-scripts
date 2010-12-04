@@ -46,9 +46,8 @@ $VERSION = '2.0';
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
    contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
-   name        => 'rl_history_search',
-   description => 'Search within your typed history as you type'
-                . ' (like ctrl-R in readline applications)',
+   name        => 'ido_switcher',
+   description => 'Select window(-items) using ido-mode like search interface',
    license     => 'GPLv2 or later',
    url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
    changed     => '24/7/2010'
@@ -62,15 +61,24 @@ $VERSION = '2.0';
 # server/network narrowing
 # colourised output (via uberprompt)
 # C-r / C-s rotate matches
+# toggle queries/channels
+# remove inputline content, restore it afterwards.
+# tab - display all possibilities in window (clean up aferwards)
 
+my $input_copy = '';
+my $input_pos_copy = 0;
 
-my $search_str = '';
-my $search_active = 0;
+my $ido_switch_active = 0;
 
-my @history_cache  = ();
+my @window_cache  = ();
 my @search_matches = ();
-my $match_index = 0;
 
+my $match_index = 0;
+my $search_str = '';
+
+# /set configurable settings
+my $ido_show_count;
+my $ido_use_flex;
 
 my $DEBUG_ENABLED = 0;
 sub DEBUG () { $DEBUG_ENABLED }
@@ -88,28 +96,33 @@ sub script_is_loaded {
 }
 
 unless (script_is_loaded('uberprompt')) {
+
     print "This script requires 'uberprompt.pl' in order to work. "
-      . "Attempting to load it now...";
-    Irssi::signal_add('script error', \&load_uberprompt_failed);
+     . "Attempting to load it now...";
+
+    Irssi::signal_add('script error', 'load_uberprompt_failed');
     Irssi::command("script load uberprompt.pl");
+
     unless(script_is_loaded('uberprompt')) {
         load_uberprompt_failed("File does not exist");
     }
-    history_init();
+    ido_switch_init();
 }
 
 sub load_uberprompt_failed {
-    Irssi::signal_remove('script error', \&load_prompt_failed);
+    Irssi::signal_remove('script error', 'load_uberprompt_failed');
     print "Script could not be loaded. Script cannot continue. "
       . "Check you have uberprompt.pl installed in your path and "
         .  "try again.";
     die "Script Load Failed: " . join(" ", @_);
 }
 
-sub history_init {
-    Irssi::settings_add_bool('history_search', 'histsearch_debug', 0);
+sub ido_switch_init {
+    Irssi::settings_add_bool('ido_switch', 'ido_switch_debug', 0);
+    Irssi::settings_add_bool('ido_switch', 'ido_use_flex',     1);
+    Irssi::settings_add_int ('ido_switch', 'ido_show_count',   5);
 
-    Irssi::command_bind('history_search_start', \&history_search);
+    Irssi::command_bind('ido_switch_start', \&ido_switch_start);
 
     Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
@@ -118,58 +131,98 @@ sub history_init {
 }
 
 sub setup_changed {
-    $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
+    $DEBUG_ENABLED  = Irssi::settings_get_bool('ido_switch_debug');
+    $ido_show_count = Irssi::settings_get_int ('ido_show_count');
+    $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
 }
 
 
-sub history_search {
-    $search_active = 1;
+sub ido_switch_start {
+    # store copy of input line to restore later.
+    $input_copy = Irssi::parse_special('$L');
+    $input_pos_copy = Irssi::gui_input_get_pos();
+
+    Irssi::gui_input_set('');
+
+    # set startup flags
+    $ido_switch_active = 1;
     $search_str = '';
     $match_index = -1;
 
-    @history_cache = Irssi::active_win()->get_history_lines();
-    @search_matches = ();
+    @window_cache = get_all_windows();
+    print "Win cache: " . join(", ", @window_cache) if DEBUG;
 
-    update_history_prompt();
+    update_matches();
+    update_prompt();
 }
 
-sub history_exit {
-    $search_active = 0;
+sub get_all_windows {
+    my @ret;
+
+    foreach my $win (Irssi::windows()) {
+        my @items = $win->items();
+
+        if ($win->{name} ne '') {
+            push @ret,  $win->{name};
+        } elsif (scalar @items) {
+            push @ret, map {  $_->{visible_name} } @items;
+        } else {
+            push @ret, '???';
+        }
+    }
+    return @ret;
+}
+
+sub ido_switch_select {
+    my ($selected) = @_;
+    # /window goto $refnum
+    # or
+    # /window item goto $itemname
+    Irssi::command("/echo Selecting!");
+    ido_switch_exit();
+}
+
+sub ido_switch_exit {
+    $ido_switch_active = 0;
+
+    Irssi::gui_input_set($input_copy);
+    Irssi::gui_input_set_pos($input_pos_copy);
+
     Irssi::signal_emit('change prompt', '', 'UP_INNER');
 }
 
-sub update_history_prompt {
-    my $col = scalar(@search_matches) ? '%g' : '%r';
+sub update_prompt {
+
+    # take the top $ido_show_count entries and display them.
+    my $match_num = scalar @search_matches;
+    my $show_num = $ido_show_count;
+    my $show_str = '(no matches) ';
+
+    $show_num = $match_num if $match_num < $show_num;
+
+    if ($show_num > 0) {
+        print "Showing: $show_num matches" if DEBUG;
+
+        my @ordered_matches
+         = @search_matches[$match_index .. $#search_matches,
+                           0            .. $match_index - 1];
+
+        my @show = @ordered_matches[0..$show_num - 1];
+
+        $show[0] = '%g' . $show[0] . '%n';
+        @show[1..$#show]
+         = map { '%r' . $_ . '%n' } @show[1..$#show];
+
+        $show_str = join ', ', @show;
+    }
+
     Irssi::signal_emit('change prompt',
-                       ' reverse-i-search: `' . $col . $search_str
-                       . '%n' . "'",
+                       ' win: ' . $show_str,
                        'UP_INNER');
 }
 
-sub update_history_matches {
-    my ($match_str) = @_;
-    $match_str = $search_str unless defined $match_str;
-
-    my %unique;
-    my @matches = grep { m/\Q$match_str/i } @history_cache;
-
-    @search_matches = ();
-
-    # uniquify the results, whilst maintaining order.
-    foreach my $m (@matches) {
-        unless (exists($unique{$m})) {
-            # add them in reverse order.
-            unshift @search_matches, $m;
-        }
-        $unique{$m}++;
-    }
-
-    print "updated matches: ", scalar(@search_matches), " ",
-      join(", ", @search_matches) if DEBUG;
-}
-
-sub get_history_match {
-    return $search_matches[$match_index];
+sub update_matches {
+    @search_matches = grep { m/\Q$search_str\E/ } @window_cache;
 }
 
 sub prev_match {
@@ -190,28 +243,32 @@ sub next_match {
     print "index now: $match_index" if DEBUG;
 }
 
-sub update_input {
-    my $match = get_history_match();
-    Irssi::gui_input_set($match);
-	Irssi::gui_input_set_pos(length $match);
+sub get_window_match {
+    return $search_matches[$match_index];
 }
 
 sub handle_keypress {
 	my ($key) = @_;
 
-    return unless $search_active;
+    return unless $ido_switch_active;
+
+    if ($key == 0) { # C-SPC?
+        print "Ctrl-space";
+        Irssi::signal_stop();
+        return;
+    }
 
 	if ($key == 10) { # enter
         print "selecting history and quitting" if DEBUG;
-        history_exit();
+        ido_switch_select(get_window_match);
         return;
 	}
 
     if ($key == 18) { # Ctrl-R
         print "skipping to prev match" if DEBUG;
         prev_match();
-        update_input();
-        update_history_prompt();
+        update_matches();
+        update_prompt();
         Irssi::signal_stop(); # prevent the bind from being re-triggered.
         return;
     }
@@ -219,8 +276,8 @@ sub handle_keypress {
     if ($key == 19) { # Ctrl-S
         print "skipping to next match" if DEBUG;
         next_match();
-        update_input();
-        update_history_prompt();
+        update_matches();
+        update_prompt();
 
         Irssi::signal_stop();
         return;
@@ -228,12 +285,7 @@ sub handle_keypress {
 
     if ($key == 7) { # Ctrl-G
         print "aborting search" if DEBUG;
-        history_exit();
-
-        # cancel empties the inputline.
-        Irssi::gui_input_set('');
-        Irssi::gui_input_set_pos(0);
-
+        ido_switch_exit();
         Irssi::signal_stop();
         return;
     }
@@ -244,9 +296,8 @@ sub handle_keypress {
             $search_str = substr($search_str, 0, -1);
             print "Deleting char, now: $search_str" if DEBUG;
         }
-        update_history_matches();
-        update_history_prompt();
-        update_input();
+        update_matches();
+        update_prompt();
 
         Irssi::signal_stop();
         return;
@@ -257,15 +308,40 @@ sub handle_keypress {
     if ($key >= 32) { # printable
         $search_str .= chr($key);
 
-        update_history_matches();
-        update_history_prompt();
-        update_input();
+        update_matches();
+        update_prompt();
 
         Irssi::signal_stop();
         return;
     }
 
-    # any other key exits, for now.
-    history_exit();
-    #Irssi::signal_stop();
+    # ignore all other keys.
+    Irssi::signal_stop();
 }
+
+ido_switch_init();
+
+# sub update_history_matches {
+#     my ($match_str) = @_;
+#     $match_str = $search_str unless defined $match_str;
+
+#     my %unique;
+#     my @matches = grep { m/\Q$match_str/i } @history_cache;
+
+#     @search_matches = ();
+
+#     # uniquify the results, whilst maintaining order.
+#     foreach my $m (@matches) {
+#         unless (exists($unique{$m})) {
+#             # add them in reverse order.
+#             unshift @search_matches, $m;
+#         }
+#         $unique{$m}++;
+#     }
+
+#     print "updated matches: ", scalar(@search_matches), " ",
+#       join(", ", @search_matches) if DEBUG;
+# }
+
+
+
