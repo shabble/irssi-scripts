@@ -273,7 +273,7 @@ sub handle_keypress {
         return;
     }
 
-    if ($key == 19) { # Ctrl-S
+    if ($key == 19) {  # Ctrl-S
         print "skipping to next match" if DEBUG;
         next_match();
         update_matches();
