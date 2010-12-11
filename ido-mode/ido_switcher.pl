@@ -63,18 +63,18 @@ $VERSION = '2.0';
 # C-r / C-s rotate matches
 # toggle queries/channels
 # remove inputline content, restore it afterwards.
-# tab - display all possibilities in window (clean up aferwards)
+# tab - display all possibilities in window (clean up afterwards)
 
-my $input_copy = '';
+my $input_copy     = '';
 my $input_pos_copy = 0;
 
 my $ido_switch_active = 0;
 
-my @window_cache  = ();
+my @window_cache   = ();
 my @search_matches = ();
 
 my $match_index = 0;
-my $search_str = '';
+my $search_str  = '';
 
 # /set configurable settings
 my $ido_show_count;
@@ -83,18 +83,44 @@ my $ido_use_flex;
 my $DEBUG_ENABLED = 0;
 sub DEBUG () { $DEBUG_ENABLED }
 
+sub MODE_A () { 0 } # all
+sub MODE_Q () { 1 } # queries
+sub MODE_C () { 2 } # channels
+sub MODE_S () { 3 } # select server
+sub MODE_W () { 4 } # select window
+
 # check we have uberprompt loaded.
 
 sub _print {
-    my (@args) = @_;
-
     my $win = Irssi::active_win;
-    $win->print(@args);
+    my $str = join('', @_);
+    $win->print($str, Irssi::MSGLEVEL_NEVER);
+}
+
+sub _debug_print { 
+    my $win = Irssi::active_win;
+    my $str = join('', @_);
+    $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
+}
+
+sub _print_clear {
+    my $win = Irssi::active_win();
+    $win->command('/scrollback levelclear -level NEVER');
+}
+
+sub print_all_matches {
+    my $msg = join(", ", map { $_->{name} } @search_matches);
+    # $msg =~ s/(.{80}.*?,)/$1\n/g;
+    # my @lines = split "\n", $msg;
+    # foreach my $line (@lines) {
+    #     _print($line);
+    # }
+    _print($msg);
 }
 
 sub script_is_loaded {
     my $name = shift;
-    _print "Checking if $name is loaded" if DEBUG;
+    _debug_print "Checking if $name is loaded" if DEBUG;
     no strict 'refs';
     my $retval = defined %{ "Irssi::Script::${name}::" };
     use strict 'refs';
@@ -146,20 +172,20 @@ sub setup_changed {
 
 sub ido_switch_start {
     # store copy of input line to restore later.
-    $input_copy = Irssi::parse_special('$L');
+    $input_copy     = Irssi::parse_special('$L');
     $input_pos_copy = Irssi::gui_input_get_pos();
 
     Irssi::gui_input_set('');
 
     # set startup flags
     $ido_switch_active = 1;
-    $search_str = '';
-    $match_index = 0;
+    $search_str        = '';
+    $match_index       = 0;
 
     # refresh in case we toggled it last time.
     $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
 
-    _print "Win cache: " . join(", ", @window_cache) if DEBUG;
+    _debug_print "Win cache: " . join(", ", @window_cache) if DEBUG;
 
     _update_cache();
 
@@ -188,32 +214,32 @@ sub get_all_windows {
         } elsif (scalar @items) {
             foreach my $item (@items) {
                 push @ret, {
-                            name   => $item->{visible_name},
-                            type   => $item->{type},
-                            server => $item->{server},
-                            num    => $win->{refnum},
+                            name     => $item->{visible_name},
+                            type     => $item->{type},
+                            server   => $item->{server},
+                            num      => $win->{refnum},
                             itemname => $item->{name},
                            };
             }
         } else {
-            #_print "Error occurred reading info from window: $win";
-            #_print Dumper($win);
+            #_debug_print "Error occurred reading info from window: $win";
+            #_debug_print Dumper($win);
         }
     }
 
-    @ret = sort { $b->{num} <=> $a->{num} } @ret;
+    @ret = sort { $a->{num} <=> $b->{num} } @ret;
     return @ret;
 }
 
 sub ido_switch_select {
-    my ($selected) = @_;
-    # /window goto $refnum
-    # or
-    # /window item goto $itemname
-    _print "Selecting window: " . $selected->{name};
+    my ($selected, $is_refnum) = @_;
+
+    _debug_print "Selecting window: " . $selected->{name} if DEBUG;
+
     Irssi::command("WINDOW GOTO " . $selected->{name});
+
     if ($selected->{type} ne 'WINDOW') {
-        _print "Selecting window item: " . $selected->{itemname};
+        _debug_print "Selecting window item: " . $selected->{itemname} if DEBUG;
         Irssi::command("WINDOW ITEM GOTO " . $selected->{itemname});
     }
 
@@ -222,6 +248,8 @@ sub ido_switch_select {
 
 sub ido_switch_exit {
     $ido_switch_active = 0;
+
+    _print_clear();
 
     Irssi::gui_input_set($input_copy);
     Irssi::gui_input_set_pos($input_pos_copy);
@@ -238,7 +266,7 @@ sub update_prompt {
     $show_num = $match_num if $match_num < $show_num;
 
     if ($show_num > 0) {
-        _print "Showing: $show_num matches" if DEBUG;
+        _debug_print "Showing: $show_num matches" if DEBUG;
 
         my @ordered_matches
          = @search_matches[$match_index .. $#search_matches,
@@ -257,6 +285,7 @@ sub update_prompt {
     my $flex = sprintf(' [%s]', $ido_use_flex ? 'F' : 'E');
     my $search = '';
     $search = ' `' . $search_str . "'" if length $search_str;
+
     Irssi::signal_emit('change prompt',
                        $flex . $search . ' win: ' . $show_str,
                        'UP_INNER');
@@ -266,7 +295,7 @@ sub update_matches {
     if ($ido_use_flex) {
         @search_matches = grep { flex_match($search_str, $_->{name}) } @window_cache;
     } else {
-        @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/ } @window_cache;
+        @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/    } @window_cache;
     }
 
 }
@@ -296,7 +325,7 @@ sub prev_match {
     if ($match_index > $#search_matches) {
         $match_index = 0;
     }
-    _print "index now: $match_index" if DEBUG;
+    _debug_print "index now: $match_index" if DEBUG;
 }
 
 sub next_match {
@@ -305,7 +334,7 @@ sub next_match {
     if ($match_index < 0) {
         $match_index = $#search_matches;
     }
-    _print "index now: $match_index" if DEBUG;
+    _debug_print "index now: $match_index" if DEBUG;
 }
 
 sub get_window_match {
@@ -318,12 +347,21 @@ sub handle_keypress {
     return unless $ido_switch_active;
 
     if ($key == 0) { # C-SPC?
-        _print "Ctrl-space";
+        _debug_print "\%_Ctrl-space\%_" if DEBUG;
 
         $search_str = '';
         @window_cache = @search_matches;
         update_prompt();
 
+        Irssi::signal_stop();
+        return;
+    }
+
+    if ($key == 3) { # C-C
+        # $search_str = '';
+        # @window_cache = @search_matches;
+        # update_prompt();
+        _print_clear();
         Irssi::signal_stop();
         return;
     }
@@ -339,26 +377,33 @@ sub handle_keypress {
         Irssi::signal_stop();
         return;
     }
+    if ($key == 9) { # TAB
+        _debug_print "Tab complete" if DEBUG;
+        print_all_matches();
+        Irssi::signal_stop();
+    }
 
 	if ($key == 10) { # enter
-        _print "selecting history and quitting" if DEBUG;
+        _debug_print "selecting history and quitting" if DEBUG;
         my $selected_win = get_window_match();
         ido_switch_select($selected_win);
         return;
 	}
 
     if ($key == 18) { # Ctrl-R
-        _print "skipping to prev match" if DEBUG;
-        prev_match();
+        _debug_print "skipping to prev match" if DEBUG;
         #update_matches();
+        next_match();
+
         update_prompt();
         Irssi::signal_stop(); # prevent the bind from being re-triggered.
         return;
     }
 
     if ($key == 19) {  # Ctrl-S
-        _print "skipping to next match" if DEBUG;
-        next_match();
+        _debug_print "skipping to next match" if DEBUG;
+        prev_match();
+
         #update_matches();
         update_prompt();
 
@@ -367,7 +412,7 @@ sub handle_keypress {
     }
 
     if ($key == 7) { # Ctrl-G
-        _print "aborting search" if DEBUG;
+        _debug_print "aborting search" if DEBUG;
         ido_switch_exit();
         Irssi::signal_stop();
         return;
@@ -377,7 +422,7 @@ sub handle_keypress {
 
         if (length $search_str) {
             $search_str = substr($search_str, 0, -1);
-            _print "Deleting char, now: $search_str" if DEBUG;
+            _debug_print "Deleting char, now: $search_str" if DEBUG;
         }
 
         update_matches();
