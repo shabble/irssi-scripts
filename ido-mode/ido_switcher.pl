@@ -75,6 +75,8 @@ my @search_matches = ();
 
 my $match_index = 0;
 my $search_str  = '';
+my $active_only = 0;
+
 
 # /set configurable settings
 my $ido_show_count;
@@ -97,7 +99,7 @@ sub _print {
     $win->print($str, Irssi::MSGLEVEL_NEVER);
 }
 
-sub _debug_print { 
+sub _debug_print {
     my $win = Irssi::active_win;
     my $str = join('', @_);
     $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
@@ -184,6 +186,7 @@ sub ido_switch_start {
 
     # refresh in case we toggled it last time.
     $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
+    $active_only    = 0;
 
     _debug_print "Win cache: " . join(", ", @window_cache) if DEBUG;
 
@@ -209,6 +212,7 @@ sub get_all_windows {
                         type   => 'WINDOW',
                         num    => $win->{refnum},
                         server => $win->{active_server},
+                        active => $win->{data_level} > 0,
                        };
 
         } elsif (scalar @items) {
@@ -219,6 +223,7 @@ sub get_all_windows {
                             server   => $item->{server},
                             num      => $win->{refnum},
                             itemname => $item->{name},
+                            active => $win->{data_level} > 0,
                            };
             }
         } else {
@@ -291,14 +296,32 @@ sub update_prompt {
                        'UP_INNER');
 }
 
+sub _check_active {
+    my ($obj) = @_;
+    return 1 unless $active_only;
+    return $obj->{active};
+}
+
 sub update_matches {
 
     if ($search_str =~ m/^\d+$/) {
-        @search_matches = grep { $_->{num} == 0+$search_str          } @window_cache;
+        @search_matches =
+          grep {
+              _check_active($_)
+                and  $_->{num} == 0+$search_str
+          } @window_cache;
     } elsif ($ido_use_flex) {
-        @search_matches = grep { flex_match($search_str, $_->{name}) } @window_cache;
+        @search_matches =
+          grep {
+              _check_active($_) and
+                flex_match($search_str, $_->{name})
+          } @window_cache;
     } else {
-        @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/i   } @window_cache;
+        @search_matches =
+          grep {
+              _check_active($_)
+                and $_->{name} =~ m/\Q$search_str\E/i
+          } @window_cache;
     }
 
 }
@@ -369,6 +392,14 @@ sub handle_keypress {
         # update_prompt();
         _print_clear();
         Irssi::signal_stop();
+        return;
+    }
+
+    if ($key == 5) { # C-e
+        $active_only = not $active_only;
+        Irssi::signal_stop();
+        update_matches();
+        update_prompt();
         return;
     }
 
