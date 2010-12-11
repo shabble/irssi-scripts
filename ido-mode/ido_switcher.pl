@@ -292,7 +292,10 @@ sub update_prompt {
 }
 
 sub update_matches {
-    if ($ido_use_flex) {
+
+    if ($search_str =~ m/^\d+$/) {
+        @search_matches = grep { $_->{num} == 0+$search_str          } @window_cache;
+    } elsif ($ido_use_flex) {
         @search_matches = grep { flex_match($search_str, $_->{name}) } @window_cache;
     } else {
         @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/i   } @window_cache;
