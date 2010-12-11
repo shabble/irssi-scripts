@@ -295,7 +295,7 @@ sub update_matches {
     if ($ido_use_flex) {
         @search_matches = grep { flex_match($search_str, $_->{name}) } @window_cache;
     } else {
-        @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/    } @window_cache;
+        @search_matches = grep { $_->{name} =~ m/\Q$search_str\E/i   } @window_cache;
     }
 
 }
@@ -303,11 +303,14 @@ sub update_matches {
 sub flex_match {
     my ($pattern, $source) = @_;
 
-    my @chars = split '', $pattern;
+    my @chars = split '', lc($pattern);
     my $i = -1;
     my $ret = 1;
+
+    my $lc_source = lc($source);
+
     foreach my $char (@chars) {
-        my $pos = index($source, $char, $i);
+        my $pos = index($lc_source, $char, $i);
         if ($pos > -1) {
             $i = $pos;
         } else {
