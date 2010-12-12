@@ -248,7 +248,6 @@ sub ido_switch_select {
         Irssi::command("WINDOW ITEM GOTO " . $selected->{itemname});
     }
 
-    ido_switch_exit();
 }
 
 sub ido_switch_exit {
@@ -424,6 +423,9 @@ sub handle_keypress {
         _debug_print "selecting history and quitting" if DEBUG;
         my $selected_win = get_window_match();
         ido_switch_select($selected_win);
+
+        ido_switch_exit();
+        Irssi::signal_stop();
         return;
 	}
 
@@ -476,7 +478,15 @@ sub handle_keypress {
         return;
     }
 
-    if ($key >= 32) { # printable
+    if ($key == 32) { # space
+        my $selected_win = get_window_match();
+        ido_switch_select($selected_win);
+        Irssi::signal_stop();
+
+        return;
+    }
+
+    if ($key > 32) { # printable
         $search_str .= chr($key);
 
         update_matches();
