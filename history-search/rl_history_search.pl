@@ -90,22 +90,29 @@ sub script_is_loaded {
     return $retval;
 }
 
-unless (script_is_loaded('uberprompt')) {
+if (not script_is_loaded('uberprompt')) {
+
     print "This script requires 'uberprompt.pl' in order to work. "
       . "Attempting to load it now...";
-    Irssi::signal_add('script error', \&load_uberprompt_failed);
+
+    Irssi::signal_add('script error', 'load_uberprompt_failed');
     Irssi::command("script load uberprompt.pl");
+
     unless(script_is_loaded('uberprompt')) {
         load_uberprompt_failed("File does not exist");
     }
     history_init();
+} else {
+   history_init();
 }
 
 sub load_uberprompt_failed {
-    Irssi::signal_remove('script error', \&load_prompt_failed);
+    Irssi::signal_remove('script error', 'load_prompt_failed');
+
     print "Script could not be loaded. Script cannot continue. "
       . "Check you have uberprompt.pl installed in your path and "
         .  "try again.";
+
     die "Script Load Failed: " . join(" ", @_);
 }
 
