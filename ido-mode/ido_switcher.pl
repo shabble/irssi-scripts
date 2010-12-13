@@ -77,6 +77,7 @@ my $match_index = 0;
 my $search_str  = '';
 my $active_only = 0;
 
+my $need_clear = 0;
 
 # /set configurable settings
 my $ido_show_count;
@@ -96,6 +97,7 @@ sub MODE_W () { 4 } # select window
 sub _print {
     my $win = Irssi::active_win;
     my $str = join('', @_);
+    $need_clear = 1;
     $win->print($str, Irssi::MSGLEVEL_NEVER);
 }
 
@@ -106,6 +108,7 @@ sub _debug_print {
 }
 
 sub _print_clear {
+    return unless $need_clear;
     my $win = Irssi::active_win();
     $win->command('/scrollback levelclear -level NEVER');
 }
