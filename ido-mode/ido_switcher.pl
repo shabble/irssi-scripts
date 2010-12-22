@@ -64,6 +64,7 @@ $VERSION = '2.0';
 # toggle queries/channels
 # remove inputline content, restore it afterwards.
 # tab - display all possibilities in window (clean up afterwards)
+# sort by recent activity/recently used windows (separate commands?)
 
 my $input_copy     = '';
 my $input_pos_copy = 0;
@@ -78,6 +79,8 @@ my $search_str  = '';
 my $active_only = 0;
 
 my $need_clear = 0;
+
+my $sort_ordering = "start-asc";
 
 # /set configurable settings
 my $ido_show_count;
@@ -102,6 +105,7 @@ sub _print {
 }
 
 sub _debug_print {
+    return unless DEBUG;
     my $win = Irssi::active_win;
     my $str = join('', @_);
     $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
@@ -125,7 +129,7 @@ sub print_all_matches {
 
 sub script_is_loaded {
     my $name = shift;
-    _debug_print "Checking if $name is loaded" if DEBUG;
+    _debug_print "Checking if $name is loaded";
     no strict 'refs';
     my $retval = defined %{ "Irssi::Script::${name}::" };
     use strict 'refs';
@@ -191,7 +195,7 @@ sub ido_switch_start {
     $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
     $active_only    = 0;
 
-    _debug_print "Win cache: " . join(", ", @window_cache) if DEBUG;
+    _debug_print "Win cache: " . join(", ", map { $_->{name} } @window_cache);
 
     _update_cache();
 
@@ -210,6 +214,7 @@ sub get_all_windows {
         my @items = $win->items();
 
         if ($win->{name} ne '') {
+            _debug_print "Adding window: " . $win->{name};
             push @ret, {
                         name   => $win->{name},
                         type   => 'WINDOW',
@@ -217,9 +222,12 @@ sub get_all_windows {
                         server => $win->{active_server},
                         active => $win->{data_level} > 0,
                        };
+        }
 
-        } elsif (scalar @items) {
+        if (scalar @items) {
             foreach my $item (@items) {
+                _debug_print "Adding windowitem: " . $item->{visible_name};
+
                 push @ret, {
                             name     => $item->{visible_name},
                             type     => $item->{type},
@@ -235,19 +243,29 @@ sub get_all_windows {
         }
     }
 
+    @ret = _sort_windows(\@ret);
+
+    return @ret;
+}
+
+sub _sort_windows {
+    my $list_ref = shift;
+    my @ret = @$list_ref;
+
     @ret = sort { $a->{num} <=> $b->{num} } @ret;
+
     return @ret;
 }
 
 sub ido_switch_select {
     my ($selected, $is_refnum) = @_;
 
-    _debug_print "Selecting window: " . $selected->{name} if DEBUG;
+    _debug_print "Selecting window: " . $selected->{name};
 
     Irssi::command("WINDOW GOTO " . $selected->{name});
 
     if ($selected->{type} ne 'WINDOW') {
-        _debug_print "Selecting window item: " . $selected->{itemname} if DEBUG;
+        _debug_print "Selecting window item: " . $selected->{itemname};
         Irssi::command("WINDOW ITEM GOTO " . $selected->{itemname});
     }
 
@@ -273,7 +291,7 @@ sub update_prompt {
     $show_num = $match_num if $match_num < $show_num;
 
     if ($show_num > 0) {
-        _debug_print "Showing: $show_num matches" if DEBUG;
+        _debug_print "Showing: $show_num matches";
 
         my @ordered_matches
          = @search_matches[$match_index .. $#search_matches,
@@ -306,6 +324,8 @@ sub _check_active {
 
 sub update_matches {
 
+    @search_matches = get_all_windows() unless $search_str;
+
     if ($search_str =~ m/^\d+$/) {
         @search_matches =
           grep {
@@ -316,7 +336,7 @@ sub update_matches {
         @search_matches =
           grep {
               _check_active($_) and
-                flex_match($search_str, $_->{name})
+                flex_match($search_str, $_->{name}) >= 0
           } @window_cache;
     } else {
         @search_matches =
@@ -331,22 +351,29 @@ sub update_matches {
 sub flex_match {
     my ($pattern, $source) = @_;
 
+    _debug_print "Flex match: $pattern / $source";
+
+    # default to matching everything if we don't have a pattern to compare
+    # against.
+
+    return 0 unless $pattern;
+
     my @chars = split '', lc($pattern);
-    my $i = -1;
-    my $ret = 1;
+    my $ret = -1;
 
     my $lc_source = lc($source);
 
     foreach my $char (@chars) {
-        my $pos = index($lc_source, $char, $i);
+        my $pos = index($lc_source, $char, $ret);
         if ($pos > -1) {
-            $i = $pos;
+            _debug_print("matched: $char at $pos in $source");
+            $ret = $pos + 1;
         } else {
-            $ret = 0;
-            last;
+            _debug_print "Flex returning: -1";
+            return -1;
         }
     }
-
+    _debug_print "Flex returning: $ret";
     return $ret;
 }
 
@@ -356,7 +383,7 @@ sub prev_match {
     if ($match_index > $#search_matches) {
         $match_index = 0;
     }
-    _debug_print "index now: $match_index" if DEBUG;
+    _debug_print "index now: $match_index";
 }
 
 sub next_match {
@@ -365,7 +392,7 @@ sub next_match {
     if ($match_index < 0) {
         $match_index = $#search_matches;
     }
-    _debug_print "index now: $match_index" if DEBUG;
+    _debug_print "index now: $match_index";
 }
 
 sub get_window_match {
@@ -378,7 +405,7 @@ sub handle_keypress {
     return unless $ido_switch_active;
 
     if ($key == 0) { # C-SPC?
-        _debug_print "\%_Ctrl-space\%_" if DEBUG;
+        _debug_print "\%_Ctrl-space\%_";
 
         $search_str = '';
         @window_cache = @search_matches;
@@ -417,13 +444,13 @@ sub handle_keypress {
         return;
     }
     if ($key == 9) { # TAB
-        _debug_print "Tab complete" if DEBUG;
+        _debug_print "Tab complete";
         print_all_matches();
         Irssi::signal_stop();
     }
 
 	if ($key == 10) { # enter
-        _debug_print "selecting history and quitting" if DEBUG;
+        _debug_print "selecting history and quitting";
         my $selected_win = get_window_match();
         ido_switch_select($selected_win);
 
@@ -433,7 +460,7 @@ sub handle_keypress {
 	}
 
     if ($key == 18) { # Ctrl-R
-        _debug_print "skipping to prev match" if DEBUG;
+        _debug_print "skipping to prev match";
         #update_matches();
         next_match();
 
@@ -443,7 +470,7 @@ sub handle_keypress {
     }
 
     if ($key == 19) {  # Ctrl-S
-        _debug_print "skipping to next match" if DEBUG;
+        _debug_print "skipping to next match";
         prev_match();
 
         #update_matches();
@@ -454,7 +481,7 @@ sub handle_keypress {
     }
 
     if ($key == 7) { # Ctrl-G
-        _debug_print "aborting search" if DEBUG;
+        _debug_print "aborting search";
         ido_switch_exit();
         Irssi::signal_stop();
         return;
@@ -464,7 +491,7 @@ sub handle_keypress {
 
         if (length $search_str) {
             $search_str = substr($search_str, 0, -1);
-            _debug_print "Deleting char, now: $search_str" if DEBUG;
+            _debug_print "Deleting char, now: $search_str";
         }
 
         update_matches();
