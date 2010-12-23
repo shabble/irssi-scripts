@@ -350,7 +350,7 @@ sub update_matches {
 
         @search_matches =
           grep {
-              _check_active($_) and $_->{num} =~ m/\Q$search_str\E/
+              _check_active($_) and $_->{num} =~ m/^\Q$search_str\E/
           } @window_cache;
 
     } elsif ($ido_use_flex) {
