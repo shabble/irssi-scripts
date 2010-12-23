@@ -221,6 +221,8 @@ sub get_all_windows {
                         num    => $win->{refnum},
                         server => $win->{active_server},
                         active => $win->{data_level} > 0,
+                        b_pos  => -1,
+                        e_pos  => -1,
                        };
         }
 
@@ -234,7 +236,9 @@ sub get_all_windows {
                             server   => $item->{server},
                             num      => $win->{refnum},
                             itemname => $item->{name},
-                            active => $win->{data_level} > 0,
+                            active   => $win->{data_level} > 0,
+                            b_pos    => -1,
+                            e_pos    => -1,
                            };
             }
         } else {
@@ -283,6 +287,8 @@ sub ido_switch_exit {
 
 sub update_prompt {
 
+    #TODO: refactor this beast.
+
     # take the top $ido_show_count entries and display them.
     my $match_num = scalar @search_matches;
     my $show_num = $ido_show_count;
@@ -299,21 +305,38 @@ sub update_prompt {
 
         my @show = @ordered_matches[0..$show_num - 1];
 
-        $show[0] = sprintf '%%g%d:%s%%n', $show[0]->{num}, $show[0]->{name};
-        @show[1..$#show] = map
-          {
-              sprintf '%%r%d:%s%%n', $_->{num}, $_->{name};
-          } @show[1..$#show];
+        # show the first entry in green
 
+        unshift(@show, _format_display_entry(shift(@show), '%g'));
+
+        # and array-slice-map the rest to be red.
+        @show[1..$#show] = map { _format_display_entry($_, '%r') } @show[1..$#show];
+
+        # join em all up
         $show_str = join ', ', @show;
     }
+
+    # indicator if flex mode is being used (C-f to toggle)
     my $flex = sprintf(' [%s]', $ido_use_flex ? 'F' : 'E');
+
     my $search = '';
     $search = ' `' . $search_str . "'" if length $search_str;
 
     Irssi::signal_emit('change prompt',
                        $flex . $search . ' win: ' . $show_str,
                        'UP_INNER');
+}
+
+sub _format_display_entry {
+    my ($obj, $colour) = @_;
+
+    my $name = $obj->{name};
+    if ($obj->{b_pos} >= 0 && $obj->{e_pos} > 0) {
+        substr($name, $obj->{e_pos}, 0) = '%_';
+        substr($name, $obj->{b_pos}, 0) = '%_';
+        _debug_print "Showing name as: $name";
+    }
+    return sprintf('%s%d:%s%%n', $colour, $obj->{num}, $name);
 }
 
 sub _check_active {
@@ -327,29 +350,39 @@ sub update_matches {
     @search_matches = get_all_windows() unless $search_str;
 
     if ($search_str =~ m/^\d+$/) {
+
         @search_matches =
           grep {
-              _check_active($_)
-                and  $_->{num} == 0+$search_str
+              _check_active($_) and $_->{num} == 0+$search_str
           } @window_cache;
+
     } elsif ($ido_use_flex) {
+
         @search_matches =
           grep {
-              _check_active($_) and
-                flex_match($search_str, $_->{name}) >= 0
+              _check_active($_) and flex_match($_) >= 0
           } @window_cache;
+
     } else {
+
         @search_matches =
           grep {
-              _check_active($_)
-                and $_->{name} =~ m/\Q$search_str\E/i
+              _check_active($_) and regex_match($_)
           } @window_cache;
     }
 
 }
 
+sub regex_match {
+    my $obj = shift;
+    return $obj->{name} =~ m/(.*?)\Q$search_str\E.*?/i
+}
+
 sub flex_match {
-    my ($pattern, $source) = @_;
+    my ($obj) = @_;
+
+    my $pattern = $search_str;
+    my $source  = $obj->{name};
 
     _debug_print "Flex match: $pattern / $source";
 
@@ -366,14 +399,26 @@ sub flex_match {
     foreach my $char (@chars) {
         my $pos = index($lc_source, $char, $ret);
         if ($pos > -1) {
+            # store the beginning of the match
+            $obj->{b_pos} = $pos if $char eq @chars[0];
+
             _debug_print("matched: $char at $pos in $source");
             $ret = $pos + 1;
+
         } else {
+
+            $obj->{b_pos} = $obj->{e_pos} = -1;
             _debug_print "Flex returning: -1";
+
             return -1;
         }
     }
+
     _debug_print "Flex returning: $ret";
+
+    #store the end of the match.
+    $obj->{e_pos} = $ret;
+
     return $ret;
 }
 
@@ -383,6 +428,7 @@ sub prev_match {
     if ($match_index > $#search_matches) {
         $match_index = 0;
     }
+
     _debug_print "index now: $match_index";
 }
 
@@ -416,9 +462,6 @@ sub handle_keypress {
     }
 
     if ($key == 3) { # C-C
-        # $search_str = '';
-        # @window_cache = @search_matches;
-        # update_prompt();
         _print_clear();
         Irssi::signal_stop();
         return;
@@ -485,6 +528,16 @@ sub handle_keypress {
         ido_switch_exit();
         Irssi::signal_stop();
         return;
+    }
+
+    if ($key == 21) { # Ctrl-U
+        $search_str = '';
+        update_matches();
+        update_prompt();
+
+        Irssi::signal_stop();
+        return;
+
     }
 
     if ($key == 127) { # DEL
