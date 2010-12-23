@@ -11,12 +11,9 @@
 #
 # USAGE:
 #
-# * Setup: /bind ^R /history_search_start
+# * Setup: /bind ^G /ido_switch_start
 #
-# * Then type ctrl-R and type what you're searching for
-#
-# * You can cycle through multiple matches with ^R (older matches), and
-#   ^S (newer matches)
+# * Then type ctrl-G and type what you're searching for
 #
 # Based in part on window_switcher.pl script Copyright 2007 Wouter Coekaerts
 # <coekie@irssi.org>
@@ -353,7 +350,7 @@ sub update_matches {
 
         @search_matches =
           grep {
-              _check_active($_) and $_->{num} == 0+$search_str
+              _check_active($_) and $_->{num} =~ m/\Q$search_str\E/
           } @window_cache;
 
     } elsif ($ido_use_flex) {
