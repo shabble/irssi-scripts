@@ -52,21 +52,22 @@ $VERSION = '2.0';
 
 
 # TODO:
-# C-g - cancel
-# C-spc - narrow
-# flex matching (on by default, but optional)
-# server/network narrowing
-# colourised output (via uberprompt)
-# C-r / C-s rotate matches
-# toggle queries/channels
-# remove inputline content, restore it afterwards.
-# tab - display all possibilities in window (clean up afterwards)
-# sort by recent activity/recently used windows (separate commands?)
+# DONE C-g - cancel
+# DONE C-spc - narrow
+# DONE flex matching (on by default, but optional)
+# TODO server/network narrowing
+# DONE colourised output (via uberprompt)
+# DONE C-r / C-s rotate matches
+# TODO toggle queries/channels
+# DONE remove inputline content, restore it afterwards.
+# TODO tab - display all possibilities in window (clean up afterwards)
+#       how exactly will this work?
+# DONE sort by recent activity/recently used windows (separate commands?)
 
 my $input_copy     = '';
 my $input_pos_copy = 0;
 
-my $ido_switch_active = 0;
+my $ido_switch_active = 0; # for intercepting keystrokes
 
 my @window_cache   = ();
 my @search_matches = ();
@@ -86,11 +87,11 @@ my $ido_use_flex;
 my $DEBUG_ENABLED = 0;
 sub DEBUG () { $DEBUG_ENABLED }
 
-sub MODE_A () { 0 } # all
-sub MODE_Q () { 1 } # queries
-sub MODE_C () { 2 } # channels
-sub MODE_S () { 3 } # select server
-sub MODE_W () { 4 } # select window
+#sub MODE_A () { 0 } # all
+#sub MODE_Q () { 1 } # queries
+#sub MODE_C () { 2 } # channels
+#sub MODE_S () { 3 } # select server
+#sub MODE_W () { 4 } # select window
 
 # check we have uberprompt loaded.
 
@@ -116,11 +117,6 @@ sub _print_clear {
 
 sub print_all_matches {
     my $msg = join(", ", map { $_->{name} } @search_matches);
-    # $msg =~ s/(.{80}.*?,)/$1\n/g;
-    # my @lines = split "\n", $msg;
-    # foreach my $line (@lines) {
-    #     _print($line);
-    # }
     _print($msg);
 }
 
@@ -282,45 +278,50 @@ sub ido_switch_exit {
     Irssi::signal_emit('change prompt', '', 'UP_INNER');
 }
 
+sub _order_matches {
+    return @_[$match_index .. $#_,
+              0            .. $match_index - 1]
+}
+
 sub update_prompt {
 
     #TODO: refactor this beast.
 
     # take the top $ido_show_count entries and display them.
-    my $match_num = scalar @search_matches;
-    my $show_num = $ido_show_count;
-    my $show_str = '(no matches) ';
+    my $match_count  = scalar @search_matches;
+    my $show_count   = $ido_show_count;
+    my $match_string = '(no matches) ';
 
-    $show_num = $match_num if $match_num < $show_num;
+    $show_count = $match_count if $match_count < $show_count;
 
-    if ($show_num > 0) {
-        _debug_print "Showing: $show_num matches";
+    if ($show_count > 0) {
+        _debug_print "Showing: $show_count matches";
 
-        my @ordered_matches
-         = @search_matches[$match_index .. $#search_matches,
-                           0            .. $match_index - 1];
-
-        my @show = @ordered_matches[0..$show_num - 1];
+        my @ordered_matches = _order_matches(@search_matches);
+        my @display = @ordered_matches[0..$show_count - 1];
 
         # show the first entry in green
 
-        unshift(@show, _format_display_entry(shift(@show), '%g'));
+        unshift(@display, _format_display_entry(shift(@display), '%g'));
 
         # and array-slice-map the rest to be red.
-        @show[1..$#show] = map { _format_display_entry($_, '%r') } @show[1..$#show];
+        @display[1..$#display]
+          = map { _format_display_entry($_, '%r') } @display[1..$#display];
 
         # join em all up
-        $show_str = join ', ', @show;
+        $match_string = join ', ', @display;
     }
 
     # indicator if flex mode is being used (C-f to toggle)
-    my $flex = sprintf(' [%s]', $ido_use_flex ? 'F' : 'E');
+    my @indicators = ($ido_use_flex ? 'Flex' : 'Exact');
+    push @indicators, 'Active' if $active_only;
+
+    my $flex = sprintf(' [%s] ', join ',', @indicators);
 
     my $search = '';
-    $search = ' `' . $search_str . "'" if length $search_str;
+    $search = (sprintf '`%s\': ', $search_str) if length $search_str;
 
-    Irssi::signal_emit('change prompt',
-                       $flex . $search . ' win: ' . $show_str,
+    Irssi::signal_emit('change prompt', $flex . $search . $match_string,
                        'UP_INNER');
 }
 
@@ -344,7 +345,7 @@ sub _check_active {
 
 sub update_matches {
 
-    @search_matches = get_all_windows() unless $search_str;
+    _update_cache() unless $search_str;
 
     if ($search_str =~ m/^\d+$/) {
 
@@ -372,7 +373,12 @@ sub update_matches {
 
 sub regex_match {
     my $obj = shift;
-    return $obj->{name} =~ m/(.*?)\Q$search_str\E.*?/i
+    if ($obj->{name} =~ m/(.*?)\Q$search_str\E(.*?)$/i) {
+        $obj->{b_pos} = length $1;
+        $obj->{e_pos} = $obj->{b_pos} + length($search_str);
+        return 1;
+    }
+    return 0;
 }
 
 sub flex_match {
@@ -390,14 +396,17 @@ sub flex_match {
 
     my @chars = split '', lc($pattern);
     my $ret = -1;
+    my $first = 0;
 
     my $lc_source = lc($source);
 
     foreach my $char (@chars) {
         my $pos = index($lc_source, $char, $ret);
         if ($pos > -1) {
+
             # store the beginning of the match
-            $obj->{b_pos} = $pos if $char eq @chars[0];
+            $obj->{b_pos} = $pos unless $first;
+            $first = 1;
 
             _debug_print("matched: $char at $pos in $source");
             $ret = $pos + 1;
