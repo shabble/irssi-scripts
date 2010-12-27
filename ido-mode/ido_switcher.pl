@@ -216,6 +216,7 @@ sub get_all_windows {
                         active => $win->{data_level} > 0,
                         b_pos  => -1,
                         e_pos  => -1,
+                        hilight_field => 'name',
                        };
         }
 
@@ -232,6 +233,7 @@ sub get_all_windows {
                             active   => $win->{data_level} > 0,
                             b_pos    => -1,
                             e_pos    => -1,
+                            hilight_field => 'name',
                            };
             }
         } else {
@@ -316,7 +318,7 @@ sub update_prompt {
     my @indicators = ($ido_use_flex ? 'Flex' : 'Exact');
     push @indicators, 'Active' if $active_only;
 
-    my $flex = sprintf(' [%s] ', join ',', @indicators);
+    my $flex = sprintf(' %%k[%%n%s%%k]%%n ', join ',', @indicators);
 
     my $search = '';
     $search = (sprintf '`%s\': ', $search_str) if length $search_str;
@@ -328,13 +330,16 @@ sub update_prompt {
 sub _format_display_entry {
     my ($obj, $colour) = @_;
 
-    my $name = $obj->{name};
-    if ($obj->{b_pos} >= 0 && $obj->{e_pos} > 0) {
-        substr($name, $obj->{e_pos}, 0) = '%_';
-        substr($name, $obj->{b_pos}, 0) = '%_';
-        _debug_print "Showing name as: $name";
+    my $field = $obj->{hilight_field};
+    my $hilighted = { name => $obj->{name}, num => $obj->{num} };
+
+    if ($obj->{b_pos} >= 0 && $obj->{e_pos} > $obj->{b_pos}) {
+        substr($hilighted->{$field}, $obj->{e_pos}, 0) = '%_';
+        substr($hilighted->{$field}, $obj->{b_pos}, 0) = '%_';
+        _debug_print "Showing $field as: " . $hilighted->{$field}
     }
-    return sprintf('%s%d:%s%%n', $colour, $obj->{num}, $name);
+
+    return sprintf('%s%s:%s%%n', $colour, $hilighted->{num}, $hilighted->{name});
 }
 
 sub _check_active {
@@ -351,7 +356,7 @@ sub update_matches {
 
         @search_matches =
           grep {
-              _check_active($_) and $_->{num} =~ m/^\Q$search_str\E/
+              _check_active($_) and regex_match($_, 'num')
           } @window_cache;
 
     } elsif ($ido_use_flex) {
@@ -365,15 +370,16 @@ sub update_matches {
 
         @search_matches =
           grep {
-              _check_active($_) and regex_match($_)
+              _check_active($_) and regex_match($_, 'name')
           } @window_cache;
     }
 
 }
 
 sub regex_match {
-    my $obj = shift;
-    if ($obj->{name} =~ m/(.*?)\Q$search_str\E(.*?)$/i) {
+    my ($obj, $field) = @_;
+    if ($obj->{$field} =~ m/^(.*?)\Q$search_str\E(.*?)$/i) {
+        $obj->{hilight_field} = $field;
         $obj->{b_pos} = length $1;
         $obj->{e_pos} = $obj->{b_pos} + length($search_str);
         return 1;
@@ -399,6 +405,8 @@ sub flex_match {
     my $first = 0;
 
     my $lc_source = lc($source);
+
+    $obj->{hilight_field} = 'name';
 
     foreach my $char (@chars) {
         my $pos = index($lc_source, $char, $ret);
