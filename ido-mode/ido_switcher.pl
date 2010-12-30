@@ -19,8 +19,13 @@
 #
 # C-g (or whatever you've set the above bind to), enters window switching mode.
 #
-# The following key-bindings are available only once the switching mode has been
-# activated.
+# NB: When entering window switching mode, the contents of your input line will
+# be saved and cleared, to avoid visual clutter whilst using the switching
+# interface.  It will be restored once you exit the mode using either C-g, Esc,
+# or RET.
+
+# The following key-bindings are available only once the mode has been
+# activated:
 #
 # * C-g   - cancel out of the mode without changing windows.
 # * Esc   - cancel out, as above.
@@ -29,14 +34,19 @@
 # * C-e   - Toggle 'Active windows only' filter
 # * C-f   - Switch between 'Flex' and 'Exact' matching.
 # * C-d   - Select a network or server to filter candidates by
+# * C-u   - Clear the current search string
 # * C-q   - Cycle between showing only queries, channels, or all.
 # * C-SPC - Filter candidates by current search string, and then reset
 #            the search string
 # * RET   - Select the current head of the candidate list (the green one)
 # * SPC   - Select the current head of the list, without exiting the
-#            switching mode
-# * All other keys (a-z, A-Z, etc) - Add that character to the current search string.
-#
+#            switching mode. The head is then moved one place to the right,
+#            allowing one to cycle through channels by repeatedly pressing space.
+# * TAB   - [currently in development] displays all possible completions
+#            at the bottom of the current window.
+# * All other keys (a-z, A-Z, etc) - Add that character to the current search
+#                                     string.
+# 
 # USAGE NOTES:
 #
 # * Using C-e (show actives), followed by repeatedly pressing space will cycle
@@ -78,7 +88,7 @@ $VERSION = '2.0';
    name        => 'ido_switcher',
    description => 'Select window[-items] using an ido-mode like search interface',
    license     => 'GPLv2 or later',
-   url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
+   url         => 'http://github.com/shabble/irssi-scripts/tree/master/ido-mode/',
    changed     => '24/7/2010'
   );
 
@@ -90,12 +100,14 @@ $VERSION = '2.0';
 # TODO server/network narrowing
 # DONE colourised output (via uberprompt)
 # DONE C-r / C-s rotate matches
-# TODO toggle queries/channels
+# DONE toggle queries/channels
 # DONE remove inputline content, restore it afterwards.
 # TODO tab - display all possibilities in window (clean up afterwards)
 #       how exactly will this work?
 # DONE sort by recent activity/recently used windows (separate commands?)
-# TODO should space auto-move forward to next window for easy stepping through
+# TODO need to be able to switch ordering of active ones (numerical, or most recently
+#      active, priority to PMs/hilights, etc?)
+# DONE should space auto-move forward to next window for easy stepping through
 #      sequential/active windows?
 
 my $input_copy     = '';
