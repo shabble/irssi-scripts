@@ -9,11 +9,43 @@
 #
 # and follow the instructions at the top of that file for installation.
 #
-# USAGE:
+# SETUP:
 #
 # * Setup: /bind ^G /ido_switch_start
 #
 # * Then type ctrl-G and type what you're searching for
+#
+# USAGE:
+#
+# C-g (or whatever you've set the above bind to), enters window switching mode.
+#
+# The following key-bindings are available only once the switching mode has been
+# activated.
+#
+# * C-g   - cancel out of the mode without changing windows.
+# * Esc   - cancel out, as above.
+# * C-s   - rotate the list of window candidates forward by 1
+# * C-r   - rotate the list of window candidates backward by 1
+# * C-e   - Toggle 'Active windows only' filter
+# * C-f   - Switch between 'Flex' and 'Exact' matching.
+# * C-d   - Select a network or server to filter candidates by
+# * C-q   - Cycle between showing only queries, channels, or all.
+# * C-SPC - Filter candidates by current search string, and then reset
+#            the search string
+# * RET   - Select the current head of the candidate list (the green one)
+# * SPC   - Select the current head of the list, without exiting the
+#            switching mode
+# * All other keys (a-z, A-Z, etc) - Add that character to the current search string.
+#
+# USAGE NOTES:
+#
+# * Using C-e (show actives), followed by repeatedly pressing space will cycle
+#   through all your currently active windows.
+#
+# * If you enter a search string fragment, and realise that more than one candidate
+#   is still presented, rather than delete the whole string and modify it, you can
+#   use C-SPC to 'lock' the current matching candidates, but allow you to search
+#   through those matches alone.
 #
 # Based in part on window_switcher.pl script Copyright 2007 Wouter Coekaerts
 # <coekie@irssi.org>
@@ -176,7 +208,7 @@ sub print_all_matches {
 
 unless (script_is_loaded('uberprompt')) {
 
-    _print "This script requires 'uberprompt.pl' in order to work. "
+    _print "This script requires '\%_uberprompt.pl\%_' in order to work. "
       . "Attempting to load it now...";
 
     Irssi::signal_add('script error', 'load_uberprompt_failed');
@@ -708,6 +740,10 @@ sub get_all_windows {
         if ($key == 32) {       # space
             my $selected_win = get_window_match();
             ido_switch_select($selected_win);
+
+            prev_match();
+            update_window_select_prompt();
+
             Irssi::signal_stop();
 
             return;
