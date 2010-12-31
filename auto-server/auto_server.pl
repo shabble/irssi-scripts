@@ -54,7 +54,7 @@ my $pending_joins;
 sub auto_server_init {
     Irssi::command_bind('join+', \&join_plus);
     Irssi::settings_add_str('join_plus', 'joinplus_server_maps', '');
-    Irssi::signal_add_last('setup changed', \&parse_channel_map);
+    Irssi::signal_add_last('setup changed', \&setup_changed);
     Irssi::settings_add_bool('join_plus', 'join_plus_debug', 0);
 
     setup_changed();
