@@ -1,3 +1,19 @@
+# USAGE:
+#
+# the primary command used is /join+ #channelname
+#
+# Mappings for channels to servers is accomplished with the
+# joinplus_server_maps setting.
+#
+# Within this setting, space separated pairs denote channel, server pairs.
+# Spaces also separate individual pairs, for example:
+#
+# /set joinplus_server_maps #foo Freenode #bar irc.somewhere.tld #meep DALNet
+#
+# Then use /join+ #foo, and if you are not already connected to freenode, it
+# will connect you, and then join that channel.
+
+
 use strict;
 use warnings;
 
@@ -147,6 +163,10 @@ sub do_channel_join {
     _debug_print ("attempting to join $channel");
 
     Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
+
+    delete $pending_joins->{$serv->{address}};
+    delete $pending_joins->{$serv->{tag}};
+
 }
 
 auto_server_init();
