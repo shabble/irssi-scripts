@@ -356,17 +356,18 @@ sub get_all_windows {
     }
 
     sub ido_switch_select {
-        my ($selected, $is_refnum) = @_;
+        my ($selected) = @_;
 
         _debug_print "Selecting window: " . $selected->{name};
 
         Irssi::command("WINDOW GOTO " . $selected->{name});
 
-        if ($selected->{type} ne 'WINDOW') {
+        if ($selected->{type} ne 'WIN') {
             _debug_print "Selecting window item: " . $selected->{itemname};
             Irssi::command("WINDOW ITEM GOTO " . $selected->{itemname});
         }
 
+        update_matches();
     }
 
     sub ido_switch_exit {
@@ -398,9 +399,13 @@ sub get_all_windows {
 
             my @ordered_matches = _order_matches(@search_matches);
 
-            my %uniq;
+            my @display = @ordered_matches[0..$show_count - 1];
+
             # determine which items are non-unique, if any.
-            foreach my $res (@ordered_matches) {
+
+            my %uniq;
+
+            foreach my $res (@display) {
                 my $name = $res->{name};
 
                 if (exists $uniq{$name}) {
@@ -419,9 +424,6 @@ sub get_all_windows {
                     $_->{display_net} = 1 for @values;
                 }
             }
-
-            #
-            my @display = @ordered_matches[0..$show_count - 1];
 
             # show the first entry in green
 
