@@ -117,6 +117,8 @@ use Irssi;
 use Irssi::TextUI;              # for sbar_items_redraw
 use Data::Dumper;
 
+{ package Irssi::Nick }
+
 our $VERSION = "0.2";
 our %IRSSI =
   (
