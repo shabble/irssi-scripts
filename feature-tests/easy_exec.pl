@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 # export everything.
-use Irssi (@Irssi::EXPORT_OK);
+use Irssi; #(@Irssi::EXPORT_OK);
 use Irssi::Irc;
 use Irssi::TextUI;
 
@@ -18,12 +18,27 @@ our %IRSSI = (
               license     => 'Public Domain',
              );
 
-Irssi::signal_add_first 'command script exec', \&better_exec;
+#Irssi::signal_add_first 'command script exec', \&better_exec;
+Irssi::command_bind('script exec', \&better_exec);
 
 sub better_exec {
     my ($args, $serv, $witem) = @_;
-    eval $args;
-    Irssi::signal_stop();
+    # todo: handle permanent arg?
+    my $perm = 0;
+    print "Args: $args";
+    if ($args =~ s/^\s*-permanent\s*(.*)$/$1/) {
+        $perm = 1;
+    }
+    print "Args now: $args";
+
+#    eval $args;
+    my $str = "//script exec " .
+     ($perm ? '-permanent' : '')
+     . 'use Irssi (@Irssi::EXPORT_OK); ' . $args;
+     print "Running: $str";
+
+#    Irssi::command($str);
+    Irssi::signal_continue($str, @_[1..$#_]);
 }
 
 sub Dump {
