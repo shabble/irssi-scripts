@@ -46,7 +46,7 @@
 #            at the bottom of the current window.
 # * All other keys (a-z, A-Z, etc) - Add that character to the current search
 #                                     string.
-# 
+#
 # USAGE NOTES:
 #
 # * Using C-e (show actives), followed by repeatedly pressing space will cycle
@@ -124,6 +124,7 @@ my $active_only = 0;
 
 my $mode_type = 'ALL';
 my @mode_cache;
+my $showing_help = 0;
 
 my $need_clear = 0;
 
@@ -165,6 +166,39 @@ sub _print_clear {
     return unless $need_clear;
     my $win = Irssi::active_win();
     $win->command('/scrollback levelclear -level NEVER');
+}
+
+sub display_help {
+
+    my @message =
+      ('%_IDO Window Switching Help:%_',
+       '',
+       '%_Ctrl-g%_   - cancel out of the mode without changing windows.',
+       '%_Esc%_      - cancel out, as above.',
+       '%_Ctrl-s%_   - rotate the list of window candidates forward by 1',
+       '%_Ctrl-r%_   - rotate the list of window candidates backward by 1',
+       '%_Ctrl-e%_   - Toggle \'Active windows only\' filter',
+       '%_Ctrl-f%_   - Switch between \'Flex\' and \'Exact\' matching.',
+       '%_Ctrl-d%_   - Select a network or server to filter candidates by',
+       '%_Ctrl-u%_   - Clear the current search string',
+       '%_Ctrl-q%_   - Cycle between showing only queries, channels, or all.',
+       '%_Ctrl-SPC%_ - Filter candidates by current search string, and then ',
+       '           reset the search string',
+       '%_RET%_   - Select the current head of the candidate list (the %_green%n one)',
+       '%_SPC%_   - Select the current head of the list, without exiting switching',
+       '        mode. The head is then moved one place to the right,',
+       '        allowing one to cycle through channels by repeatedly pressing space.',
+       '%_TAB%_   - [%_currently non-functional%_] displays all possible completions',
+       '        at the bottom of the current window.',
+       '',
+       '     %_All other keys (a-z, A-Z, etc) - Add that character to the',
+       '     %_current search string.',
+       '',
+       '%_Press Any Key to return%_',
+      );
+
+    _print($_) for @message;
+    $showing_help = 1;
 }
 
 sub print_all_matches {
@@ -622,6 +656,12 @@ sub get_all_windows {
 
         return unless $ido_switch_active;
 
+        if ($showing_help) {
+            _print_clear();
+            $showing_help = 0;
+            Irssi::signal_stop();
+        }
+
         if ($key == 0) {        # C-SPC?
             _debug_print "\%_Ctrl-space\%_";
 
@@ -716,6 +756,12 @@ sub get_all_windows {
         if ($key == 7) {        # Ctrl-g
             _debug_print "aborting search";
             ido_switch_exit();
+            Irssi::signal_stop();
+            return;
+        }
+
+        if ($key == 8) {        # Ctrl-h
+            display_help();
             Irssi::signal_stop();
             return;
         }
