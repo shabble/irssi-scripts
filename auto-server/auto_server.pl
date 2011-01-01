@@ -1,3 +1,6 @@
+# This script was initially written by shabble, this fork (and molestation) is
+# built upon his original work.
+#
 # USAGE:
 #
 # the primary command used is /join+ #channelname
@@ -13,6 +16,10 @@
 # Then use /join+ #foo, and if you are not already connected to freenode, it
 # will connect you, and then join that channel.
 
+# TODO:
+# Autocompletion for channel names
+# address conflict resolution
+# fix that disgusting race condition
 
 use strict;
 use warnings;
@@ -39,16 +46,17 @@ sub _debug_print {
 our $VERSION = '0.1';
 
 our %IRSSI = (
-              authors     => 'shabble',
-              contact     => 'shabble+irssi@metavore.org',
-              name        => 'auto-join',
-              description => 'connects to a specified server in order to connect'
-                             ' to a channel there, without having first to'
+              authors     => 'shabble, richo',
+              contact     => 'richo@psych0tik.net',
+              name        => 'auto-join-ng',
+              description => 'connects to a specified server in order to connect' .
+                             ' to a channel there, without having first to' .
                              ' connect to the server',
               license     => 'Public Domain',
              );
 
 my $channel_map;
+my @hack_channels;
 my $pending_joins;
 
 sub auto_server_init {
@@ -67,8 +75,36 @@ sub setup_changed {
     parse_channel_map();
 }
 
+# This is a tremendous kludge.
+# If anyone knows a better way to get this listing, I'd like to hear it.
+# This has so many race condition bugs I just don't even know where to start.
+sub retrieve_channels {
+    @hack_channels = ();
+    Irssi::signal_add_first('print text', 'haxy_print_hook');
+    Irssi::command("CHANNEL LIST");
+    Irssi::signal_remove('print text', 'haxy_print_hook');
+    return join(" ", @hack_channels);
+}
+
+
+# The idea for how to do this courtesy of http://wouter.coekaerts.be/site/irssi/aliases
+sub haxy_print_hook {
+    Irssi::signal_remove('print text', 'haxy_print_hook');
+    Irssi::signal_stop();
+    my $data = $_[1];
+    # Hose control characters
+    $data =~ s/\x04.//g;
+    if ($data =~ m/^#/) {
+        my @items = split /\s+/, $data;
+        push(@hack_channels, $items[0]);
+        push(@hack_channels, $items[1]);
+    }
+    Irssi::signal_add_first('print text', 'haxy_print_hook');
+}
+
 sub parse_channel_map {
-    my $data = Irssi::settings_get_str('joinplus_server_maps');
+    #my $data = Irssi::settings_get_str('joinplus_server_maps');
+    my $data = retrieve_channels();
     my @items = split /\s+/, $data;
     if (@items % 2 == 0) {
         $channel_map = { @items }; # risky?
