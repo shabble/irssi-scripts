@@ -1,0 +1,8 @@
+*.o
+*.so
+*.html
+*.css
+core
+old/
+docs/
+TAGS
