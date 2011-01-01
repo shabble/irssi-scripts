@@ -98,3 +98,22 @@ sub decode_keypress {
         return 'unknown ' . $code;
     }
 }
+
+
+# # TODO: needs some fixing up?
+# sub _key {
+#     my ($key_str, $flags) = @_;
+#     my $key_num;
+
+#     if ($key_str eq 'DEL' or $key_str eq 'BS') {
+#         $key_num = 127;
+#     } else {
+#         die "Key must be single char" unless length($key_str) == 1;
+#         $key_num = ord($key_str);
+#         if ($flags & CTRL_KEY) {
+#             $key_num = 0 if ($key_num == 32);
+            
+#         }
+#     }
+#     return $key_num;
+# }
