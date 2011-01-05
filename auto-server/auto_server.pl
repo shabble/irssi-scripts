@@ -55,7 +55,7 @@ our %IRSSI = (
               license     => 'Public Domain',
              );
 
-my $channel_map;
+my $channel_map = {};
 my @hack_channels;
 my $pending_joins;
 
@@ -104,6 +104,7 @@ sub haxy_print_hook {
 
 sub parse_channel_map {
     #my $data = Irssi::settings_get_str('joinplus_server_maps');
+    unbind_completion();
     my $data = retrieve_channels();
     my @items = split /\s+/, $data;
     if (@items % 2 == 0) {
@@ -113,6 +114,19 @@ sub parse_channel_map {
         $channel_map = {};
     }
     _debug_print Dumper($channel_map);
+    bind_completion();
+}
+
+sub bind_completion {
+    foreach(%$channel_map) {
+        Irssi::command_bind("join+ $_", \&join_plus);
+    }
+}
+
+sub unbind_completion {
+    foreach(%$channel_map) {
+        Irssi::command_unbind("join+ $_", \&join_plus);
+    }
 }
 
 sub join_plus {
