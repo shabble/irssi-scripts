@@ -198,6 +198,8 @@ sub join_plus {
         _debug_print ("awaiting connection for join");
 
         $pending_joins->{$server_id} = $channel;
+        # This comes tumbling down if the server doesn't have a MOTD.
+        # is that RFC required?
         Irssi::signal_add_last("event 376", 'do_channel_join');
     }
 }
