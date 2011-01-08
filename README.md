@@ -11,7 +11,7 @@ it has been moved to
 
 ## Other Things
 
-Many of my scripts require [uberprompt](prompt_info/uberprompt.pl) as a
+Many of my scripts require [uberprompt](irssi-scripts/prompt_info/uberprompt.pl) as a
 dependency.  Those that do will say so in the comments at the top of the file,
 and will probably refuse to load without it.
 
