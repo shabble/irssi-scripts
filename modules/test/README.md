@@ -12,9 +12,18 @@ Note that modules are significantly more effort (and less portable, without
 a huge amount of effort), so Perl scripts are to be preferred in call cases
 where possible.
 
+## Usage
+
+* Edit the Makefile as per the comments at the top.
+* `make && make install`
+* Start up a spare Irssi client (no point segfaulting your main one)
+* `/load test`
+* Party in the streets.
+
 ## Contributing
 
-Contributions to this project are welcome
+Contributions to this project are welcome (i.e.: to demonstrate more useful
+things that a module can do)
 
  * Patches can be submitted via e-mail, or preferably via forking
    and sending a pull-request using GitHub.  The repository for this
@@ -31,11 +40,11 @@ Contributions to this project are welcome
 
 ## Authors
 
- * Alexander Færøy &lt;ahf@irssi.org&gt;
+ * Alexander Færøy <ahf@irssi.org>
      Original Author of irssi-lua, who did all the hard work figuring
      out the module interface stuff.  Also an Irssi project committer, I
      believe, so that probably counts as cheating.
 
- * Tom Feist `&lt;shabble+irssi@metavore.org&gt;`
-
+ * Tom Feist `[shabble+irssi@metavore.org](mailto://shabble+irssi@metavore.org)`
+     Chief plunderer of the modular goodness.
  

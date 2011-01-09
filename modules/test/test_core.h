@@ -21,8 +21,6 @@
 #ifndef GUARD_TEST_CORE_H
 #define GUARD_TEST_CORE_H 1
 
-#define MODULE_NAME "test"
-
 void test_init();
 void test_deinit();
 
