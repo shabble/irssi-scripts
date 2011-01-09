@@ -163,6 +163,18 @@ sub prompt_subcmd_handler {
     Irssi::command_runsub('prompt', $data, $server, $item);
 }
 
+sub _error($) {
+    my ($msg) = @_;
+    Irssi::active_win->print($msg, Irssi::MSGLEVEL_CLIENTERROR);
+}
+
+sub _debug_print($) {
+    return unless DEBUG;
+    my ($msg) = @_;
+    Irssi::active_win->print($msg, Irssi::MSGLEVEL_CLIENTCRAP);
+}
+
+
 sub UNLOAD {
     deinit();
 }
@@ -176,6 +188,7 @@ sub deinit {
     print "Removing uberprompt and restoring original";
     restore_prompt_items();
 }
+
 sub init {
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
@@ -192,17 +205,14 @@ sub init {
     Irssi::command_bind("prompt",     \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on',  \&replace_prompt_items);
     Irssi::command_bind('prompt off', \&restore_prompt_items);
-    Irssi::command_bind('prompt set',
-                        sub {
-                            my $args = shift;
-                            $args =~ s/^\s*(\w+)\s*(.*$)/$2/;
-                            my $mode = 'UP_' . uc($1);
-                            Irssi::signal_emit 'change prompt', $args, $mode;
-                        });
+    Irssi::command_bind('prompt set', \&cmd_prompt_set);
     Irssi::command_bind('prompt clear',
                         sub {
                             Irssi::signal_emit 'change prompt', '$p', 'UP_POST';
                         });
+
+    my $prompt_set_args_format = "inner pre post only";
+    Irssi::command_set_options('prompt set', $prompt_set_args_format);
 
     Irssi::signal_add('setup changed', \&reload_settings);
 
@@ -237,6 +247,29 @@ sub init {
     Irssi::signal_register({'prompt length request' => []});
 
     Irssi::signal_add('prompt length request', \&length_request_handler);
+}
+
+sub cmd_prompt_set {
+    my $args = shift;
+    my @options_list = Irssi::command_parse_options "prompt set", $args;
+    if (@options_list) {
+        my ($options, $rest) = @options_list;
+        _debug_print("set options2: " . Dumper($options) . ":: $rest");
+
+        my @opt_modes = keys %$options;
+        if (@opt_modes != 1) {
+            _error '%_/prompt set%_ must specify exactly one mode of'
+              . ' {-inner, -only, -pre, -post}';
+            return;
+        }
+
+        #$opt_modes[0] =~ s/^-//;
+        my $mode = 'UP_' . uc($opt_modes[0]);
+
+        Irssi::signal_emit 'change prompt', $rest, $mode;
+    } else {
+        _error ('%_/prompt set%_ must specify a mode {-inner, -only, -pre, -post}');
+    }
 }
 
 sub refresh_if_me {
