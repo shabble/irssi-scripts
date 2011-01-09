@@ -14,13 +14,21 @@ our %IRSSI = (
               license     => 'Public Domain',
              );
 
+sub actually_printformat {
+    my ($win, $level, $module, $format, @args) = @_;
+    {
+        # deeeeeeep black magic.
+        local *CORE::GLOBAL::caller = sub { $module };
+        $win->printformat($level, $format, @args);
+    }
+
+}
+
 init();
 
 sub init {
-    Irssi::command_bind('ft', \&format_test);
-}
+    my $win = Irssi::active_win();
+    actually_printformat($win, Irssi::MSGLEVEL_CLIENTCRAP, 'fe-common/irc',
+                               "kill_server", "foo", "bar", "horse", "cake");
 
-
-sub format_test {
-    my ($args, $win, $server) = @_;
 }
