@@ -129,6 +129,7 @@ my $showing_help = 0;
 my $need_clear = 0;
 
 my $sort_ordering = "start-asc";
+my $sort_active_first = 0;
 
 # /set configurable settings
 my $ido_show_count;
@@ -275,9 +276,10 @@ sub load_uberprompt_failed {
 }
 
 sub ido_switch_init {
-    Irssi::settings_add_bool('ido_switch', 'ido_switch_debug', 0);
-    Irssi::settings_add_bool('ido_switch', 'ido_use_flex',     1);
-    Irssi::settings_add_int ('ido_switch', 'ido_show_count',   5);
+    Irssi::settings_add_bool('ido_switch', 'ido_switch_debug',      0);
+    Irssi::settings_add_bool('ido_switch', 'ido_use_flex',          1);
+    Irssi::settings_add_bool('ido_switch', 'ido_show_active_first', 1);
+    Irssi::settings_add_int ('ido_switch', 'ido_show_count',        5);
 
     Irssi::command_bind('ido_switch_start', \&ido_switch_start);
 
@@ -288,9 +290,10 @@ sub ido_switch_init {
 }
 
 sub setup_changed {
-    $DEBUG_ENABLED  = Irssi::settings_get_bool('ido_switch_debug');
-    $ido_show_count = Irssi::settings_get_int ('ido_show_count');
-    $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
+    $DEBUG_ENABLED     = Irssi::settings_get_bool('ido_switch_debug');
+    $ido_show_count    = Irssi::settings_get_int ('ido_show_count');
+    $ido_use_flex      = Irssi::settings_get_bool('ido_use_flex');
+    $sort_active_first = Irssi::settings_get_bool('ido_show_active_first');
 }
 
 
@@ -384,9 +387,15 @@ sub get_all_windows {
         my $list_ref = shift;
         my @ret = @$list_ref;
 
-        @ret = sort { $a->{num} <=> $b->{num} } @ret;
+        @ret = sort { $a->{num} <=> $b->{num}  } @ret;
+        if ($sort_active_first) {
+            my @active   = grep {     $_->{active} } @ret;
+            my @inactive = grep { not $_->{active} } @ret;
 
-        return @ret;
+            return (@active, @inactive);
+        } else {
+            return @ret;
+        }
     }
 
     sub ido_switch_select {
