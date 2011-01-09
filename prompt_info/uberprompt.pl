@@ -159,7 +159,7 @@ sub pre_init {
 
 sub prompt_subcmd_handler {
     my ($data, $server, $item) = @_;
-    $data =~ s/\s+$//g;         # strip trailing whitespace.
+    #$data =~ s/\s+$//g;         # strip trailing whitespace.
     Irssi::command_runsub('prompt', $data, $server, $item);
 }
 
@@ -254,7 +254,6 @@ sub cmd_prompt_set {
     my @options_list = Irssi::command_parse_options "prompt set", $args;
     if (@options_list) {
         my ($options, $rest) = @options_list;
-        _debug_print("set options2: " . Dumper($options) . ":: $rest");
 
         my @opt_modes = keys %$options;
         if (@opt_modes != 1) {
@@ -263,7 +262,6 @@ sub cmd_prompt_set {
             return;
         }
 
-        #$opt_modes[0] =~ s/^-//;
         my $mode = 'UP_' . uc($opt_modes[0]);
 
         Irssi::signal_emit 'change prompt', $rest, $mode;
@@ -287,9 +285,9 @@ sub refresh_if_me {
 
     return unless $my_chan and $my_nick;
 
-    print "Chan: $channel->{name}, "
+    _debug_print "Chan: $channel->{name}, "
      . "nick: $nick->{nick}, "
-     . "me: $my_nick, chan: $my_chan" if DEBUG;
+     . "me: $my_nick, chan: $my_chan";
 
     if ($my_chan eq $channel->{name} and $my_nick eq $nick->{nick}) {
         uberprompt_refresh();
@@ -318,7 +316,7 @@ sub reload_settings {
     my $new = Irssi::settings_get_str('uberprompt_format');
 
     if ($prompt_format ne $new) {
-        print "Updated prompt format" if DEBUG;
+        _debug_print("Updated prompt format");
         $prompt_format = $new;
         $prompt_format =~ s/\$uber/\$\$uber/;
         Irssi::abstracts_register(['uberprompt', $prompt_format]);
@@ -329,7 +327,7 @@ sub reload_settings {
         # an update timer or something, rather than just refreshing on
         # every possible activity in init()
         while ($prompt_format =~ m/(?<!\$)(\$[A-Za-z,.:;][a-z_]*)/g) {
-            print "Detected Irssi expando variable $1" if DEBUG;
+            _debug_print("Detected Irssi expando variable $1");
             my $var_name = substr $1, 1; # strip the $
             $expando_vars->{$var_name} = Irssi::parse_special($1);
         }
@@ -341,7 +339,7 @@ sub debug_prompt_changed {
 
     $text =~ s/%/%%/g;
 
-    print "DEBUG: Got $text, length: $len";
+    print "DEBUG_HANDLER: Prompt Changed to: \"$text\", length: $len";
 }
 
 sub change_prompt_handler {
@@ -350,7 +348,7 @@ sub change_prompt_handler {
     # fix for people who used prompt_info and hence the signal won't
     # pass the second argument.
     $pos = 'UP_INNER' unless defined $pos;
-    print "Got prompt change signal with: $text, $pos" if DEBUG;
+    _debug_print("Got prompt change signal with: $text, $pos");
 
     my ($changed_text, $changed_pos);
     $changed_text = defined $prompt_data     ? $prompt_data     ne $text : 1;
@@ -360,7 +358,7 @@ sub change_prompt_handler {
     $prompt_data_pos = $pos;
 
     if ($changed_text || $changed_pos) {
-        print "Redrawing prompt" if DEBUG;
+        _debug_print("Redrawing prompt");
         uberprompt_refresh();
     }
 }
@@ -425,12 +423,12 @@ sub uberprompt_render_prompt {
         }
     }
 
-    #print "Redrawing with: $prompt, size-only: $get_size_only" if DEBUG;
+    #_debug_print("Redrawing with: $prompt, size-only: $get_size_only");
 
 
     if (($prompt ne $prompt_last) or $emit_request) {
 
-        # print "Emitting prompt changed signal" if DEBUG;
+        # _debug_print("Emitting prompt changed signal");
         # my $exp = Irssi::current_theme()->format_expand($text, 0);
         my $ps = Irssi::parse_special($prompt);
 
@@ -456,7 +454,7 @@ sub uberprompt_refresh {
 
 sub replace_prompt_items {
     # remove existing ones.
-    print "Removing original prompt" if DEBUG;
+    _debug_print("Removing original prompt");
 
     _sbar_command('prompt', 'remove', 'prompt');
     _sbar_command('prompt', 'remove', 'prompt_empty');
@@ -473,7 +471,7 @@ sub restore_prompt_items {
 
     _sbar_command('prompt', 'remove', 'uberprompt');
 
-    print "Restoring original prompt" if DEBUG;
+    _debug_print("Restoring original prompt");
 
     _sbar_command('prompt', 'reset');
 }
@@ -488,7 +486,7 @@ sub _sbar_command {
     my $command = sprintf 'STATUSBAR %s %s %s%s',
      $bar, $cmd, $args_str, defined $item ? $item : '';
 
-    print "Running command: $command" if DEBUG;
+    _debug_print("Running command: $command");
     Irssi::command($command);
 }
 
