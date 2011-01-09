@@ -23,11 +23,15 @@
 #
 # /prompt set   - sets the prompt to the given argument. $p in the argument will
 #                 be replaced by the original prompt content.
+#                 A parameter corresponding to the UP_* constants listed below
+#                 is required, in the format `/prompt set -inner Hello!'
 # /prompt clear - clears the additional data provided to the prompt.
 # /prompt on    - enables the uberprompt (things may get confused if this is used
 #                 whilst the prompt is already enabled)
 # /prompt off   - restore the original irssi prompt and prompt_empty statusbars.
 #                 unloading the script has the same effect.
+#
+# /help prompt  - show help for uberprompt commands
 #
 # Additionally, the format for the prompt can be set via:
 #
@@ -174,6 +178,47 @@ sub _debug_print($) {
     Irssi::active_win->print($msg, Irssi::MSGLEVEL_CLIENTCRAP);
 }
 
+sub _print_help {
+    my ($args) = @_;
+    if ($args =~ m/^\s*prompt/i) {
+        my @help_lines =
+          (
+           "",
+           "PROMPT ON",
+           "PROMPT OFF",
+           "PROMPT CLEAR",
+           "PROMPT SET { -pre | -post | -only | -inner } <content>",
+           "",
+           "Commands for manipulating the UberPrompt.",
+           "",
+           "/PROMPT ON    enables uberprompt, replacing the existing prompt ",
+           "              statusbar-item",
+           "/PROMPT OFF   disables it, and restores the original prompt item",
+           "/PROMPT CLEAR resets the value of any additional data set by /PROMPT SET",
+           "              or a script",
+           "/PROMPT SET   changes the contents of the prompt, according to the mode",
+           "              and content provided.",
+           "      -inner sets the value of the \$uber psuedo-variable in the",
+           "             /set uberprompt_format setting.",
+           "      -pre places the content before the current prompt string",
+           "      -post places the content after the prompt string",
+           "      -only replaces the entire prompt contents with the given string",
+           "",
+           "See Also:",
+           '',
+           '/SET uberprompt_format    -- defaults to [$*$uber]',
+           "/SET uberprompt_autostart -- determines whether /PROMPT ON is run",
+           "                             automatically when the script loads",
+           "/set uberprompt_use_replaces -- toggles the use of the current theme",
+           "                                \"replaces\" setting. Especially",
+           "                                noticeable on brackets \"[ ]\" ",
+           "",
+          );
+
+        Irssi::print($_, Irssi::MSGLEVEL_CLIENTCRAP) for @help_lines;
+        Irssi::signal_stop;
+    }
+}
 
 sub UNLOAD {
     deinit();
@@ -213,6 +258,8 @@ sub init {
 
     my $prompt_set_args_format = "inner pre post only";
     Irssi::command_set_options('prompt set', $prompt_set_args_format);
+
+    Irssi::command_bind('help', \&_print_help);
 
     Irssi::signal_add('setup changed', \&reload_settings);
 
