@@ -45,6 +45,6 @@ things that a module can do)
      out the module interface stuff.  Also an Irssi project committer, I
      believe, so that probably counts as cheating.
 
- * Tom Feist `[shabble+irssi@metavore.org](mailto://shabble+irssi@metavore.org)`
+ * Tom Feist [shabble+irssi@metavore.org](mailto://shabble+irssi@metavore.org)
      Chief plunderer of the modular goodness.
  
