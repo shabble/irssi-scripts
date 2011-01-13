@@ -45,7 +45,7 @@ sub sig_473 {
         my $nick = quotemeta(Irssi::parse_special('$N'));
         if ($args =~ m/^$nick\s+(#.*?)\s+/) {
             if (exists $forwards->{$1}) {
-                $server->command("window goto " . $forwards->{$1});
+                $server->command("join " . $forwards->{$1});
             }
         }
 
