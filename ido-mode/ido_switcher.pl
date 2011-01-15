@@ -373,7 +373,12 @@ sub get_all_windows {
                 push @ret, { _build_win_obj($win, $item) };
             }
         } else {
-            _debug_print "Error occurred reading info from window: $win";
+            if (not grep { $_->{num} == $win->{refnum} } @ret) {
+                my $item = { _build_win_obj($win, undef) };
+                $item->{name} = "Unknown";
+                push @ret, $item;
+            }
+            #_debug_print "Error occurred reading info from window: $win";
             #_debug_print Dumper($win);
         }
     }
@@ -726,6 +731,16 @@ sub get_all_windows {
             ido_switch_exit();
             Irssi::signal_stop();
             return;
+        }
+        if ($key == 11) { # Ctrl-K
+            my $sel = get_window_match();
+            _debug_print("deleting entry: " . $sel->{num});
+            Irssi::command("window close " . $sel->{num});
+            _update_cache();
+            update_matches();
+            update_window_select_prompt();
+            Irssi::signal_stop();
+
         }
 
         if ($key == 18) {       # Ctrl-R
