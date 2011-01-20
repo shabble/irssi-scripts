@@ -312,6 +312,7 @@ my $commands
      # arrow like movement
       h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
       l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     "\x08" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
@@ -2347,9 +2348,9 @@ sub got_key {
             _stop();
             return;
 
-        # Pressing delete resets insert mode repetition.
+        # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
         # TODO: maybe allow it
-        } elsif ($key == 127) {
+        } elsif ($key == 8 || $key == 127) {
             @insert_buf = ();
         # All other entered characters need to be stored to allow repeat of
         # insert mode. Ignore delete and control characters.
@@ -2743,8 +2744,8 @@ sub handle_command_cmd {
 sub handle_command_ex {
     my ($key) = @_;
 
-    # DEL key - remove last character
-    if ($key == 127) {
+    # BS key (8) or DEL key (127) - remove last character.
+    if ($key == 8 || $key == 127) {
         print "Delete" if DEBUG;
         if (scalar @ex_buf > 0) {
             pop @ex_buf;
