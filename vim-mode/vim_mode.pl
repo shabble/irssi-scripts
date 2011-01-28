@@ -503,7 +503,15 @@ my $maps = {};
 # Add all default mappings.
 foreach my $char (keys %$commands) {
     next if $char =~ /^_/; # skip private commands (text-objects for now)
-    add_map($char, $commands->{$char});
+    add_map($maps, $char, $commands->{$char});
+}
+
+# default extended mode mappings
+my $ex_maps = {};
+
+# Add all default mappings.
+foreach my $char (keys %$commands_ex) {
+    add_map($ex_maps, $char, $commands_ex->{$char});
 }
 
 # GLOBAL VARIABLES
@@ -1634,10 +1642,14 @@ sub cmd_ex_command {
         return _warn("Invalid Ex-mode command!");
     }
 
-    # Abort if command doesn't exist or used with count for unsupported
-    # commands.
-    if (not exists $commands_ex->{$2} or
-        ($1 ne '' and not $commands_ex->{$2}->{uses_count})) {
+    # Abort if command doesn't exist
+    if (not exists $ex_maps->{$2}) {
+        return _warn("Ex-mode $1$2 doesn't exist!");
+    }
+
+    my $cmd = $ex_maps->{$2}->{cmd};
+    # Abort if used with count for unsupported commands.
+    if ($1 ne '' and not $cmd->{uses_count}) {
         return _warn("Ex-mode $1$2 doesn't exist!");
     }
 
@@ -1645,7 +1657,8 @@ sub cmd_ex_command {
     if ($count eq '') {
         $count = undef;
     }
-    $commands_ex->{$2}->{func}($arg_str, $count);
+
+    $cmd->{func}($arg_str, $count);
 }
 
 sub ex_substitute {
@@ -1976,7 +1989,7 @@ sub ex_map {
                 $command = $commands->{$rhs};
             }
         }
-        add_map($lhs, $command);
+        add_map($maps, $lhs, $command);
 
     # :map [lhs]
     } elsif ($arg_str =~ m/^map\s*$/ or $arg_str =~ m/^map (\S+)$/) {
@@ -2017,7 +2030,7 @@ sub ex_unmap {
         return _warn_ex('unmap', "$1 not found");
     }
 
-    delete_map($lhs);
+    delete_map($maps, $lhs);
 }
 sub _parse_mapping {
     my ($string) = @_;
@@ -2935,7 +2948,7 @@ sub _reset_undo_buffer {
 }
 
 sub add_map {
-    my ($keys, $command) = @_;
+    my ($maps, $keys, $command) = @_;
 
     # To allow multiple mappings starting with the same key (like gg, ge, gE)
     # also create maps for the keys "leading" to this key (g in this case, but
@@ -2966,7 +2979,7 @@ sub add_map {
 }
 
 sub delete_map {
-    my ($keys) = @_;
+    my ($maps, $keys) = @_;
 
     # Abort for non-existent mappings or placeholder mappings.
     return if not exists $maps->{$keys} or not defined $maps->{$keys}->{cmd};
@@ -3000,7 +3013,7 @@ sub delete_map {
     # key.
     foreach my $key (@add) {
         if (exists $commands->{$key}) {
-            add_map($key, $commands->{$key});
+            add_map($maps, $key, $commands->{$key});
         }
     }
 }
