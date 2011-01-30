@@ -76,6 +76,8 @@
 # * Mappings:          :map             - display custom mappings
 #                      :map {lhs}       - display mappings starting with {lhs}
 #                      :map {lhs} {rhs} - add mapping
+#                      :cmap            - same as :map but for ex-mode, e.g.
+#                                         use :cmap LS :ls and not :cmap LS ls!
 #                      :unm[ap] {lhs}   - remove custom mapping
 # * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
@@ -463,6 +465,8 @@ my $commands_ex
      unmap     => { char => ':unmap',     func => \&ex_unmap,
                     type => C_EX },
      unm       => { char => ':unm',       func => \&ex_unmap,
+                    type => C_EX },
+     cmap      => { char => ':cmap',      func => \&ex_cmap,
                     type => C_EX },
      source    => { char => ':source',    func => \&ex_source,
                     type => C_EX },
@@ -1658,7 +1662,25 @@ sub cmd_ex_command {
         $count = undef;
     }
 
-    $cmd->{func}($arg_str, $count);
+    # Ex-mode commands are either bound to ex commands or...
+    if ($cmd->{type} == C_EX) {
+        print "Processing ex-command: $2 ($cmd->{char})" if DEBUG;
+
+        $cmd->{func}($arg_str, $count);
+    # ...irssi commands.
+    } elsif ($cmd->{type} == C_IRSSI) {
+        print "Processing irssi-command: $2 ($cmd->{char})" if DEBUG;
+
+        # TODO: fix me more better (general server/win/none context?)
+        my $server = Irssi::active_server;
+        if (defined $server) {
+            $server->command($cmd->{func});
+        } else {
+            Irssi::command($cmd->{func});
+        }
+    } else {
+        return _warn("Ex-mode command of unknown type $cmd->{type} bound to :$2!");
+    }
 }
 
 sub ex_substitute {
@@ -1941,16 +1963,16 @@ sub ex_undolist {
     _print_undo_buffer();
 }
 
-sub ex_map {
-    my ($arg_str, $count) = @_;
+sub _ex_map {
+    my ($cmd_name, $maps, $arg_str, $count) = @_;
 
     # :map {lhs} {rhs}
-    if ($arg_str =~ /^map (\S+) (\S.*)$/) {
+    if ($arg_str =~ /^$cmd_name (\S+) (\S.*)$/) {
         my $lhs = _parse_mapping($1);
         my $rhs = $2;
 
         if (not defined $lhs) {
-            return _warn_ex('map', 'invalid {lhs}');
+            return _warn_ex($cmd_name, 'invalid {lhs}');
         }
 
         # Add new mapping.
@@ -1959,7 +1981,7 @@ sub ex_map {
         if (index($rhs, ':') == 0) {
             $rhs =~ /^:(\S+)(\s.+)?$/;
             if (not exists $commands_ex->{$1}) {
-                return _warn_ex('map', "$rhs not found");
+                return _warn_ex($cmd_name, "$rhs not found");
             } else {
                 $command = { char => $rhs,
                              func => $commands_ex->{$1}->{func},
@@ -1982,9 +2004,9 @@ sub ex_map {
         } else {
             $rhs = _parse_mapping($2);
             if (not defined $rhs) {
-                return _warn_ex('map', 'invalid {rhs}');
+                return _warn_ex($cmd_name, 'invalid {rhs}');
             } elsif (not exists $commands->{$rhs}) {
-                return _warn_ex('map', "$2 not found");
+                return _warn_ex($cmd_name, "$2 not found");
             } else {
                 $command = $commands->{$rhs};
             }
@@ -1992,7 +2014,7 @@ sub ex_map {
         add_map($maps, $lhs, $command);
 
     # :map [lhs]
-    } elsif ($arg_str =~ m/^map\s*$/ or $arg_str =~ m/^map (\S+)$/) {
+    } elsif ($arg_str =~ m/^$cmd_name\s*$/ or $arg_str =~ m/^$cmd_name (\S+)$/) {
         # Necessary for case insensitive matchings. lc alone won't work.
         my $search = $1;
         $search = '' if not defined $search;
@@ -2010,8 +2032,12 @@ sub ex_map {
             }
         }
     } else {
-        _warn_ex('map');
+        _warn_ex($cmd_name);
     }
+}
+sub ex_map {
+    my ($arg_str, $count) = @_;
+    return _ex_map('map', $maps, $arg_str, $count);
 }
 sub ex_unmap {
     my ($arg_str, $count) = @_;
@@ -2031,6 +2057,10 @@ sub ex_unmap {
     }
 
     delete_map($maps, $lhs);
+}
+sub ex_cmap {
+    my ($arg_str, $count) = @_;
+    return _ex_map('cmap', $ex_maps, $arg_str, $count);
 }
 sub _parse_mapping {
     my ($string) = @_;
