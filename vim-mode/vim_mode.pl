@@ -2160,6 +2160,9 @@ sub ex_source {
         # :map {lhs} {rhs}, keep in sync with ex_map()
         if ($line =~ /^\s*map (\S+) (\S.*)$/) {
             ex_map($line);
+        # :cmap {lhs} {rhs}, keep in sync with ex_cmap()
+        } elsif ($line =~ /^\s*cmap (\S+) (\S.*)$/) {
+            ex_cmap($line);
         } else {
             _warn_ex('source', "command not supported: $line");
         }
@@ -2178,13 +2181,24 @@ sub ex_mkvimrc {
 
     open my $file, '>', $vim_moderc or return;
 
-    # copied from ex_map()
+    # copied from _ex_map()
     foreach my $key (sort keys %$maps) {
         my $map = $maps->{$key};
         my $cmd = $map->{cmd};
         if (defined $cmd) {
             next if $map->{char} eq $cmd->{char}; # skip default mappings
             print $file "map $map->{char} $cmd->{char}\n";
+        }
+    }
+
+    # copied from _ex_map()
+    foreach my $key (sort keys %$ex_maps) {
+        my $map = $ex_maps->{$key};
+        my $cmd = $map->{cmd};
+        if (defined $cmd) {
+            # Remember $cmd->{char} starts with a colon (:)!
+            next if ":$map->{char}" eq $cmd->{char}; # skip default mappings
+            print $file "cmap $map->{char} $cmd->{char}\n";
         }
     }
 
