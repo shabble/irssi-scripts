@@ -79,6 +79,7 @@
 #                      :cmap            - same as :map but for ex-mode, e.g.
 #                                         use :cmap LS :ls and not :cmap LS ls!
 #                      :unm[ap] {lhs}   - remove custom mapping
+#                      :cunm[ap] {lhs}  - remove custom mapping in ex-mode
 # * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
 # * Substitute:        :s/// - i and g are supported as flags, only /// can be
 #                              used as separator, uses Perl regex instead of
@@ -467,6 +468,10 @@ my $commands_ex
      unm       => { char => ':unm',       func => \&ex_unmap,
                     type => C_EX },
      cmap      => { char => ':cmap',      func => \&ex_cmap,
+                    type => C_EX },
+     cunmap    => { char => ':cunmap',    func => \&ex_cunmap,
+                    type => C_EX },
+     cunm      => { char => ':cunm',      func => \&ex_cunmap,
                     type => C_EX },
      source    => { char => ':source',    func => \&ex_source,
                     type => C_EX },
@@ -1679,7 +1684,7 @@ sub cmd_ex_command {
             Irssi::command($cmd->{func});
         }
     } else {
-        return _warn("Ex-mode command of unknown type $cmd->{type} bound to :$2!");
+        return _warn("Ex-mode command of unsupported type $cmd->{type} bound to :$2!");
     }
 }
 
@@ -2061,6 +2066,25 @@ sub ex_unmap {
 sub ex_cmap {
     my ($arg_str, $count) = @_;
     return _ex_map('cmap', $ex_maps, $arg_str, $count);
+}
+sub ex_cunmap {
+    my ($arg_str, $count) = @_;
+
+    # :cunm[ap] {lhs}
+    if ($arg_str !~ /^cunm(?:ap)? (\S+)$/) {
+        return _warn_ex('cunmap');
+    }
+
+    my $lhs = _parse_mapping($1);
+    if (not defined $lhs) {
+        return _warn_ex('cunmap', 'invalid {lhs}');
+    # Prevent unmapping of unknown or default mappings.
+    } elsif (not exists $ex_maps->{$lhs} or not defined $ex_maps->{$lhs}->{cmd} or
+             ($commands_ex->{$lhs} and $ex_maps->{$lhs}->{cmd} == $commands_ex->{$lhs})) {
+        return _warn_ex('cunmap', "$1 not found");
+    }
+
+    delete_map($ex_maps, $lhs);
 }
 sub _parse_mapping {
     my ($string) = @_;
