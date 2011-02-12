@@ -1991,6 +1991,8 @@ sub ex_map {
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
+                # FIXME: Hack so <C-H> doesn't show up as mapped to <BS>.
+                next if $map->{char} eq '<C-H>' and $cmd->{char} eq '<BS>';
                 next if $map->{char} !~ /^\Q$search\E/; # skip non-matches
                 $active_window->print(sprintf "%-15s %s", $map->{char},
                                                           $cmd->{char});
