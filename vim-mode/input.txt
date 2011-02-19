@@ -1,4 +1,21 @@
 How the input system for vim_mode should work.
 =============================================
 
-
+- insert mode mappings
+- normal mode mappings
+- timeout for ambiguous mappings
+  - but support for no timeout for some mappings (like Ctrl-R in insert mode)
+- maybe 'timeout' and 'ttimeout' settings (and 'timeoutlen' and 'ttimeoutlen')
+- partial commands/mappings (like :map a :b a which inserts ex mode and
+  displays :b a there without running any command)
+- support for mappings entering insert mode: :map gX itexthere<esc> (also
+  without esc!)
+- . for all (most) commands
+- more general command order: 3"ap doesn't work but "a3p does
+- arbitrary mappings, like 3dwjjihi<esc>10G (at the moment even :map Y y$
+  doesn't work)
+- support to disable mappings temporarily (:set paste, 'pastetoggle')
+- (better) support multiple bindings for the same action (especially <BS> and
+  <C-H>)
+- unmapping of internal mappings (for example <C-C> to <Nop> as it's also used
+  for colors in irssi)
