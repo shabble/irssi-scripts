@@ -618,7 +618,7 @@ sub script_is_loaded {
     my $name = shift;
     print "Checking if $name is loaded" if DEBUG;
     no strict 'refs';
-    my $retval = defined %{ "Irssi::Script::${name}::" };
+    my $retval =  %{ "Irssi::Script::${name}::" };
     use strict 'refs';
 
     return $retval;
