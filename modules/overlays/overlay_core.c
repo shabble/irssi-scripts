@@ -23,12 +23,24 @@
 #include <overlay_core.h>
 #include <overlay_irssi.h>
 #include <overlay_impl.h>
+#include <terminfo-core.h>
+
+static void cmd_overlay(const char *data, SERVER_REC *server) {
+
+    terminfo_move(current_term->width, current_term->height);
+    //terminfo_clear();
+    print_random_message("What is going on here?");
+}
 
 void overlay_init() {
     module_register(MODULE_NAME, "core");
     print_load_message();
+
+    command_bind("overlay", NULL, (SIGNAL_FUNC) cmd_overlay);
 }
 
+
 void overlay_deinit() {
+    command_unbind("overlay", (SIGNAL_FUNC) cmd_overlay);
     print_unload_message();
 }

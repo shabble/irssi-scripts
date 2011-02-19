@@ -5,14 +5,19 @@
 void print_load_message(void) {
 
     printtext(NULL, NULL, MSGLEVEL_CLIENTERROR,
-              "Hello, World. xxx \"%s\"", MODULE_NAME);
+              "Hello, World, ~~ \"%s\"", MODULE_NAME);
 
+}
+
+void print_random_message(char *str) {
+    printtext(NULL, NULL, MSGLEVEL_CLIENTCRAP,
+              "%s", str);
 }
 
 void print_unload_message(void) {
 
     printtext(NULL, NULL, MSGLEVEL_CLIENTERROR,
-              "Goodbye, Cruel World. ~signed \"%s\"", MODULE_NAME);
+              "Goodbye, Cruel World. ~~ \"%s\"", MODULE_NAME);
 
 }
 

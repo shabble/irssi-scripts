@@ -24,6 +24,7 @@
 #define UOFF_T_LONG_LONG 1
 
 /* #include "config.h" */
+
 #include "core.h"
 #include "common.h"
 #include "modules.h"

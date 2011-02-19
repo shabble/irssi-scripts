@@ -22,15 +22,17 @@ LDFLAGS = -avoid-version -module -bundle -flat_namespace -undefined suppress
 OBJECTS = overlay_core.o \
           overlay_impl.o
 
-IRSSI_INCLUDE = -I$(IRSSI_DIST) \
-				-I$(IRSSI_DIST)/src \
-				-I$(IRSSI_DIST)/src/fe-common/core \
-				-I$(IRSSI_DIST)/src/core \
-				-I$(IRSSI_DIST)/src/fe-text \
-				-I$(IRSSI_DIST)/src/irc \
-				-I$(IRSSI_DIST)/src/irc/core \
-				-I$(IRSSI_DIST)/src/irc/dcc \
-				-I$(IRSSI_DIST)/src/irc/notifylist
+IRSSI_INC = $(HOME)/sources/irssi-git
+
+IRSSI_INCLUDE  = -I$(IRSSI_INC) \
+			 	 -I$(IRSSI_INC)/src \
+				 -I$(IRSSI_INC)/src/fe-common/core \
+				 -I$(IRSSI_INC)/src/core \
+				 -I$(IRSSI_INC)/src/fe-text \
+				 -I$(IRSSI_INC)/src/irc \
+				 -I$(IRSSI_INC)/src/irc/core \
+				 -I$(IRSSI_INC)/src/irc/dcc \
+				 -I$(IRSSI_INC)/src/irc/notifylist
 
 
 GLIB_CFLAGS = $(shell pkg-config glib-2.0 --cflags)
