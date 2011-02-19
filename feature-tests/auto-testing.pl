@@ -9,24 +9,62 @@ use POSIX;
 use POE qw( Wheel::ReadWrite Wheel::Run Filter::Stream );
 use Term::VT102;
 use Term::TermInfo;
+use feature qw/say switch/;
+use Data::Dumper;
+
+use Term::Size;
+
+my ($columns, $rows) = Term::Size::chars *STDOUT{IO};
+
+my $logfile = "irssi.log";
+open my $logfh, ">", $logfile or die "Couldn't open $logfile for writing: $!";
+
 
 my $ti = Term::Terminfo->new();
 
-my $vt = Term::VT102->new(rows => 24, cols => 80);
-$vt->callback_set('OUTPUT', \&vt_output, undef);
-$vt->callback_set('ROWCHANGE', \&vt_rowchange, undef);
+my $vt = Term::VT102->new(rows => $rows, cols => $columns);
 
-sub vt_rowchange {
-    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
-    #print STDERR "Row $arg1 changing: $arg2\n";
-    print $ti->getstr("clear");
-    print vt_dump();
+$vt->callback_set(OUTPUT    => \&vt_output,    undef);
+$vt->callback_set(ROWCHANGE => \&vt_rowchange, undef);
+$vt->callback_set(CLEAR     => \&vt_clear,     undef);
+$vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,  undef);
+$vt->callback_set(SCROLL_UP   => \&vt_scr_up,  undef);
+$vt->callback_set(GOTO        => \&vt_goto,    undef);
 
-}
+$vt->option_set(LINEWRAP => 1);
+$vt->option_set(LFTOCRLF => 1);
 
 sub vt_output {
     my ($vt, $cb_name, $cb_data, $priv_data) = @_;
-    #print "X:" . $cb_data;
+    say $logfh "OUTPUT: " . Dumper(\@_);
+}
+
+
+sub vt_rowchange {
+    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
+    #say $logfh "ROWCHANGE: " . Dumper(\@_);
+    say $logfh "Row $arg1 changed: ";
+    say $logfh $vt->row_plaintext($arg1);
+#    print $ti->getstr("clear");
+ #   print vt_dump();
+
+}
+
+sub vt_clear {
+    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
+    say $logfh "VT Cleared";
+}
+sub vt_scr_dn {
+    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
+    say $logfh "Scroll Down";
+}
+sub vt_scr_up {
+    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
+    say $logfh "Scroll Up";
+}
+sub vt_goto {
+    my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
+    say $logfh "Goto: $arg1, $arg2";
 }
 
 sub vt_dump {
@@ -75,12 +113,14 @@ sub handle_stop {
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
-### If the user presses ^C, then also go berserk a little.
+### If the user presses ^C, then echo a little string
 
 sub handle_terminal_stdin {
   my ($heap, $input) = @_[HEAP, ARG0];
-  while ($input =~ m/\003/g) {
+  if ($input =~ m/\003/g) {
       $input = "/echo I like cakes\n";
+  } elsif ($input =~ m/\004/g) {
+      say $logfh vt_dump();
   }
   $heap->{program}->put($input);
 }
@@ -91,7 +131,7 @@ sub handle_child_stdout {
   # process via vt
   $vt->process($input);
   # send to terminal
-#  $heap->{stdio}->put($input);
+  $heap->{stdio}->put($input);
 }
 
 ### Handle SIGCHLD.  Shut down if the exiting child process was the
