@@ -36,15 +36,25 @@ $vt->option_set(LFTOCRLF => 1);
 
 sub vt_output {
     my ($vt, $cb_name, $cb_data, $priv_data) = @_;
-    say $logfh "OUTPUT: " . Dumper(\@_);
+    say $logfh "OUTPUT: " . Dumper([@_[1..$#_]]);
 }
 
 
 sub vt_rowchange {
     my ($vt, $cb_name, $arg1, $arg2, $priv_data) = @_;
     #say $logfh "ROWCHANGE: " . Dumper(\@_);
-    say $logfh "Row $arg1 changed: ";
-    say $logfh $vt->row_plaintext($arg1);
+    #say $logfh "Row $arg1 changed: ";
+    #say $logfh $vt->row_plaintext($arg1);
+    my $bottom_line = $vt->rows();
+    say $logfh "-" x 100;
+    say $logfh "Window Line";
+    say $logfh  $vt->row_plaintext($bottom_line - 1);
+    say $logfh "-" x 100;
+    say $logfh "Prompt line";
+    say $logfh  $vt->row_plaintext($bottom_line);
+    say $logfh "-" x 100;
+
+    #
 #    print $ti->getstr("clear");
  #   print vt_dump();
 
@@ -97,6 +107,7 @@ sub handle_start {
   # Start the asynchronous child process.
   $heap->{program} = POE::Wheel::Run->new(
     Program     => PROGRAM,
+    ProgramArgs => qw/--noconnect/,
     Conduit     => "pty",
     StdoutEvent => "got_child_stdout",
     StdioFilter => POE::Filter::Stream->new(),
