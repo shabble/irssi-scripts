@@ -107,7 +107,7 @@ sub handle_start {
   # Start the asynchronous child process.
   $heap->{program} = POE::Wheel::Run->new(
     Program     => PROGRAM,
-    ProgramArgs => qw/--noconnect/,
+    ProgramArgs => [qw/--noconnect/],
     Conduit     => "pty",
     StdoutEvent => "got_child_stdout",
     StdioFilter => POE::Filter::Stream->new(),
