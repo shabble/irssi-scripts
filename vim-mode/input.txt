@@ -1,0 +1,4 @@
+How the input system for vim_mode should work.
+=============================================
+
+
