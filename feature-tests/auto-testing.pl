@@ -1,7 +1,11 @@
-#!/usr/bin/env perl
+
+package Test::Irssi;
 
 use warnings;
 use strict;
+
+# for fixed version of P:W:R
+use lib $ENV{HOME} . "/projects/poe/lib";
 
 sub PROGRAM () { "/opt/stow/repo/irssi-debug/bin/irssi" }
 use POSIX;
@@ -11,18 +15,18 @@ use Term::VT102;
 use Term::TermInfo;
 use feature qw/say switch/;
 use Data::Dumper;
-
-use Term::Size;
-
-my ($columns, $rows) = Term::Size::chars *STDOUT{IO};
+use IO::File;
 
 my $logfile = "irssi.log";
-open my $logfh, ">", $logfile or die "Couldn't open $logfile for writing: $!";
+#open my $logfh, ">", $logfile or die "Couldn't open $logfile for writing: $!";
+my $logfh = IO::File->new($logfile, 'w');
+ die "Couldn't open $logfile for writing: $!" unless defined $logfh;
+$logfh->autoflush(1);
 
 
 my $ti = Term::Terminfo->new();
 
-my $vt = Term::VT102->new(rows => $rows, cols => $columns);
+my $vt = Term::VT102->new(rows => 24, cols => 80);
 
 $vt->callback_set(OUTPUT    => \&vt_output,    undef);
 $vt->callback_set(ROWCHANGE => \&vt_rowchange, undef);
@@ -109,6 +113,7 @@ sub handle_start {
     Program     => PROGRAM,
     ProgramArgs => [qw/--noconnect/],
     Conduit     => "pty",
+    Winsize     => [24, 80, 0, 0],
     StdoutEvent => "got_child_stdout",
     StdioFilter => POE::Filter::Stream->new(),
   );
@@ -118,9 +123,11 @@ sub handle_start {
 ### settings when we're done.  That's very important.
 sub handle_stop {
   my $heap = $_[HEAP];
-  $heap->{stdin_tio}->setattr(0,  TCSANOW);
+  $heap->{stdin_tio}->setattr (0, TCSANOW);
   $heap->{stdout_tio}->setattr(1, TCSANOW);
   $heap->{stderr_tio}->setattr(2, TCSANOW);
+
+  $logfh->close();
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
@@ -135,7 +142,7 @@ sub handle_terminal_stdin {
   }
   $heap->{program}->put($input);
 }
-
+##
 ### Handle STDOUT from the child program.
 sub handle_child_stdout {
   my ($heap, $input) = @_[HEAP, ARG0];
