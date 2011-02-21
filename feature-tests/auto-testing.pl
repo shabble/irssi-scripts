@@ -8,9 +8,11 @@ use strict;
 use lib $ENV{HOME} . "/projects/poe/lib";
 
 sub PROGRAM () { "/opt/stow/repo/irssi-debug/bin/irssi" }
+
 use POSIX;
 
 use POE qw( Wheel::ReadWrite Wheel::Run Filter::Stream );
+
 use Term::VT102;
 use Term::TermInfo;
 use feature qw/say switch/;
@@ -28,12 +30,12 @@ my $ti = Term::Terminfo->new();
 
 my $vt = Term::VT102->new(rows => 24, cols => 80);
 
-$vt->callback_set(OUTPUT    => \&vt_output,    undef);
-$vt->callback_set(ROWCHANGE => \&vt_rowchange, undef);
-$vt->callback_set(CLEAR     => \&vt_clear,     undef);
-$vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,  undef);
-$vt->callback_set(SCROLL_UP   => \&vt_scr_up,  undef);
-$vt->callback_set(GOTO        => \&vt_goto,    undef);
+$vt->callback_set(OUTPUT      => \&vt_output,    undef);
+$vt->callback_set(ROWCHANGE   => \&vt_rowchange, undef);
+$vt->callback_set(CLEAR       => \&vt_clear,     undef);
+$vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,    undef);
+$vt->callback_set(SCROLL_UP   => \&vt_scr_up,    undef);
+$vt->callback_set(GOTO        => \&vt_goto,      undef);
 
 $vt->option_set(LINEWRAP => 1);
 $vt->option_set(LFTOCRLF => 1);
