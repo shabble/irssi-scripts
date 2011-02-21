@@ -1,2 +1,4 @@
 /test/irssi/*
 /nightfrog
+/modules/*/*.so
+/modules/*/*.o
