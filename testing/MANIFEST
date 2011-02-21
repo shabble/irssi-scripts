@@ -1,8 +1,12 @@
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
 README
 Changes
+
 t/001-use.t
 
-
 lib/Test/Irssi.pm
+lib/Test/Irssi/Callbacks.pm
+
+auto-testing.pl 
