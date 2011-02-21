@@ -11,11 +11,13 @@ BEGIN {
 }
 
 
-my $test = new_ok 'Test::Irssi';
-my @methods = qw/logfile terminal_height terminal_width irssi_homedir irssi_binary/;
-can_ok($trie, @methodss);
+my $test = new_ok 'Test::Irssi',
+  [irssi_binary => 'null', irssi_homedir => 'null'];
 
-undef $test
+my @methods = qw/logfile terminal_height terminal_width irssi_homedir irssi_binary/;
+can_ok($test, @methods);
+
+undef $test;
 
 done_testing;
 
