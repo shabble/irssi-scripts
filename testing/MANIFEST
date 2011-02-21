@@ -1,0 +1,8 @@
+Makefile.PL
+MANIFEST
+README
+Changes
+t/001-use.t
+
+
+lib/Test/Irssi.pm

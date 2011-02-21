@@ -1,5 +1,9 @@
 
-package Test::Irssi;
+
+#package Test::Irssi;
+
+# requires the latest pre-release POE from
+# https://github.com/rcaputo/poe until a new release is...released.
 
 use warnings;
 use strict;
@@ -8,6 +12,10 @@ use strict;
 use lib $ENV{HOME} . "/projects/poe/lib";
 
 sub PROGRAM () { "/opt/stow/repo/irssi-debug/bin/irssi" }
+sub IRSSI_HOME () { $ENV{HOME} . "/projects/tmp/test/irssi-debug" }
+
+sub ROWS () { 24 }
+sub COLS () { 80 }
 
 use POSIX;
 
@@ -20,25 +28,16 @@ use Data::Dumper;
 use IO::File;
 
 my $logfile = "irssi.log";
-#open my $logfh, ">", $logfile or die "Couldn't open $logfile for writing: $!";
 my $logfh = IO::File->new($logfile, 'w');
  die "Couldn't open $logfile for writing: $!" unless defined $logfh;
+
 $logfh->autoflush(1);
 
 
 my $ti = Term::Terminfo->new();
+my $vt = Term::VT102->new(rows => ROWS, cols => COLS);
 
-my $vt = Term::VT102->new(rows => 24, cols => 80);
-
-$vt->callback_set(OUTPUT      => \&vt_output,    undef);
-$vt->callback_set(ROWCHANGE   => \&vt_rowchange, undef);
-$vt->callback_set(CLEAR       => \&vt_clear,     undef);
-$vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,    undef);
-$vt->callback_set(SCROLL_UP   => \&vt_scr_up,    undef);
-$vt->callback_set(GOTO        => \&vt_goto,      undef);
-
-$vt->option_set(LINEWRAP => 1);
-$vt->option_set(LFTOCRLF => 1);
+vt_configure_callbacks($vt);
 
 sub vt_output {
     my ($vt, $cb_name, $cb_data, $priv_data) = @_;
@@ -60,10 +59,9 @@ sub vt_rowchange {
     say $logfh  $vt->row_plaintext($bottom_line);
     say $logfh "-" x 100;
 
-    #
-#    print $ti->getstr("clear");
- #   print vt_dump();
 
+    # print $ti->getstr("clear");
+    # print vt_dump();
 }
 
 sub vt_clear {
@@ -85,7 +83,7 @@ sub vt_goto {
 
 sub vt_dump {
     my $str = '';
-    for my $y (1..24) {
+    for my $y (1..ROWS) {
         $str .= $vt->row_sgrtext($y) . "\n";
     }
     return $str;
@@ -113,9 +111,9 @@ sub handle_start {
   # Start the asynchronous child process.
   $heap->{program} = POE::Wheel::Run->new(
     Program     => PROGRAM,
-    ProgramArgs => [qw/--noconnect/],
+    ProgramArgs => ['--noconnect', '--home=' . IRSSI_HOME ],
     Conduit     => "pty",
-    Winsize     => [24, 80, 0, 0],
+    Winsize     => [ROWS, COLS, 0, 0],
     StdoutEvent => "got_child_stdout",
     StdioFilter => POE::Filter::Stream->new(),
   );
@@ -207,6 +205,19 @@ sub save_term_settings {
     $heap->{stdout_tio}->getattr(1);
     $heap->{stderr_tio} = POSIX::Termios->new();
     $heap->{stderr_tio}->getattr(2);
+}
+
+sub vt_configure_callbacks {
+    my ($vt) = @_;
+    $vt->callback_set(OUTPUT      => \&vt_output,    undef);
+    $vt->callback_set(ROWCHANGE   => \&vt_rowchange, undef);
+    $vt->callback_set(CLEAR       => \&vt_clear,     undef);
+    $vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,    undef);
+    $vt->callback_set(SCROLL_UP   => \&vt_scr_up,    undef);
+    $vt->callback_set(GOTO        => \&vt_goto,      undef);
+    # options
+    $vt->option_set(LINEWRAP => 1);
+    $vt->option_set(LFTOCRLF => 1);
 }
 
 ### Start POE's main loop, which runs the session until it's done.
