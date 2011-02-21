@@ -11,9 +11,11 @@ class Test::Irssi {
     use Data::Dump;
     use IO::File;
     use Test::Irssi::Driver;
+    use Test::Irssi::Callbacks;
 
     # requires the latest pre-release POE from
     # https://github.com/rcaputo/poe until a new release is...released.
+    use lib $ENV{HOME} . "/projects/poe/lib";
     use POE;
 
 
@@ -82,6 +84,24 @@ class Test::Irssi {
           builder => '_build_driver',
          );
 
+    has '_callbacks'
+      => (
+          is => 'ro',
+          isa => 'Test::Irssi::Callbacks',
+          required => 1,
+          lazy => 1,
+          builder => '_build_callback_obj',
+         );
+
+    method _build_callback_obj {
+        my $cbo = Test::Irssi::Callbacks->new(parent => $self);
+
+        $self->log("Going to register vt callbacks");
+        $cbo->register_vt_callbacks;
+
+        return $cbo;
+    }
+
     method _build_driver {
         my $drv = Test::Irssi::Driver->new(parent => $self);
         return $drv;
@@ -97,13 +117,6 @@ class Test::Irssi {
         $vt->option_set(LINEWRAP => 1);
         $vt->option_set(LFTOCRLF => 1);
 
-        # callbacks
-        $vt->callback_set(OUTPUT      => \&vt_output,    undef);
-        $vt->callback_set(ROWCHANGE   => \&vt_rowchange, undef);
-        $vt->callback_set(CLEAR       => \&vt_clear,     undef);
-        $vt->callback_set(SCROLL_DOWN => \&vt_scr_dn,    undef);
-        $vt->callback_set(SCROLL_UP   => \&vt_scr_up,    undef);
-        $vt->callback_set(GOTO        => \&vt_goto,      undef);
 
         return $vt;
     }
@@ -126,13 +139,12 @@ class Test::Irssi {
 
 
     method run {
-
+        $self->_driver->setup();
+        $self->log("Driver setup complete");
         ### Start a session to encapsulate the previous features.
         $poe_kernel->run();
     }
 }
-
-
 
 __END__
 

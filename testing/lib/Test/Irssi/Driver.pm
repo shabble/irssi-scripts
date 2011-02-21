@@ -3,20 +3,26 @@ use strictures 1;
 package Test::Irssi::Driver;
 
 use Moose;
-use MooseX::POE;
+use lib $ENV{HOME} . "/projects/poe/lib";
+
+#use MooseX::POE;
 use POE qw( Wheel::ReadWrite Wheel::Run Filter::Stream );
 use POSIX;
+use feature qw/say/;
+use Data::Dump qw/dump/;
 
 has 'parent'
   => (
-      is => 'ro',
-      isa => 'Test::Irssi',
+      is       => 'ro',
+      isa      => 'Test::Irssi',
       required => 1,
      );
 
 
 sub  START {
     my ($self, $kernel, $heap) = @_[OBJECT, KERNEL, HEAP];
+
+    $self->log("Start handler called");
 
     $self->save_term_settings($heap);
 
@@ -32,9 +38,12 @@ sub  START {
        InputEvent   => "got_terminal_stdin",
        Filter       => POE::Filter::Stream->new(),
       );
+    $self->log("stdio options: " . dump(@stdio_options));
 
     # Start the terminal reader/writer.
     $heap->{stdio} = POE::Wheel::ReadWrite->new(@stdio_options);
+
+    $self->log("Created stdio wheel");
 
     my $rows = $self->parent->terminal_height;
     my $cols = $self->parent->terminal_width;
@@ -49,35 +58,47 @@ sub  START {
        StdioFilter => POE::Filter::Stream->new(),
       );
 
+    $self->log("wheel options: " . dump(@program_options));
+
     # Start the asynchronous child process.
     $heap->{program} = POE::Wheel::Run->new(@program_options);
+
+    $self->log("Created child run wheel");
+
 }
-
-
 
 sub STOP {
     my ($self, $heap) = @_[OBJECT,HEAP];
-    $heap->{stdin_tio}->setattr (0, TCSANOW);
-    $heap->{stdout_tio}->setattr(1, TCSANOW);
-    $heap->{stderr_tio}->setattr(2, TCSANOW);
-    $self->_logfile_fh->close();
+    $self->log("STOP called");
+    $self->restore_term_settings($heap);
+    $self->parent->_logfile_fh->close();
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
 ### If the user presses ^C, then echo a little string
 
-sub handle_terminal_stdin {
+sub terminal_stdin {
     my ($self, $heap, $input) = @_[OBJECT, HEAP, ARG0];
+
     if ($input =~ m/\003/g) {
         $input = "/echo I like cakes\n";
-    } elsif ($input =~ m/\004/g) {
-        $self->log( vt_dump());
+    } elsif ($input =~ m/\005/g) {
+        $self->log( $self->vt_dump());
+    } elsif ($input =~ m/\x17/g) {
+        $input = "/quit\n";
     }
+
     $heap->{program}->put($input);
 }
-##
+
+# delegate to Callbacks.
+sub vt_dump {
+    my ($self) = @_;
+    my $cb = $self->parent->_callbacks->vt_dump();
+}
+
 ### Handle STDOUT from the child program.
-sub handle_child_stdout {
+sub child_stdout {
     my ($self, $heap, $input) = @_[OBJECT, HEAP, ARG0];
     # process via vt
     $self->parent->vt->process($input);
@@ -85,10 +106,11 @@ sub handle_child_stdout {
     $heap->{stdio}->put($input);
 }
 
+
 ### Handle SIGCHLD.  Shut down if the exiting child process was the
 ### one we've been managing.
 
-sub  CHILD {
+sub CHILD {
     my ($self, $heap, $child_pid) = @_[OBJECT, HEAP, ARG1];
     if ($child_pid == $heap->{program}->PID) {
         delete $heap->{program};
@@ -97,17 +119,27 @@ sub  CHILD {
     return 0;
 }
 
-sub bacon { 
-    POE::Session->create
-        (
-         inline_states => {
-                           _start             => \&handle_start,
-                           _stop              => \&handle_stop,
-                           got_terminal_stdin => \&handle_terminal_stdin,
-                           got_child_stdout   => \&handle_child_stdout,
-                           got_sigchld        => \&handle_sigchld,
-                          },
-        );
+sub setup {
+    my $self = shift;
+
+    my @states =
+      (
+       object_states =>
+       [ $self =>
+         {
+          _start => 'START',
+          _stop  => 'STOP',
+          got_terminal_stdin => 'terminal_stdin',
+          got_child_stdout   => 'child_stdout',
+          got_sigchld        => 'CHILD',
+         }
+       ]
+      );
+    $self->log("creating root session");
+
+    POE::Session->create(@states);
+    $self->log("session created");
+
 }
 
 sub save_term_settings {
@@ -121,6 +153,13 @@ sub save_term_settings {
     $heap->{stderr_tio}->getattr(2);
 }
 
+sub restore_term_settings {
+    my ($self, $heap) = @_;
+
+    $heap->{stdin_tio}->setattr (0, TCSANOW);
+    $heap->{stdout_tio}->setattr(1, TCSANOW);
+    $heap->{stderr_tio}->setattr(2, TCSANOW);
+}
 
 sub make_raw_terminal {
     my ($self) = @_;
