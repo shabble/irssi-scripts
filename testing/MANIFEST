@@ -5,8 +5,9 @@ README
 Changes
 
 t/001-use.t
+t/002-init.t
 
 lib/Test/Irssi.pm
 lib/Test/Irssi/Callbacks.pm
-
-auto-testing.pl 
+lib/Test/Irssi/Driver.pm
+lib/Test/Irssi/API.pm

@@ -22,6 +22,8 @@ has 'parent'
 sub  START {
     my ($self, $kernel, $heap) = @_[OBJECT, KERNEL, HEAP];
 
+    $kernel->alias_set("IrssiTestDriver");
+
     $self->log("Start handler called");
 
     $self->save_term_settings($heap);
@@ -64,7 +66,7 @@ sub  START {
     $heap->{program} = POE::Wheel::Run->new(@program_options);
 
     $self->log("Created child run wheel");
-
+    $poe_kernel->yield('testing_ready');
 }
 
 sub STOP {
@@ -80,11 +82,11 @@ sub STOP {
 sub terminal_stdin {
     my ($self, $heap, $input) = @_[OBJECT, HEAP, ARG0];
 
-    if ($input =~ m/\003/g) {
+    if ($input =~ m/\003/g) { # C-c
         $input = "/echo I like cakes\n";
-    } elsif ($input =~ m/\005/g) {
+    } elsif ($input =~ m/\005/g) { # C-e
         $self->log( $self->vt_dump());
-    } elsif ($input =~ m/\x17/g) {
+    } elsif ($input =~ m/\x17/g) { # C-w
         $input = "/quit\n";
     }
 
@@ -106,7 +108,6 @@ sub child_stdout {
     $heap->{stdio}->put($input);
 }
 
-
 ### Handle SIGCHLD.  Shut down if the exiting child process was the
 ### one we've been managing.
 
@@ -127,11 +128,14 @@ sub setup {
        object_states =>
        [ $self =>
          {
-          _start => 'START',
-          _stop  => 'STOP',
+          _start             => 'START',
+          _stop              => 'STOP',
           got_terminal_stdin => 'terminal_stdin',
           got_child_stdout   => 'child_stdout',
           got_sigchld        => 'CHILD',
+          got_delay          => 'timer_expired',
+          create_delay       => 'timer_created',
+          testing_ready      => 'start_tests',
          }
        ]
       );
@@ -140,6 +144,20 @@ sub setup {
     POE::Session->create(@states);
     $self->log("session created");
 
+}
+
+sub start_tests {
+    my ($self) = $_[OBJECT];
+    $self->parent->api->run_test('test1');
+}
+
+sub timer_created {
+    my ($heap, $kernel, $duration) = @_[HEAP, KERNEL, ARG0];
+    $kernel->delay(got_delay => $duration, 0);
+}
+
+sub timer_expired {
+    die "Timer Expired";
 }
 
 sub save_term_settings {

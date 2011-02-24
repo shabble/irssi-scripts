@@ -5,120 +5,125 @@ our $VERSION = 0.01;
 
 class Test::Irssi {
 
-    use Term::VT102;
-    use Term::Terminfo;
-    use feature qw/say switch/;
-    use Data::Dump;
-    use IO::File;
-    use Test::Irssi::Driver;
-    use Test::Irssi::Callbacks;
-
     # requires the latest pre-release POE from
     # https://github.com/rcaputo/poe until a new release is...released.
     use lib $ENV{HOME} . "/projects/poe/lib";
     use POE;
 
 
+    use Term::VT102;
+    use Term::Terminfo;
+    use feature qw/say switch/;
+    use Data::Dump;
+    use IO::File;
+
+    use Test::Irssi::Driver;
+    use Test::Irssi::Callbacks;
+    use Test::Irssi::API;
+
+
+
+
     has 'irssi_binary'
       => (
-          is => 'ro',
-          isa => 'Str',
+          is       => 'ro',
+          isa      => 'Str',
           required => 1,
          );
 
     has 'irssi_homedir'
       => (
-          is => 'ro',
-          isa => 'Str',
+          is       => 'ro',
+          isa      => 'Str',
           required => 1,
          );
 
     has 'terminal_width'
       => (
-          is => 'ro',
-          isa => 'Int',
+          is       => 'ro',
+          isa      => 'Int',
           required => 1,
-          default => 80,
+          default  => 80,
          );
 
     has 'terminal_height'
       => (
-          is => 'ro',
-          isa => 'Int',
+          is       => 'ro',
+          isa      => 'Int',
           required => 1,
-          default => 24,
+          default  => 24,
          );
 
     has 'vt'
       => (
-          is => 'ro',
-          isa => 'Term::VT102',
+          is       => 'ro',
+          isa      => 'Term::VT102',
           required => 1,
-          lazy => 1,
-          builder => '_build_vt102',
+          lazy     => 1,
+          builder  => '_build_vt_obj',
          );
 
     has 'logfile'
       => (
-          is => 'ro',
-          isa => 'Str',
+          is       => 'ro',
+          isa      => 'Str',
           required => 1,
-          default => 'irssi-test.log',
+          default  => 'irssi-test.log',
          );
 
     has '_logfile_fh'
       => (
-          is => 'ro',
-          isa => 'IO::File',
+          is       => 'ro',
+          isa      => 'IO::File',
           required => 1,
-          lazy => 1,
-          builder => '_build_logfile_fh',
+          lazy     => 1,
+          builder  => '_build_logfile_fh',
          );
 
     has '_driver'
       => (
-          is => 'ro',
-          isa => 'Test::Irssi::Driver',
+          is       => 'ro',
+          isa      => 'Test::Irssi::Driver',
           required => 1,
-          lazy => 1,
-          builder => '_build_driver',
+          lazy     => 1,
+          builder  => '_build_driver_obj',
          );
 
     has '_callbacks'
       => (
-          is => 'ro',
-          isa => 'Test::Irssi::Callbacks',
+          is       => 'ro',
+          isa      => 'Test::Irssi::Callbacks',
           required => 1,
-          lazy => 1,
-          builder => '_build_callback_obj',
+          lazy     => 1,
+          builder  => '_build_callback_obj',
          );
 
+    has 'api'
+      => (
+          is => 'ro',
+          isa => "Test::Irssi::API",
+          required => 1,
+          lazy => 1,
+          builder => "_build_api"
+         );
+
+    method _build_api {
+        Test::Irssi::API->new(parent => $self);
+    }
+
     method _build_callback_obj {
-        my $cbo = Test::Irssi::Callbacks->new(parent => $self);
-
-        $self->log("Going to register vt callbacks");
-        $cbo->register_vt_callbacks;
-
-        return $cbo;
+        Test::Irssi::Callbacks->new(parent => $self);
     }
 
-    method _build_driver {
-        my $drv = Test::Irssi::Driver->new(parent => $self);
-        return $drv;
+    method _build_driver_obj {
+        Test::Irssi::Driver->new(parent => $self);
     }
 
-    method _build_vt102 {
+    method _build_vt_obj {
         my $rows = $self->terminal_height;
         my $cols = $self->terminal_width;
 
-        my $vt = Term::VT102->new($cols, $rows);
-
-        # options
-        $vt->option_set(LINEWRAP => 1);
-        $vt->option_set(LFTOCRLF => 1);
-
-
-        return $vt;
+        Term::VT102->new($cols, $rows);
     }
 
     method _build_logfile_fh {
@@ -132,17 +137,49 @@ class Test::Irssi {
         return $fh;
     }
 
+    method _vt_setup {
+         # options
+        my $vt = $self->vt;
 
-    method log (Str $msg) {
+        $vt->option_set(LINEWRAP => 1);
+        $vt->option_set(LFTOCRLF => 1);
+
+        $self->_callbacks->register_callbacks;;
+
+    }
+
+    sub log {
+        my ($self, $msg) = @_;
         $self->_logfile_fh->say($msg);
     }
 
-
     method run {
-        $self->_driver->setup();
+        $self->_driver->setup;
+        $self->_vt_setup;
         $self->log("Driver setup complete");
         ### Start a session to encapsulate the previous features.
         $poe_kernel->run();
+    }
+
+    sub inject_text {
+        my ($self, $text) = @_;
+        $poe_kernel->post(IrssiTestDriver => got_terminal_stdin
+                          => $text);
+    }
+
+    sub simulate_keystroke {
+        my ($self, $text) = @_;
+        $poe_kernel->post(IrssiTestDriver => got_terminal_stdin
+                          => $text);
+
+    }
+
+    method get_prompt_line {
+        return $self->vt->row_plaintext($self->terminal_height)
+    }
+
+    method get_window_statusbar_line {
+        return $self->vt->row_plaintext($self->terminal_height() - 1)
     }
 }
 

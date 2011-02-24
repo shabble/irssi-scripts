@@ -4,6 +4,7 @@ package Test::Irssi::Callbacks;
 
 use Moose;
 use Data::Dump qw/dump/;
+use Data::Dumper;
 
 has 'parent'
   => (
@@ -12,31 +13,29 @@ has 'parent'
       required => 1,
      );
 
-sub register_vt_callbacks {
+sub register_callbacks {
     my ($self) = @_;
 
-    $self->log("Callbacks registered");
     my $vt = $self->parent->vt;
-    # callbacks
-    $self->log("VT is " . ref($vt));
+    $self->log("Callbacks registered");
 
-    $vt->callback_set(OUTPUT      => sub { \&vt_output    }, $self);
-    $vt->callback_set(ROWCHANGE   => sub { \&vt_rowchange }, $self);
-    $vt->callback_set(CLEAR       => sub { \&vt_clear     }, $self);
-    $vt->callback_set(SCROLL_DOWN => sub { \&vt_scr_dn    }, $self);
-    $vt->callback_set(SCROLL_UP   => sub { \&vt_scr_up    }, $self);
-    $vt->callback_set(GOTO        => sub { \&vt_goto      }, $self);
+    $vt->callback_set(OUTPUT      => sub { $self->vt_output(@_)    }, undef);
+    $vt->callback_set(ROWCHANGE   => sub { $self->vt_rowchange(@_) }, undef);
+    $vt->callback_set(CLEAR       => sub { $self->vt_clear(@_)     }, undef);
+    $vt->callback_set(SCROLL_DOWN => sub { $self->vt_scr_up(@_)    }, undef);
+    $vt->callback_set(SCROLL_UP   => sub { $self->vt_scr_dn(@_)    }, undef);
+    $vt->callback_set(GOTO        => sub { $self->vt_goto(@_)      }, undef);
+
 }
 
 sub vt_output {
-    my ($vt, $cb_name, $cb_data, $self) = @_;
+    my ($self, $vt, $cb_name, $cb_data) = @_;
     $self->log( "OUTPUT: " . dump([@_[1..$#_]]));
 }
 
 sub vt_rowchange {
-    my ($vt, $cb_name, $arg1, $arg2, $self) = @_;
-
-    $self->log("Type of param is: " . ref($_)) for (@_);
+    my $self = shift;
+    my ($vt, $cb_name, $arg1, $arg2) = @_;
 
     $arg1 //= '?';
     $arg2 //= '?';
@@ -58,7 +57,8 @@ sub vt_rowchange {
 }
 
 sub vt_clear {
-    my ($vt, $cb_name, $arg1, $arg2, $self) = @_;
+    my $self = shift;
+    my ($vt, $cb_name, $arg1, $arg2) = @_;
     $arg1 //= '?';
     $arg2 //= '?';
 
@@ -66,7 +66,8 @@ sub vt_clear {
 }
 
 sub vt_scr_dn {
-    my ($vt, $cb_name, $arg1, $arg2, $self) = @_;
+    my $self = shift;
+    my ($vt, $cb_name, $arg1, $arg2) = @_;
     $arg1 //= '?';
     $arg2 //= '?';
 
@@ -74,7 +75,8 @@ sub vt_scr_dn {
 }
 
 sub vt_scr_up {
-    my ($vt, $cb_name, $arg1, $arg2, $self) = @_;
+    my $self = shift;
+    my ($vt, $cb_name, $arg1, $arg2) = @_;
     $arg1 //= '?';
     $arg2 //= '?';
 
@@ -83,7 +85,8 @@ sub vt_scr_up {
 
 
 sub vt_goto {
-    my ($vt, $cb_name, $arg1, $arg2, $self) = @_;
+    my $self = shift;
+    my ($vt, $cb_name, $arg1, $arg2) = @_;
     $arg1 //= '?';
     $arg2 //= '?';
 
