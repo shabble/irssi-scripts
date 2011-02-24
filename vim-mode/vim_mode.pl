@@ -2414,7 +2414,7 @@ sub handle_input_buffer {
 }
 
 sub flush_input_buffer {
-    Irssi::timeout_remove($input_buf_timer);
+    Irssi::timeout_remove($input_buf_timer) if defined $input_buf_timer;
     $input_buf_timer = undef;
     # see what we've collected.
     print "Input buffer flushed" if DEBUG;
