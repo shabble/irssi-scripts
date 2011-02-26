@@ -107,7 +107,7 @@ sub vt_dump {
 
 sub log {
     my ($self, $msg) = @_;
-    $self->parent->_logfile_fh->say($msg);
+    #$self->parent->_logfile_fh->say($msg);
 }
 
 __PACKAGE__->meta->make_immutable;

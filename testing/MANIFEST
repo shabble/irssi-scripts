@@ -10,4 +10,4 @@ t/002-init.t
 lib/Test/Irssi.pm
 lib/Test/Irssi/Callbacks.pm
 lib/Test/Irssi/Driver.pm
-lib/Test/Irssi/API.pm
+lib/Test/Irssi/Test.pm

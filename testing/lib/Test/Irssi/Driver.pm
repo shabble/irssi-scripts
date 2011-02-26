@@ -130,9 +130,11 @@ sub setup {
          {
           _start             => 'START',
           _stop              => 'STOP',
+          got_sigchld        => 'CHILD',
+
           got_terminal_stdin => 'terminal_stdin',
           got_child_stdout   => 'child_stdout',
-          got_sigchld        => 'CHILD',
+
           got_delay          => 'timer_expired',
           create_delay       => 'timer_created',
           testing_ready      => 'start_tests',
@@ -148,16 +150,21 @@ sub setup {
 
 sub start_tests {
     my ($self) = $_[OBJECT];
-    $self->parent->api->run_test('test1');
+    $self->log("Starting to run tests");
+    $self->log("-" x 80);
+    $self->parent->run_tests();
 }
 
 sub timer_created {
-    my ($heap, $kernel, $duration) = @_[HEAP, KERNEL, ARG0];
-    $kernel->delay(got_delay => $duration, 0);
+    my ($self, $heap, $kernel, $duration) = @_[OBJECT, HEAP, KERNEL, ARG0];
+    $kernel->delay(got_delay => $duration);
+    $self->log("Timer created");
 }
 
 sub timer_expired {
-    die "Timer Expired";
+    my ($self, $data) = @_[OBJECT,ARG0];
+    $self->log("Timeout invoking test again.");
+    $self->parent->active_test->resume_from_timer;
 }
 
 sub save_term_settings {

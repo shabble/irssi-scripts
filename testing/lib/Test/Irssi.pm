@@ -19,9 +19,7 @@ class Test::Irssi {
 
     use Test::Irssi::Driver;
     use Test::Irssi::Callbacks;
-    use Test::Irssi::API;
-
-
+    use Test::Irssi::Test;
 
 
     has 'irssi_binary'
@@ -98,17 +96,28 @@ class Test::Irssi {
           builder  => '_build_callback_obj',
          );
 
-    has 'api'
+    has 'tests'
       => (
           is => 'ro',
-          isa => "Test::Irssi::API",
+          isa => "HashRef",
           required => 1,
-          lazy => 1,
-          builder => "_build_api"
+          default => sub { {} },
+          traits => [qw/Hash/],
+          handles => {
+                      all_tests => 'values'
+                     },
          );
 
-    method _build_api {
-        Test::Irssi::API->new(parent => $self);
+    has 'active_test'
+      => (
+          is  => 'rw',
+          isa => 'Test::Irssi::Test',
+         );
+
+    sub new_test {
+        my ($self, $name, @params) = @_;
+        my $new = Test::Irssi::Test->new(name => $name, parent => $self);
+        $self->tests->{$name} = $new;
     }
 
     method _build_callback_obj {
@@ -153,12 +162,25 @@ class Test::Irssi {
         $self->_logfile_fh->say($msg);
     }
 
+    method run_tests {
+        foreach my $test ($self->all_tests) {
+            $test->execute();
+        }
+    }
+
     method run {
         $self->_driver->setup;
         $self->_vt_setup;
         $self->log("Driver setup complete");
         ### Start a session to encapsulate the previous features.
         $poe_kernel->run();
+    }
+
+    sub apply_delay {
+        my ($self, $delay, $next_index) = @_;
+        $poe_kernel->post(IrssiTestDriver
+                          => create_delay
+                          => $delay, $next_index);
     }
 
     sub inject_text {
