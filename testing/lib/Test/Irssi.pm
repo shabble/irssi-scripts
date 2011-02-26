@@ -96,15 +96,28 @@ class Test::Irssi {
           builder  => '_build_callback_obj',
          );
 
-    has 'tests'
+    has 'pending_tests'
       => (
           is => 'ro',
-          isa => "HashRef",
+          isa => "ArrayRef",
           required => 1,
-          default => sub { {} },
-          traits => [qw/Hash/],
+          default => sub { [] },
+          traits => [qw/Array/],
           handles => {
-                      all_tests => 'values'
+                      add_pending_test => 'push',
+                      next_pending_test => 'pop',
+                     }
+         );
+
+    has 'completed_tests'
+      => (
+          is => 'ro',
+          isa => "ArrayRef",
+          required => 1,
+          default => sub { [] },
+          traits => [qw/Array/],
+          handles => {
+                      add_completed_test => 'push'
                      },
          );
 
@@ -117,7 +130,7 @@ class Test::Irssi {
     sub new_test {
         my ($self, $name, @params) = @_;
         my $new = Test::Irssi::Test->new(name => $name, parent => $self);
-        $self->tests->{$name} = $new;
+        $self->add_pending_test, $new;
     }
 
     method _build_callback_obj {
@@ -147,7 +160,7 @@ class Test::Irssi {
     }
 
     method _vt_setup {
-         # options
+        # options
         my $vt = $self->vt;
 
         $vt->option_set(LINEWRAP => 1);
@@ -162,10 +175,18 @@ class Test::Irssi {
         $self->_logfile_fh->say($msg);
     }
 
-    method run_tests {
-        foreach my $test ($self->all_tests) {
-            $test->execute();
-        }
+
+    method run_test {
+        # put the completed one onto the completed pile
+        my $old_test = $self->active_test;
+        $self->add_completed_test($old_test);
+
+        # and make the next pending one active.
+        my $test = $self->next_pending_test;
+        $self->active_test($test);
+
+        # signal to the driver to start executing it.
+        $poe_kernel->post(IrssiTestDriver => execute_test => $test);
     }
 
     method run {
@@ -196,16 +217,35 @@ class Test::Irssi {
 
     }
 
+    method get_topic_line {
+        return $self->vt->row_plaintext(1);
+    }
+
     method get_prompt_line {
-        return $self->vt->row_plaintext($self->terminal_height)
+        return $self->vt->row_plaintext($self->terminal_height);
     }
 
     method get_window_statusbar_line {
-        return $self->vt->row_plaintext($self->terminal_height() - 1)
+        return $self->vt->row_plaintext($self->terminal_height() - 1);
+    }
+
+    method get_window_contents {
+        my $buf = '';
+        for (2..$self->terminal_height() - 2) {
+            $buf .=  $self->vt->row_plaintext($_);
+        }
+        return $buf;
+    }
+
+    method summarise_test_results {
+        foreach my $t_name (sort keys %{$self->tests}) {
+            my $t_obj = $self->tests->{$t_name};
+            printf("Test %s\t\t-\t%s\n", $t_name, $t_obj->passed?"pass":"fail");
+        }
     }
 }
 
-__END__
+  __END__
 
 =head1 NAME
 

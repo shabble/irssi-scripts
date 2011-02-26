@@ -5,7 +5,6 @@ package Test::Irssi::Driver;
 use Moose;
 use lib $ENV{HOME} . "/projects/poe/lib";
 
-#use MooseX::POE;
 use POE qw( Wheel::ReadWrite Wheel::Run Filter::Stream );
 use POSIX;
 use feature qw/say/;
@@ -74,6 +73,9 @@ sub STOP {
     $self->log("STOP called");
     $self->restore_term_settings($heap);
     $self->parent->_logfile_fh->close();
+
+    say "\n\n";
+    $self->parent->summarise_test_results();
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
@@ -84,8 +86,6 @@ sub terminal_stdin {
 
     if ($input =~ m/\003/g) { # C-c
         $input = "/echo I like cakes\n";
-    } elsif ($input =~ m/\005/g) { # C-e
-        $self->log( $self->vt_dump());
     } elsif ($input =~ m/\x17/g) { # C-w
         $input = "/quit\n";
     }
@@ -93,11 +93,6 @@ sub terminal_stdin {
     $heap->{program}->put($input);
 }
 
-# delegate to Callbacks.
-sub vt_dump {
-    my ($self) = @_;
-    my $cb = $self->parent->_callbacks->vt_dump();
-}
 
 ### Handle STDOUT from the child program.
 sub child_stdout {
@@ -110,6 +105,13 @@ sub child_stdout {
 
 ### Handle SIGCHLD.  Shut down if the exiting child process was the
 ### one we've been managing.
+
+sub shutdown {
+    my ($self, $heap, $kernel) = @_[OBJECT, HEAP, KERNEL];
+    $self->log("Shutdown called");
+    $heap->{program}->kill(15);
+    $kernel->alias_remove("IrssiTestDriver");
+}
 
 sub CHILD {
     my ($self, $heap, $child_pid) = @_[OBJECT, HEAP, ARG1];
@@ -137,7 +139,13 @@ sub setup {
 
           got_delay          => 'timer_expired',
           create_delay       => 'timer_created',
-          testing_ready      => 'start_tests',
+
+
+          testing_ready      => 'testing_ready',
+          test_complete      => 'test_complete',
+          execute_test       => 'execute_test',
+
+          shutdown           => 'shutdown',
          }
        ]
       );
@@ -148,11 +156,31 @@ sub setup {
 
 }
 
-sub start_tests {
+sub testing_ready {
     my ($self) = $_[OBJECT];
+    # begin by fetching a test from the pending queue.
     $self->log("Starting to run tests");
     $self->log("-" x 80);
     $self->parent->run_tests();
+}
+
+sub testing_complete {
+    my ($self, $kernel) = @_[OBJECT, KERNEL];
+    # make sure all tests have run to completion.
+    my $done = 1;
+    $self->log("Testing to see if we can quit: ");
+    foreach my $test ($self->parent->all_tests) {
+        if (not $test->complete) {
+            $self->log("\t" . $test->name . " is not complete");
+            $done = 0;
+        }
+    }
+    if ($done) {
+        $kernel->yield('shutdown');
+    } else {
+        # ???
+        $self->parent->active_test->resume_from_timer;
+    }
 }
 
 sub timer_created {

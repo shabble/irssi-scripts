@@ -3,6 +3,7 @@ use MooseX::Declare;
 
 class Test::Irssi::Test {
 
+    use POE;
     use Test::Irssi;
     use Test::Irssi::Driver;
     use feature qw/say/;
@@ -48,6 +49,14 @@ class Test::Irssi::Test {
           default => sub { [] },
          );
 
+    has 'complete'
+      => (
+          is => 'rw',
+          isa => 'Bool',
+          default => 0,
+         );
+
+
     has '_next_state'
       => (
           is => 'rw',
@@ -60,6 +69,20 @@ class Test::Irssi::Test {
                      },
          );
 
+    # TODO: should only be valid when complete is set.
+    sub passed {
+        my $self = shift;
+        return grep { 1 || undef } @{ $self->results };
+    }
+
+    sub failed {
+        my $self = shift;
+        return not $self->passed();
+    }
+
+
+    ############# API FUNCTIONS ##########################################
+
 
     method add_input_sequence(Str $input) {
         $self->add_state({input => $input });
@@ -71,44 +94,69 @@ class Test::Irssi::Test {
         $self->log("Adding $delay as delay");
 
     }
+    method add_keycode(Str $code) {
+        my $input = $self->translate_keycode($code);
+        $self->add_state({input => $input });
+        $self->log("Adding $input ($code) as input");
+
+    }
 
     sub add_pattern_match {
-        my ($self, $pattern, $constraints) = @_;
+        my ($self, $pattern, $constraints, $desc) = @_;
         $self->add_state({output => 1,
-                          pattern => $expected,
-                          constraints => $constraints});
+                          pattern => $pattern,
+                          constraints => $constraints,
+                          desc => $desc});
 
-        $self->log("Adding $expected as output match ");
+        $self->log("Adding $pattern as output match ");
     }
 
     sub add_evaluation_function {
-        my ($self, $coderef) = @_;
-        $self->add_state({code => $coderef});
+        my ($self, $coderef, $desc) = @_;
+        $self->add_state({code => $coderef, desc => $desc});
     }
 
-    method process_next_state {
-        my $state_num = $self->_next_state;
-        $self->log("PNS: $state_num");
-        my $state = $self->states->[$state_num];
-
-        my $return = 0;
+    ############# END OF API FUNCTIONS ####################################
 
 
-        $self->_next_state($state_num+1);
-        if ($self->has_next_state) {
-            $self->log("Has another state");
-        } else {
-            $self->log("Has no more state");
 
-            return 2;
+    method translate_keycode(Str $code) {
+        my $seq = '';
+        if ($code =~ m/M-([a-z])/i) {
+            $seq = "\x1b" . $1;
+        } elsif ($code =~ m/C-([a-z])/i) {
+            $seq = chr ( ord(lc $1) - 64 );
         }
+        return $seq;
+    }
 
-        return $return;
+    method this_state {
+        return $self->_next_state - 1;
     }
 
     sub check_output {
-        my ($self, $pattern) = @_;
-        say "All Goodn\n\n";
+        my ($self, $data) = @_;
+
+        my ($pattern, $constraints) = ($data->{pattern}, $data->{constraints});
+
+        my $ok = 0;
+        my $line = '';
+        if ($constraints eq 'prompt') {
+            $line = $self->parent->get_prompt_line;
+        } elsif ($constraints eq 'window_sbar') {
+            $line = $self->parent->get_window_statusbar_line;
+        } elsif ($constraints eq 'window') {
+            # NOTE: not actually a line.
+            $line = $self->parent->get_window_contents;
+        } elsif ($constraints eq 'topic') {
+            $line = $self->parent->get_topic_line;
+        }
+
+        if ($line =~ m/$pattern/) {
+            $self->results->[$self->this_state] = 1;
+        } else {
+            $self->results->[$self->this_state] = 0;;
+        }
     }
 
     sub get_next_state {
@@ -129,30 +177,42 @@ class Test::Irssi::Test {
     sub evaluate_test {
 
         my ($self) = @_;
-        $self->log("Eval Test:");
         while (my $state = $self->get_next_state) {
+
+            # stimuli
             if ( exists($state->{delay})) {
+                $self->log("inserting delay");
                 $self->parent->apply_delay($state->{delay});
                 return;
-            } else {
-
-                if (exists $state->{input}) {
-                    $self->parent->inject_text($state->{input});
-                    $self->log("input: ". $state->{input});
-                }
-
-                if (exists $state->{code}) {
-                    my @args = ($self, $self->parent, $self->parent->vt);
-                    my $ret = $state->{code}->(@args);
-
-                if (exists $state->{output}) {
-                    my $pattern = $state->{pattern};
-                    $self->check_output($pattern);
-                }
-
             }
+
+            if (exists $state->{input}) {
+                $self->parent->inject_text($state->{input});
+                $self->log("input: ". $state->{input});
+            }
+
+            # tests
+            if (exists $state->{code}) {
+                # code evaluation
+                my @args = ($self, $self->parent, $self->parent->vt);
+                my $ret = $state->{code}->(@args);
+                $ret //= 0; # ensure that undef failures are
+                # marked as such.
+                $self->results->[$self->this_state] = $ret;
+            }
+
+            if (exists $state->{output}) {
+                # pattern match evaluation
+                my $pattern = $state->{pattern};
+                $self->check_output($state);
+            }
+
         }
-        $self->log("Execution Finished");
+        $self->complete(1);
+
+        $self->log("Test Execution Finished");
+
+        $poe_kernel->post('IrssiTestDriver' => 'test_complete');
     }
 
     sub resume_from_timer {
