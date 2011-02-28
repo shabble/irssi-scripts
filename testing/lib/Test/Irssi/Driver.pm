@@ -76,7 +76,7 @@ sub STOP {
     $self->parent->_logfile_fh->close();
 
     say "\n\n";
-    #$self->parent->summarise_test_results();
+    $self->parent->summarise_test_results();
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
@@ -183,7 +183,7 @@ sub test_complete {
     }
 
     # otherwise, we're done, and can shutdown.
-    #$kernel->yield('shutdown');
+   #kernel->yield('shutdown');
 
 }
 

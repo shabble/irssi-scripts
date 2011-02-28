@@ -237,7 +237,7 @@ class Test::Irssi {
     }
 
     method summarise_test_results {
-        foreach my $test ($self->completed_tests) {
+        foreach my $test (@{$self->completed_tests}) {
             my $name = $test->name;
             printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
         }
