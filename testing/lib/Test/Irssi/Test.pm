@@ -7,6 +7,7 @@ class Test::Irssi::Test {
     use Test::Irssi;
     use Test::Irssi::Driver;
     use feature qw/say/;
+    use Data::Dump qw/dump/;
 
     has 'parent'
       => (
@@ -167,17 +168,11 @@ class Test::Irssi::Test {
         return $item;
     }
 
-    sub execute {
-        my ($self) = @_;
-        # set this as hte currently active test.
-        $self->parent->active_test($self);
-        $self->evaluate_test;
-    }
-
     sub evaluate_test {
 
         my ($self) = @_;
         while (my $state = $self->get_next_state) {
+            $self->log("Evaluating Test: " . dump($state));
 
             # stimuli
             if ( exists($state->{delay})) {
@@ -208,11 +203,12 @@ class Test::Irssi::Test {
             }
 
         }
+
+        $poe_kernel->post(IrssiTestDriver => 'test_complete');
+
         $self->complete(1);
 
         $self->log("Test Execution Finished");
-
-        $poe_kernel->post('IrssiTestDriver' => 'test_complete');
     }
 
     sub resume_from_timer {

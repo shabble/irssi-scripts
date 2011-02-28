@@ -39,6 +39,7 @@ sub  START {
        InputEvent   => "got_terminal_stdin",
        Filter       => POE::Filter::Stream->new(),
       );
+
     $self->log("stdio options: " . dump(@stdio_options));
 
     # Start the terminal reader/writer.
@@ -75,7 +76,7 @@ sub STOP {
     $self->parent->_logfile_fh->close();
 
     say "\n\n";
-    $self->parent->summarise_test_results();
+    #$self->parent->summarise_test_results();
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.
@@ -161,32 +162,35 @@ sub testing_ready {
     # begin by fetching a test from the pending queue.
     $self->log("Starting to run tests");
     $self->log("-" x 80);
-    $self->parent->run_tests();
+    $self->parent->run_test;
 }
 
-sub testing_complete {
+sub execute_test {
+    my ($self, $heap, $kernel, $test) = @_[OBJECT,HEAP, KERNEL, ARG0];
+    # do some stuff here to evaluate it.
+
+    $test->evaluate_test;
+
+}
+
+sub test_complete {
     my ($self, $kernel) = @_[OBJECT, KERNEL];
-    # make sure all tests have run to completion.
-    my $done = 1;
-    $self->log("Testing to see if we can quit: ");
-    foreach my $test ($self->parent->all_tests) {
-        if (not $test->complete) {
-            $self->log("\t" . $test->name . " is not complete");
-            $done = 0;
-        }
+
+    $self->parent->complete_test;
+
+    if ($self->parent->tests_remaining) {
+        $self->parent->run_test;
     }
-    if ($done) {
-        $kernel->yield('shutdown');
-    } else {
-        # ???
-        $self->parent->active_test->resume_from_timer;
-    }
+
+    # otherwise, we're done, and can shutdown.
+    #$kernel->yield('shutdown');
+
 }
 
 sub timer_created {
     my ($self, $heap, $kernel, $duration) = @_[OBJECT, HEAP, KERNEL, ARG0];
     $kernel->delay(got_delay => $duration);
-    $self->log("Timer created");
+    $self->log("Timer created for $duration");
 }
 
 sub timer_expired {

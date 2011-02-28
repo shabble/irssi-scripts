@@ -104,8 +104,9 @@ class Test::Irssi {
           default => sub { [] },
           traits => [qw/Array/],
           handles => {
-                      add_pending_test => 'push',
-                      next_pending_test => 'pop',
+                      add_pending_test  => 'push',
+                      next_pending_test => 'shift',
+                      tests_remaining   => 'count',
                      }
          );
 
@@ -130,7 +131,8 @@ class Test::Irssi {
     sub new_test {
         my ($self, $name, @params) = @_;
         my $new = Test::Irssi::Test->new(name => $name, parent => $self);
-        $self->add_pending_test, $new;
+        $self->add_pending_test($new);
+        return $new;
     }
 
     method _build_callback_obj {
@@ -170,17 +172,14 @@ class Test::Irssi {
 
     }
 
-    sub log {
-        my ($self, $msg) = @_;
-        $self->_logfile_fh->say($msg);
-    }
 
-
-    method run_test {
+    method complete_test {
         # put the completed one onto the completed pile
         my $old_test = $self->active_test;
         $self->add_completed_test($old_test);
+    }
 
+    method run_test {
         # and make the next pending one active.
         my $test = $self->next_pending_test;
         $self->active_test($test);
@@ -238,11 +237,17 @@ class Test::Irssi {
     }
 
     method summarise_test_results {
-        foreach my $t_name (sort keys %{$self->tests}) {
-            my $t_obj = $self->tests->{$t_name};
-            printf("Test %s\t\t-\t%s\n", $t_name, $t_obj->passed?"pass":"fail");
+        foreach my $test ($self->completed_tests) {
+            my $name = $test->name;
+            printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
         }
     }
+
+  sub log {
+      my ($self, $msg) = @_;
+      $self->_logfile_fh->say($msg);
+  }
+
 }
 
   __END__

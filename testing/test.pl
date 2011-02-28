@@ -19,8 +19,8 @@ say "Created test instance";
 
 my $test = $tester->new_test('test1');
 
-$test->add_input_sequence("/echo Hello\n");
-$test->add_delay(2);
+$test->add_input_sequence("/echo Hello cats\n");
+$test->add_delay(20);
 $test->add_input_sequence("/echo Hello Again\n");
 for (1..10) {
     $test->add_input_sequence($_);
@@ -37,7 +37,7 @@ $test->add_input_sequence("/clear\n");
 
 
 my $test2 = $tester->new_test("Test2");
-$test2->add_input_sequence("hello");
+$test2->add_input_sequence("hello from twooooooo");
 $test2->add_delay(5);
 $test2->add_pattern_match(qr/hello/, 'prompt', 'hello');
 
