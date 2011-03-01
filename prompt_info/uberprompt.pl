@@ -25,6 +25,9 @@
 #                 be replaced by the original prompt content.
 #                 A parameter corresponding to the UP_* constants listed below
 #                 is required, in the format `/prompt set -inner Hello!'
+#
+# /prompt set [-inner|-pre|-post|only] <msg>
+#
 # /prompt clear - clears the additional data provided to the prompt.
 # /prompt on    - enables the uberprompt (things may get confused if this is used
 #                 whilst the prompt is already enabled)
@@ -39,7 +42,9 @@
 #
 # /set uberprompt_format <format>
 #
-# The default is [$*], which is the same as the default provided in default.theme.
+# The default is [$*$uber], which is the same as the default provided in
+# default.theme. $uber is a placeholder variable to contain your additions
+# to the prompt when using the -inner mode.
 # Changing this setting will update the prompt immediately, unlike editing your theme.
 #
 # An additional variable available within this format is '$uber', which expands to
@@ -198,11 +203,11 @@ sub _print_help {
            "              or a script",
            "/PROMPT SET   changes the contents of the prompt, according to the mode",
            "              and content provided.",
-           "      -inner sets the value of the \$uber psuedo-variable in the",
+           "      { -inner sets the value of the \$uber psuedo-variable in the",
            "             /set uberprompt_format setting.",
-           "      -pre places the content before the current prompt string",
-           "      -post places the content after the prompt string",
-           "      -only replaces the entire prompt contents with the given string",
+           "      | -pre places the content before the current prompt string",
+           "      | -post places the content after the prompt string",
+           "      | -only replaces the entire prompt contents with the given string }",
            "",
            "See Also:",
            '',
