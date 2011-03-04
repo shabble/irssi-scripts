@@ -81,8 +81,9 @@ sub STOP {
     $self->restore_term_settings($heap);
     $self->parent->_logfile_fh->close();
 
-    say "\n\n";
-    $self->parent->summarise_test_results();
+    if (not $self->parent->generate_tap) {
+        $self->parent->summarise_test_results();
+    }
 }
 
 ### Handle terminal STDIN.  Send it to the background program's STDIN.

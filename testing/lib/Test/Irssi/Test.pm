@@ -93,7 +93,7 @@ class Test::Irssi::Test {
         for (0..$state_count-1) {
             my $state  = $self->states->[$_];
             my $result = $self->results->[$_];
-            say( "\t" . $state->{type} . " - " . $state->{desc} . " "
+            say( "#\t" . $state->{type} . " - " . $state->{desc} . " "
               . " = " .( $result?"ok":"not ok"));
         }
     }
@@ -102,6 +102,7 @@ class Test::Irssi::Test {
 
     method add_input_sequence(Str $input) {
         $self->add_state({type  => 'command',
+                          of    => 'input',
                           input => $input,
                           desc  => 'input'});
 
@@ -110,6 +111,7 @@ class Test::Irssi::Test {
 
     method add_delay (Num $delay) {
         $self->add_state({type  => 'command',
+                          of    => 'delay',
                           desc  => 'delay',
                           delay => $delay });
         $self->log("Adding $delay as delay");
@@ -123,6 +125,12 @@ class Test::Irssi::Test {
                           input => $input });
         $self->log("Adding $input ($code) as input");
 
+    }
+    sub add_diag {
+        my ($self, $diag) = @_;
+        $self->add_state({type => 'command',
+                          of   => 'diag',
+                          desc => $diag });
     }
 
     sub add_pattern_match {
@@ -154,6 +162,7 @@ class Test::Irssi::Test {
                           code => $coderef,
                           desc => $desc});
     }
+
 
     ############# END OF API FUNCTIONS ####################################
 
@@ -191,6 +200,8 @@ class Test::Irssi::Test {
             $line = $self->parent->get_topic_line;
         }
 
+        $self->log("Testing pattern against: '$line'");
+
         if ($line =~ m/$pattern/) {
             $self->log("Pattern $pattern passed");
             $self->results->[$self->this_state] = 1;
@@ -218,17 +229,22 @@ class Test::Irssi::Test {
             my $type = $state->{type};
 
             if ($type eq 'command') {
+                my $subtype = $state->{of};
 
-                if (exists($state->{delay})) {
+                if ($subtype eq 'diag') {
+                    if ($self->parent->generate_tap) {
+                        say STDOUT '#' . $state->{desc};
+                    }
+                }
+                if ($subtype eq 'input') {
+                    $self->parent->inject_text($state->{input});
+                    $self->log("input: ". $state->{input});
+                }
+                if ($subtype eq 'delay') {
                     $self->log("inserting delay");
                     $self->parent->apply_delay($state->{delay});
                     $self->results->[$self->this_state] = 1;
                     return;
-                }
-
-                if (exists $state->{input}) {
-                    $self->parent->inject_text($state->{input});
-                    $self->log("input: ". $state->{input});
                 }
 
                 # all commands are considered to succeed.

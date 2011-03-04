@@ -20,6 +20,13 @@ class Test::Irssi {
     use Test::Irssi::Callbacks;
     use Test::Irssi::Test;
 
+    has 'generate_tap'
+      => (
+          is       => 'rw',
+          isa      => 'Bool',
+          required => 1,
+          default  => 1,
+         );
 
     has 'irssi_binary'
       => (
@@ -106,10 +113,10 @@ class Test::Irssi {
           default  => sub { [] },
           traits   => [qw/Array/],
           handles  => {
-                      add_pending_test  => 'push',
-                      next_pending_test => 'shift',
-                      tests_remaining   => 'count',
-                     }
+                       add_pending_test  => 'push',
+                       next_pending_test => 'shift',
+                       tests_remaining   => 'count',
+                      }
          );
 
     has 'completed_tests'
@@ -120,9 +127,9 @@ class Test::Irssi {
           default  => sub { [] },
           traits   => [qw/Array/],
           handles  => {
-                      add_completed_test => 'push',
-                      tests_completed => 'count',
-                     },
+                       add_completed_test => 'push',
+                       tests_completed => 'count',
+                      },
          );
 
     has 'active_test'
@@ -133,7 +140,9 @@ class Test::Irssi {
 
     sub new_test {
         my ($self, $name, @params) = @_;
-        my $new = Test::Irssi::Test->new(name => $name, parent => $self);
+        my $new = Test::Irssi::Test->new(name => $name, 
+                                         parent => $self,
+                                         @params);
         $self->add_pending_test($new);
         return $new;
     }
@@ -174,6 +183,14 @@ class Test::Irssi {
         $self->_callbacks->register_callbacks;
 
     }
+    method screenshot {
+        my $data = '';
+        my $vt = $self->vt;
+        foreach my $row (1 .. $vt->rows) {
+            $data .= $vt->row_plaintext($row) . "\n";
+        }
+        return $data;
+    }
 
     method complete_test {
         # put the completed one onto the completed pile
@@ -181,10 +198,20 @@ class Test::Irssi {
         $self->add_completed_test($old_test);
 
         # TAP: print status.
-        my $tap = sprintf("%s %d - %s", $old_test->passed?'ok':'not ok',
-                          $self->tests_completed,
-                          $old_test->description);
-        say STDOUT $tap;
+        if ($self->generate_tap) {
+            my $pass = $old_test->passed;
+            my $tap = sprintf("%s %d - %s", $pass?'ok':'not ok',
+                              $self->tests_completed,
+                              $old_test->description);
+            say STDOUT $tap;
+            if (not $pass) {
+                $old_test->details;
+                $self->log("-------------------");
+                $self->log($self->screenshot);
+                $self->log("-------------------");
+
+            }
+        }
     }
 
     method run_test {
@@ -204,7 +231,9 @@ class Test::Irssi {
         ### Start a session to encapsulate the previous features.
 
         # TAP: print number of tests.
-        print STDOUT "1.." . $self->tests_remaining . "\n";
+        if ($self->generate_tap) {
+            print STDOUT "1.." . $self->tests_remaining . "\n";
+        }
 
         $poe_kernel->run();
     }
@@ -262,15 +291,15 @@ class Test::Irssi {
     method summarise_test_results {
         foreach my $test (@{$self->completed_tests}) {
             my $name = $test->name;
-            #printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
-            #$test->details();
+            printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
+            $test->details();
         }
     }
 
-  sub log {
-      my ($self, $msg) = @_;
-      $self->_logfile_fh->say($msg);
-  }
+    sub log {
+        my ($self, $msg) = @_;
+        $self->_logfile_fh->say($msg);
+    }
 
 }
 
