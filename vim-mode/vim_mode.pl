@@ -2537,13 +2537,7 @@ sub handle_command_cmd {
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
 
-        # TODO: fix me more better (general server/win/none context?)
-        my $server = Irssi::active_server;
-        if (defined $server) {
-            $server->command($cmd->{func});
-        } else {
-            Irssi::command($cmd->{func});
-        }
+        _command_with_context($cmd->{func});
 
         $numeric_prefix = undef;
         return 1; # call _stop();
@@ -3205,4 +3199,30 @@ sub _warn {
     my ($warning) = @_;
 
     print '%_vim_mode: ', $warning, '%_';
+}
+
+sub _command_with_context {
+    my ($command) = @_;
+    my $context;
+    my $window = Irssi::active_win;
+    if (defined $window) {
+        my $witem = $window->{active};
+        if (defined $witem and ref($witem) eq 'Irssi::Windowitem') {
+            $context = $witem;
+        } else {
+            $context = $window;
+        }
+    } else {
+        my $server = Irssi::active_server;
+        if (defined $server) {
+            $context = $server;
+        }
+    }
+    if (defined $context) {
+        print "Command $command Using context: " . ref($context) if DEBUG;
+        $context->command($command);
+    } else {
+        print "Command $command has no context" if DEBUG;
+        Irssi::command($command);
+    }
 }
