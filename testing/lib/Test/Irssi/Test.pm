@@ -31,39 +31,39 @@ class Test::Irssi::Test {
 
     has 'states'
       => (
-          is => 'ro',
-          isa => 'ArrayRef',
-          traits => [qw/Array/],
+          is      => 'ro',
+          isa     => 'ArrayRef',
+          traits  => [qw/Array/],
           default => sub { [] },
-          lazy => 1,
+          lazy    => 1,
           handles => {
-                      add_state => 'push',
+                      add_state   => 'push',
                       state_count => 'count',
-                      get_state => 'get',
+                      get_state   => 'get',
                      },
          );
 
     has 'results'
       => (
-          is => 'ro',
-          isa => 'ArrayRef',
+          is      => 'ro',
+          isa     => 'ArrayRef',
           default => sub { [] },
          );
 
     has 'complete'
       => (
-          is => 'rw',
-          isa => 'Bool',
+          is      => 'rw',
+          isa     => 'Bool',
           default => 0,
          );
 
 
     has '_next_state'
       => (
-          is => 'rw',
-          isa => 'Int',
+          is      => 'rw',
+          isa     => 'Int',
           default => 0,
-          traits => [qw/Counter/],
+          traits  => [qw/Counter/],
           handles => {
                       _increment_state_counter => 'inc',
                       _clear_state             => 'reset',
@@ -112,6 +112,15 @@ class Test::Irssi::Test {
         $self->log("Adding $pattern as output match ");
     }
 
+    sub add_cursor_position_test {
+        my ($self, $x, $y, $desc) = @_;
+        $self->add_state({output => 1,
+                          x => $x,
+                          y => $y,
+                          desc => $desc });
+        $self->log("Adding cursor [$x, $y] test ");
+
+    }
     sub add_evaluation_function {
         my ($self, $coderef, $desc) = @_;
         $self->add_state({code => $coderef, desc => $desc});
