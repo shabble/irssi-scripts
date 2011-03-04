@@ -15,6 +15,7 @@ class Test::Irssi::Test {
           isa      => 'Test::Irssi',
           required => 1,
          );
+
     has 'name'
       => (
           is       => 'ro',
@@ -73,57 +74,85 @@ class Test::Irssi::Test {
     # TODO: should only be valid when complete is set.
     sub passed {
         my $self = shift;
-        return grep { 1 || undef } @{ $self->results };
+        my $pass = 0;
+        foreach my $result (@{$self->results}) {
+            $pass = $result;
+        }
+        return $pass and $self->complete;
     }
 
     sub failed {
         my $self = shift;
-        return not $self->passed();
+        return not $self->passed;
     }
 
 
+    sub details {
+        my ($self) = shift;
+        my $state_count = $self->state_count;
+        for (0..$state_count-1) {
+            my $state  = $self->states->[$_];
+            my $result = $self->results->[$_];
+            say( "\t" . $state->{type} . " - " . $state->{desc} . " "
+              . " = " .( $result?"ok":"not ok"));
+        }
+    }
     ############# API FUNCTIONS ##########################################
 
 
     method add_input_sequence(Str $input) {
-        $self->add_state({input => $input });
+        $self->add_state({type  => 'command',
+                          input => $input,
+                          desc  => 'input'});
+
         $self->log("Adding $input as input");
     }
 
     method add_delay (Num $delay) {
-        $self->add_state({delay => $delay });
+        $self->add_state({type  => 'command',
+                          desc  => 'delay',
+                          delay => $delay });
         $self->log("Adding $delay as delay");
 
     }
+
     method add_keycode(Str $code) {
         my $input = $self->translate_keycode($code);
-        $self->add_state({input => $input });
+        $self->add_state({type  => 'command',
+                          desc  => 'input',
+                          input => $input });
         $self->log("Adding $input ($code) as input");
 
     }
 
     sub add_pattern_match {
         my ($self, $pattern, $constraints, $desc) = @_;
-        $self->add_state({output => 1,
-                          pattern => $pattern,
+        $self->add_state({type        => 'test',
+                          of          => 'pattern',
+                          pattern     => $pattern,
                           constraints => $constraints,
-                          desc => $desc});
+                          desc        => $desc});
 
         $self->log("Adding $pattern as output match ");
     }
 
-    sub add_cursor_position_test {
+    sub test_cursor_position {
         my ($self, $x, $y, $desc) = @_;
-        $self->add_state({output => 1,
-                          x => $x,
-                          y => $y,
+        $self->add_state({type => 'test',
+                          of   => 'cursor',
+                          x    => $x,
+                          y    => $y,
                           desc => $desc });
         $self->log("Adding cursor [$x, $y] test ");
 
     }
+
     sub add_evaluation_function {
         my ($self, $coderef, $desc) = @_;
-        $self->add_state({code => $coderef, desc => $desc});
+        $self->add_state({type => 'test',
+                          of   => 'function',
+                          code => $coderef,
+                          desc => $desc});
     }
 
     ############# END OF API FUNCTIONS ####################################
@@ -163,8 +192,10 @@ class Test::Irssi::Test {
         }
 
         if ($line =~ m/$pattern/) {
+            $self->log("Pattern $pattern passed");
             $self->results->[$self->this_state] = 1;
         } else {
+            $self->log("Pattern $pattern failed");
             $self->results->[$self->this_state] = 0;;
         }
     }
@@ -178,39 +209,62 @@ class Test::Irssi::Test {
     }
 
     sub evaluate_test {
-
         my ($self) = @_;
+
         while (my $state = $self->get_next_state) {
+
             $self->log("Evaluating Test: " . dump($state));
 
-            # stimuli
-            if ( exists($state->{delay})) {
-                $self->log("inserting delay");
-                $self->parent->apply_delay($state->{delay});
-                return;
-            }
+            my $type = $state->{type};
 
-            if (exists $state->{input}) {
-                $self->parent->inject_text($state->{input});
-                $self->log("input: ". $state->{input});
-            }
+            if ($type eq 'command') {
 
-            # tests
-            if (exists $state->{code}) {
-                # code evaluation
-                my @args = ($self, $self->parent, $self->parent->vt);
-                my $ret = $state->{code}->(@args);
-                $ret //= 0; # ensure that undef failures are
-                # marked as such.
-                $self->results->[$self->this_state] = $ret;
-            }
+                if (exists($state->{delay})) {
+                    $self->log("inserting delay");
+                    $self->parent->apply_delay($state->{delay});
+                    $self->results->[$self->this_state] = 1;
+                    return;
+                }
 
-            if (exists $state->{output}) {
-                # pattern match evaluation
-                my $pattern = $state->{pattern};
-                $self->check_output($state);
-            }
+                if (exists $state->{input}) {
+                    $self->parent->inject_text($state->{input});
+                    $self->log("input: ". $state->{input});
+                }
 
+                # all commands are considered to succeed.
+                $self->results->[$self->this_state] = 1;
+
+            } elsif ($type eq 'test') {
+
+                my $test_type = $state->{of};
+
+                if ($test_type eq 'pattern') {
+                    my $pattern = $state->{pattern};
+                    $self->check_output($state);
+                }
+                if ($test_type eq 'cursor') {
+                    my ($curs_x, $curs_y) = $self->parent->get_cursor_position;
+
+                    my $ret = 0;
+                    if ($state->{x} == $curs_x and $state->{y} == $curs_y) {
+                        $ret = 1;
+                    }
+
+                    $self->results->[$self->this_state] = $ret;
+
+                }
+
+                if ($test_type eq 'function') {
+                    # code evaluation
+                    my @args = ($self, $self->parent, $self->parent->vt);
+                    my $ret = $state->{code}->(@args);
+                    $ret //= 0; # ensure that undef failures are
+                    # marked as such.
+                    $self->results->[$self->this_state] = $ret;
+                }
+            } else {
+                # wtf?
+            }
         }
 
         $poe_kernel->post(IrssiTestDriver => 'test_complete');
@@ -230,6 +284,7 @@ class Test::Irssi::Test {
         $self->parent->_logfile_fh->say($msg);
     }
 
+  sub _all { $_ || return 0 for @_; 1 }
 }
 
 

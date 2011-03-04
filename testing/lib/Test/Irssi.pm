@@ -78,7 +78,7 @@ class Test::Irssi {
           builder  => '_build_logfile_fh',
          );
 
-    has '_driver'
+    has 'driver'
       => (
           is       => 'ro',
           isa      => 'Test::Irssi::Driver',
@@ -98,12 +98,12 @@ class Test::Irssi {
 
     has 'pending_tests'
       => (
-          is => 'ro',
-          isa => "ArrayRef",
+          is       => 'ro',
+          isa      => "ArrayRef",
           required => 1,
-          default => sub { [] },
-          traits => [qw/Array/],
-          handles => {
+          default  => sub { [] },
+          traits   => [qw/Array/],
+          handles  => {
                       add_pending_test  => 'push',
                       next_pending_test => 'shift',
                       tests_remaining   => 'count',
@@ -112,12 +112,12 @@ class Test::Irssi {
 
     has 'completed_tests'
       => (
-          is => 'ro',
-          isa => "ArrayRef",
+          is       => 'ro',
+          isa      => "ArrayRef",
           required => 1,
-          default => sub { [] },
-          traits => [qw/Array/],
-          handles => {
+          default  => sub { [] },
+          traits   => [qw/Array/],
+          handles  => {
                       add_completed_test => 'push'
                      },
          );
@@ -168,10 +168,9 @@ class Test::Irssi {
         $vt->option_set(LINEWRAP => 1);
         $vt->option_set(LFTOCRLF => 1);
 
-        $self->_callbacks->register_callbacks;;
+        $self->_callbacks->register_callbacks;
 
     }
-
 
     method complete_test {
         # put the completed one onto the completed pile
@@ -189,7 +188,7 @@ class Test::Irssi {
     }
 
     method run {
-        $self->_driver->setup;
+        $self->driver->setup;
         $self->_vt_setup;
         $self->log("Driver setup complete");
         ### Start a session to encapsulate the previous features.
@@ -203,6 +202,7 @@ class Test::Irssi {
                           => $delay, $next_index);
     }
 
+    # TODO: pick one.
     sub inject_text {
         my ($self, $text) = @_;
         $poe_kernel->post(IrssiTestDriver => got_terminal_stdin
@@ -236,10 +236,20 @@ class Test::Irssi {
         return $buf;
     }
 
+    method get_cursor_position {
+        return ($self->vt->x(), $self->vt->y());
+    }
+
+    method load_script {
+        my ($script_name) = @_;
+
+    }
+
     method summarise_test_results {
         foreach my $test (@{$self->completed_tests}) {
             my $name = $test->name;
             printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
+            $test->details();
         }
     }
 

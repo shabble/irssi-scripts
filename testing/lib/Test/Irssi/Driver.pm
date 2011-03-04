@@ -17,6 +17,12 @@ has 'parent'
       required => 1,
      );
 
+has 'headless'
+  => (
+      is      => 'rw',
+      isa     => 'Bool',
+      default => 0,
+     );
 
 sub  START {
     my ($self, $kernel, $heap) = @_[OBJECT, KERNEL, HEAP];
@@ -94,14 +100,16 @@ sub terminal_stdin {
     $heap->{program}->put($input);
 }
 
-
 ### Handle STDOUT from the child program.
 sub child_stdout {
     my ($self, $heap, $input) = @_[OBJECT, HEAP, ARG0];
     # process via vt
     $self->parent->vt->process($input);
-    # send to terminal
-    $heap->{stdio}->put($input);
+
+    if (not $self->headless) {
+        # send to terminal
+        $heap->{stdio}->put($input);
+    }
 }
 
 ### Handle SIGCHLD.  Shut down if the exiting child process was the

@@ -20,11 +20,13 @@ my $test = $tester->new_test('test1');
 $test->add_input_sequence("/echo Hello cats\n");
 $test->add_delay(1);
 $test->add_input_sequence("/echo Hello Again\n");
-$test->add_input_sequence("this is a long test");
+$test->add_input_sequence("this is a lang test");
 $test->add_pattern_match(qw/long/, 'prompt', 'prompt contains hello');
+$test->add_pattern_match(qw/longfdajkfd/, 'prompt', 'prompt contains hello');
+
 
 my $test2 = $tester->new_test('test2');
-$test2->add_delay(1);
+$test2->add_delay(2);
 $test2->add_input_sequence("\x01");
 $test2->add_delay(0.1);
 $test2->add_input_sequence("\x0b");
@@ -32,6 +34,9 @@ $test2->add_delay(0.1);
 $test2->add_input_sequence("/clear\n");
 $test2->add_delay(0.1);
 $test2->add_input_sequence("/echo moo\n");
+
+my $quit = $tester->new_test('quit');
+$quit->add_input_sequence("/quit\n");
 
 # for (1..10) {
 #     $test->add_input_sequence("\xff");
