@@ -19,7 +19,7 @@ if (-f $test->logfile) {
     ok(unlink $test->logfile, 'deleted old logfile');
 }
 
-my $drv = $test->_driver;
+my $drv = $test->driver;
 isa_ok($drv, 'Test::Irssi::Driver', 'driver created ok');
 
 diag "Starting POE session";

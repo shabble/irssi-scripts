@@ -1,7 +1,7 @@
 use strictures 1;
 use MooseX::Declare;
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 class Test::Irssi {
 
@@ -9,7 +9,6 @@ class Test::Irssi {
     # https://github.com/rcaputo/poe until a new release is...released.
     use lib $ENV{HOME} . "/projects/poe/lib";
     use POE;
-
 
     use Term::VT102;
     use Term::Terminfo;
@@ -85,6 +84,9 @@ class Test::Irssi {
           required => 1,
           lazy     => 1,
           builder  => '_build_driver_obj',
+          handles  => {
+                       run_headless => 'headless',
+                      }
          );
 
     has '_callbacks'
@@ -118,7 +120,8 @@ class Test::Irssi {
           default  => sub { [] },
           traits   => [qw/Array/],
           handles  => {
-                      add_completed_test => 'push'
+                      add_completed_test => 'push',
+                      tests_completed => 'count',
                      },
          );
 
@@ -176,6 +179,12 @@ class Test::Irssi {
         # put the completed one onto the completed pile
         my $old_test = $self->active_test;
         $self->add_completed_test($old_test);
+
+        # TAP: print status.
+        my $tap = sprintf("%s %d - %s", $old_test->passed?'ok':'not ok',
+                          $self->tests_completed,
+                          $old_test->description);
+        say STDOUT $tap;
     }
 
     method run_test {
@@ -188,10 +197,15 @@ class Test::Irssi {
     }
 
     method run {
+
         $self->driver->setup;
         $self->_vt_setup;
         $self->log("Driver setup complete");
         ### Start a session to encapsulate the previous features.
+
+        # TAP: print number of tests.
+        print STDOUT "1.." . $self->tests_remaining . "\n";
+
         $poe_kernel->run();
     }
 
@@ -248,8 +262,8 @@ class Test::Irssi {
     method summarise_test_results {
         foreach my $test (@{$self->completed_tests}) {
             my $name = $test->name;
-            printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
-            $test->details();
+            #printf("Test %s\t\t-\t%s\n", $name, $test->passed?"pass":"fail");
+            #$test->details();
         }
     }
 
