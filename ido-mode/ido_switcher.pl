@@ -416,7 +416,7 @@ sub get_all_windows {
         _debug_print "Selecting window: " . $selected->{name};
 
         # Irssi::command("WINDOW GOTO " . $selected->{name});
-        Irssi::command("WINDOW  " . $selected->{refnum});
+        Irssi::command("WINDOW GOTO" . $selected->{refnum});
 
         if ($selected->{type} ne 'WIN') {
             _debug_print "Selecting window item: " . $selected->{itemname};
