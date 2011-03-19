@@ -74,6 +74,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+# BUGS:
+#
+# * Sometimes selecting a channel with the same name on a different
+#   network will take you to the wrong channel.
+#
+#
+#
 use strict;
 use Irssi;
 use Irssi::TextUI;
@@ -404,11 +411,12 @@ sub get_all_windows {
     }
 
     sub ido_switch_select {
-        my ($selected) = @_;
+        my ($selected, $tag) = @_;
 
         _debug_print "Selecting window: " . $selected->{name};
 
-        Irssi::command("WINDOW GOTO " . $selected->{name});
+        # Irssi::command("WINDOW GOTO " . $selected->{name});
+        Irssi::command("WINDOW  " . $selected->{refnum});
 
         if ($selected->{type} ne 'WIN') {
             _debug_print "Selecting window item: " . $selected->{itemname};
