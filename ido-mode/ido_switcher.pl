@@ -413,10 +413,10 @@ sub get_all_windows {
     sub ido_switch_select {
         my ($selected, $tag) = @_;
 
-        _debug_print "Selecting window: " . $selected->{name};
+        _debug_print sprintf("Selecting window: %s (%d)",
+                             $selected->{name}, $selected->{num});
 
-        # Irssi::command("WINDOW GOTO " . $selected->{name});
-        Irssi::command("WINDOW GOTO" . $selected->{refnum});
+        Irssi::command("WINDOW GOTO" . $selected->{num});
 
         if ($selected->{type} ne 'WIN') {
             _debug_print "Selecting window item: " . $selected->{itemname};
