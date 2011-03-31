@@ -83,6 +83,62 @@
 #
 # signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
 #
+#
+# NOTES FOR SCRIPT WRITERS:
+#
+# The following code snippet can be used within your own script as a preamble
+# to ensure that uberprompt is loaded before your script to avoid
+# any issues with load order.  It first checks if uberprompt is loaded, and
+# if not, attempts to load it.  If the load fails, the script will die
+# with an error message, otherwise it will call your app_init() function.
+#
+# ---- start of snippet ----
+
+# my $DEBUG_ENABLED = 0;
+# sub DEBUG () { $DEBUG_ENABLED }
+#
+# # check we have uberprompt loaded.
+#
+# sub script_is_loaded {
+#     my $name = shift;
+#     print "Checking if $name is loaded" if DEBUG;
+#     no strict 'refs';
+#     my $retval = defined %{ "Irssi::Script::${name}::" };
+#     use strict 'refs';
+#
+#     return $retval;
+# }
+#
+# if (not script_is_loaded('uberprompt')) {
+#
+#     print "This script requires 'uberprompt.pl' in order to work. "
+#       . "Attempting to load it now...";
+#
+#     Irssi::signal_add('script error', 'load_uberprompt_failed');
+#     Irssi::command("script load uberprompt.pl");
+#
+#     unless(script_is_loaded('uberprompt')) {
+#         load_uberprompt_failed("File does not exist");
+#     }
+#     app_init();
+# } else {
+#    app_init();
+# }
+#
+# sub load_uberprompt_failed {
+#     Irssi::signal_remove('script error', 'load_prompt_failed');
+#
+#     print "Script could not be loaded. Script cannot continue. "
+#       . "Check you have uberprompt.pl installed in your path and "
+#         .  "try again.";
+#
+#     die "Script Load Failed: " . join(" ", @_);
+# }
+#
+# ---- end of snippet ----
+#
+#
+#
 # Bugs:
 #
 # * Resizing the terminal rapidly whilst using this script in debug mode
