@@ -27,8 +27,9 @@ sub script_is_loaded {
     return exists($Irssi::Script::{shift . '::'});
 }
 
-if (not script_is_loaded('uberprompt')) {
-
+if (script_is_loaded('uberprompt')) {
+    app_init();
+} else {
     print "This script requires 'uberprompt.pl' in order to work. "
       . "Attempting to load it now...";
 
@@ -38,8 +39,6 @@ if (not script_is_loaded('uberprompt')) {
     unless(script_is_loaded('uberprompt')) {
         load_uberprompt_failed("File does not exist");
     }
-    app_init();
-} else {
     app_init();
 }
 
