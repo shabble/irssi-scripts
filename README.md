@@ -63,6 +63,13 @@ to use them.
   hours ago because you didn't notice you were scrolled up in the history buffer.
   If you try to send a message whilst scrolled, it'll warn you and check you
   really want to first.
+ 
+* `quit-notify/` is based on a script by vague@#irssi/Freenode.  It is most
+  useful when you are ignoring joins/parts/quits from a channel, and hence
+  don't realise when the person you are responding to has left.  If they have
+  (or if you prefix your message with a nonexistent nick), the script will
+  ask you to confirm that you want to send the message, much like
+  `scrolled_reminder`.
   
 * `testing/` is a Perl framework external to Irssi (ie: not a script) that will
   ultimately allow you to write unit tests for your scripts, and run them in a
