@@ -10,13 +10,13 @@ use warnings;
 
 our $VERSION = "0.2";
 our %IRSSI = (
-          authors     => "Jari Matilainen",
-          contact     => 'vague!#irssi@freenode',
-          name        => "notifyquit",
-          description => "Notify if user has left the channel",
-          license     => "Public Domain",
-          url         => "http://vague.se"
-         );
+              authors     => "Jari Matilainen",
+              contact     => 'vague!#irssi@freenode',
+              name        => "notifyquit",
+              description => "Notify if user has left the channel",
+              license     => "Public Domain",
+              url         => "http://vague.se"
+             );
 
 my $active = 0;
 my $permit_pending = 0;
@@ -24,7 +24,7 @@ my $pending_input = {};
 
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{shift . '::'}) ;
+    return exists($Irssi::Script::{shift . '::'});
 }
 
 if (not script_is_loaded('uberprompt')) {
@@ -65,11 +65,11 @@ sub extract_nick {
     # special := '-' | '[' | ']' | '\' | '`' | '^' | '{' | '}'
 
     my $pattern = qr/^( [[:alpha:]]         # starts with a letter
-                    (?: [[:alpha:]]         # then letter
-                        | \d                # or number
-                        | [\[\]\\`^\{\}-])  # or special char
-                        *? )                # any number of times
-                        $completion_char/x; # followed by completion char.
+                         (?: [[:alpha:]]         # then letter
+                         | \d                # or number
+                         | [\[\]\\`^\{\}-])  # or special char
+                         *? )                # any number of times
+                     $completion_char/x;     # followed by completion char.
 
     if ($str =~ m/$pattern/) {
         print "Matched: $1";
@@ -93,27 +93,27 @@ sub sig_send_text {
     if ($target_nick) {
         if (not $witem->nick_find($target_nick)) {
 
-            return if $target_nick =~ m/^https?/i
+            return if $target_nick =~ m/^https?/i;
 
-            if ($permit_pending) {
+              if ($permit_pending) {
 
-                $pending_input = {};
-                $permit_pending = 0;
-                Irssi::signal_continue(@_);
+                  $pending_input = {};
+                  $permit_pending = 0;
+                  Irssi::signal_continue(@_);
 
-            } else {
-                my $text
-                  = "$target_nick isn't in this channel, send anyway? [Y/n]";
-                $pending_input
-                  = {
-                     text     => $data,
-                     server   => $server,
-                     win_item => $witem,
-                    };
+              } else {
+                  my $text
+                    = "$target_nick isn't in this channel, send anyway? [Y/n]";
+                  $pending_input
+                    = {
+                       text     => $data,
+                       server   => $server,
+                       win_item => $witem,
+                      };
 
-                Irssi::signal_stop;
-                require_confirmation($text)
-            }
+                  Irssi::signal_stop;
+                  require_confirmation($text)
+              }
         }
     }
 }
@@ -163,7 +163,7 @@ sub require_confirmation {
 }
 
 sub set_prompt {
-    my $msg = shift;
+    my ($msg) = @_;
     $msg = ': ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
 }
