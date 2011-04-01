@@ -250,15 +250,9 @@ sub print_all_matches {
     #_print("Longtest name: $longest_name");
 }
 
-  sub script_is_loaded {
-      my $name = shift;
-      _debug_print "Checking if $name is loaded";
-      no strict 'refs';
-      my $retval = defined %{ "Irssi::Script::${name}::" };
-      use strict 'refs';
-
-      return $retval;
-  }
+sub script_is_loaded {
+    return exists($Irssi::Script::{shift . '::'});
+}
 
 unless (script_is_loaded('uberprompt')) {
 

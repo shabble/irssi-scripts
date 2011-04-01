@@ -81,13 +81,7 @@ sub DEBUG () { $DEBUG_ENABLED }
 # check we have uberprompt loaded.
 
 sub script_is_loaded {
-    my $name = shift;
-    print "Checking if $name is loaded" if DEBUG;
-    no strict 'refs';
-    my $retval = defined %{ "Irssi::Script::${name}::" };
-    use strict 'refs';
-
-    return $retval;
+    return exists($Irssi::Script::{shift . '::'}) ;
 }
 
 if (not script_is_loaded('uberprompt')) {
@@ -103,7 +97,7 @@ if (not script_is_loaded('uberprompt')) {
     }
     history_init();
 } else {
-   history_init();
+    history_init();
 }
 
 sub load_uberprompt_failed {

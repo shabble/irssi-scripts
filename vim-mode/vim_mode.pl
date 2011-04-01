@@ -615,13 +615,7 @@ my $completion_active = 0;
 my $completion_string = '';
 
 sub script_is_loaded {
-    my $name = shift;
-    print "Checking if $name is loaded" if DEBUG;
-    no strict 'refs';
-    my $retval =  %{ "Irssi::Script::${name}::" };
-    use strict 'refs';
-
-    return $retval;
+    return exists($Irssi::Script::{shift . '::'});
 }
 
 vim_mode_init();

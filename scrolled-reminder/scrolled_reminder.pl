@@ -82,13 +82,7 @@ our %IRSSI =
 # check we have prompt_info loaded.
 
 sub script_is_loaded {
-    my $name = shift;
-    print "Checking if $name is loaded" if DEBUG;
-    no strict 'refs';
-    my $retval = defined %{ "Irssi::Script::${name}::" };
-    use strict 'refs';
-
-    return $retval;
+    return exists($Irssi::Script::{shift . '::'}) ;
 }
 
 unless (script_is_loaded('uberprompt')) {
