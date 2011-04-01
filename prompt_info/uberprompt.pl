@@ -139,8 +139,6 @@
 #    may cause irssi to crash. See bug report at
 #    http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
 #
-# * displaying strings containing braces ( {} ) only displays up to the first {.
-#
 # TODO:
 #
 # * report failure (somehow) to clients if hte prompt is disabled.
@@ -175,7 +173,7 @@ use strict;
 use warnings;
 
 use Irssi;
-use Irssi::TextUI;              # for sbar_items_redraw
+use Irssi::TextUI;
 use Data::Dumper;
 
 { package Irssi::Nick }
@@ -300,7 +298,7 @@ sub init {
     Irssi::expando_create('lbrace', \&exp_lbrace, {});
     Irssi::expando_create('rbrace', \&exp_rbrace, {});
 
-    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_format', '[$*$uber] ');
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
@@ -408,8 +406,7 @@ sub length_request_handler {
 
 sub reload_settings {
 
-    $use_replaces = Irssi::settings_get_bool('uberprompt_use_replaces');
-
+    $use_replaces  = Irssi::settings_get_bool('uberprompt_use_replaces');
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
 
     if (DEBUG) {
@@ -417,7 +414,6 @@ sub reload_settings {
     } else {
         Irssi::signal_remove 'prompt changed', 'debug_prompt_changed';
     }
-
 
     my $new = Irssi::settings_get_str('uberprompt_format');
 
@@ -493,7 +489,7 @@ sub uberprompt_render_prompt {
     }
 
     my $prompt = '';            # rendered content of the prompt.
-    my $theme = Irssi::current_theme;
+    my $theme  = Irssi::current_theme;
 
     my $arg = $use_replaces ? 0 : Irssi::EXPAND_FLAG_IGNORE_REPLACES;
     $prompt = $theme->format_expand("{uberprompt $prompt_arg}", $arg);
@@ -529,7 +525,7 @@ sub uberprompt_render_prompt {
         }
     }
 
-    #_debug_print("Redrawing with: $prompt, size-only: $get_size_only");
+    _debug_print("rendering with: $prompt");
 
 
     if (($prompt ne $prompt_last) or $emit_request) {
@@ -550,7 +546,7 @@ sub uberprompt_draw {
     my $prompt = uberprompt_render_prompt();
 
     my $ret = $sb_item->default_handler($get_size_only, $prompt, '', 0);
-
+    _debug_print("redrawing with: $prompt");
     return $ret;
 }
 
