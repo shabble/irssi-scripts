@@ -285,7 +285,9 @@ sub exp_lbrace() { '{' }
 sub exp_rbrace() { '}' }
 
 sub deinit {
-    Irssi::expando_destroy('brace');
+    Irssi::expando_destroy('lbrace');
+    Irssi::expando_destroy('rbrace');
+
     # remove uberprompt and return the original ones.
     print "Removing uberprompt and restoring original";
     restore_prompt_items();
@@ -472,8 +474,8 @@ sub _escape_prompt_special {
     $str =~ s/\$/\$\$/g;
     $str =~ s/\\/\\\\/g;
     #$str =~ s/%/%%/g;
-    $str =~ s/{/\$lbrace/g;
-    $str =~ s/}/\$rbrace/g;
+    $str =~ s/{/\${lbrace}/g;
+    $str =~ s/}/\${rbrace}/g;
 
     return $str;
 }
