@@ -145,6 +145,8 @@
 #    may cause irssi to crash. See bug report at
 #    http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
 #
+# * displaying strings containing braces ( {} ) only displays up to the first {.
+#
 # TODO:
 #
 # * report failure (somehow) to clients if hte prompt is disabled.
