@@ -71,7 +71,6 @@ sub extract_nick {
                      $completion_char/x;     # followed by completion char.
 
     if ($str =~ m/$pattern/) {
-        print "Matched: $1";
         return $1;
     } else {
         return undef;
