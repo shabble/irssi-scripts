@@ -251,7 +251,7 @@ sub print_all_matches {
 }
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{shift . '::'});
+    return exists($Irssi::Script::{$_[0] . '::'});
 }
 
 unless (script_is_loaded('uberprompt')) {

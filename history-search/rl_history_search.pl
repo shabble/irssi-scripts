@@ -81,7 +81,7 @@ sub DEBUG () { $DEBUG_ENABLED }
 # check we have uberprompt loaded.
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{shift . '::'}) ;
+    return exists($Irssi::Script::{$_[0] . '::'}) ;
 }
 
 if (not script_is_loaded('uberprompt')) {

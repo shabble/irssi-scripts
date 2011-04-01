@@ -24,7 +24,7 @@ my $pending_input = {};
 
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{shift . '::'});
+    return exists($Irssi::Script::{$_[0] . '::'});
 }
 
 if (script_is_loaded('uberprompt')) {
