@@ -1,0 +1,226 @@
+From 73f47425b315285b7c6576706f8892675e6d81d4 Mon Sep 17 00:00:00 2001
+From: Tom Feist <shabble@metavore.org>
+Date: Wed, 6 Apr 2011 22:37:22 +0100
+Subject: [PATCH 1/2] attempting to move binding API to separate xs file
+
+---
+ src/perl/Makefile.am    |    1 +
+ src/perl/ui/Bindings.xs |  109 +++++++++++++++++++++++++++++++++++++++++++++++
+ src/perl/ui/module.h    |    1 +
+ 3 files changed, 111 insertions(+), 0 deletions(-)
+ create mode 100644 src/perl/ui/Bindings.xs
+
+diff --git a/src/perl/Makefile.am b/src/perl/Makefile.am
+index 909f4a8..1091df4 100644
+--- a/src/perl/Makefile.am
++++ b/src/perl/Makefile.am
+@@ -100,6 +100,7 @@ ui_sources = \
+ 	ui/Formats.xs \
+ 	ui/Themes.xs \
+ 	ui/Window.xs \
++	ui//Bindings.xs \
+ 	ui/Makefile.PL.in \
+ 	ui/typemap \
+ 	ui/module.h
+diff --git a/src/perl/ui/Bindings.xs b/src/perl/ui/Bindings.xs
+new file mode 100644
+index 0000000..6522377
+--- /dev/null
++++ b/src/perl/ui/Bindings.xs
+@@ -0,0 +1,109 @@
++#include "module.h"
++
++void populate_binding_array(AV *value_array, KEY_REC *key_rec) {
++    char *kinfo = key_rec->info->id;
++    char *kdata = key_rec->data;
++
++    /* store info, or undef if it's null */
++      av_push(value_array, kinfo != NULL
++              ? newSVpv(kinfo, strlen(kinfo))
++              : newSV(0));
++
++    /* ditto data */
++      av_push(value_array, kdata != NULL
++              ? newSVpv(kdata, strlen(kdata))
++              : newSV(0));
++}
++
++MODULE = Irssi::UI  PACKAGE = Irssi
++
++PROTOTYPES: ENABLE
++
++HV*
++bindings()
++PREINIT:
++    GSList *info;
++    GSList  *key;
++CODE:
++
++    RETVAL = newHV();
++    sv_2mortal((SV*)RETVAL);
++
++    /* loop stolen from keyboard.c#cmd_show_keys */
++
++    for (info = keyinfos; info != NULL; info = info->next) {
++        KEYINFO_REC *rec = info->data;
++		for (key = rec->keys; key != NULL; key = key->next) {
++			KEY_REC *key_rec = key->data;
++
++            /* return value { key => [ info, data ] } */
++            AV* value_array = newAV();
++
++            populate_binding_array(value_array, key_rec);
++
++            /* wedge it all into a reference so we can use it in the hash */
++            SV* value_ref = newRV_noinc((SV*)value_array);
++
++            /* and finally, set up the hash */
++            hv_store(RETVAL, key_rec->key, strlen(key_rec->key),
++                     value_ref, 0);
++		}
++    }
++OUTPUT:
++    RETVAL
++
++SV*
++binding_add(key, function, data)
++char *key
++char *function
++char *data
++CODE:
++
++    if (key_info_find(function) == NULL)
++        RETVAL = &PL_sv_no;
++	else {
++        key_configure_add(function, key, data);
++        RETVAL = &PL_sv_yes;
++    }
++OUTPUT:
++   RETVAL
++
++AV*
++binding_find(searchkey)
++char *searchkey
++PREINIT:
++    GSList *info, *key;
++    int    len;
++    int    done = 0;
++CODE:
++    RETVAL = newAV();
++    sv_2mortal((SV*)RETVAL);
++
++    len = searchkey == NULL ? 0 : strlen(searchkey);
++
++    for (info = keyinfos; info != NULL; info = info->next) {
++        KEYINFO_REC *rec = info->data;
++
++        for (key = rec->keys; key != NULL; key = key->next) {
++            KEY_REC *key_rec = key->data;
++
++            if (strlen(key_rec->key) != len) {
++                continue;
++            }
++
++            if (g_strncasecmp(key_rec->key, searchkey, len) == 0) {
++                populate_binding_array(RETVAL, key_rec);
++                done = 1;
++                break;
++            }
++        }
++        if (done) { break; }
++    }
++OUTPUT:
++   RETVAL
++
++void
++binding_remove(key)
++char *key
++CODE:
++    key_configure_remove(key);
+diff --git a/src/perl/ui/module.h b/src/perl/ui/module.h
+index 3177503..d48a6d8 100644
+--- a/src/perl/ui/module.h
++++ b/src/perl/ui/module.h
+@@ -12,3 +12,4 @@ typedef WINDOW_REC *Irssi__UI__Window;
+ typedef TEXT_DEST_REC *Irssi__UI__TextDest;
+ typedef THEME_REC *Irssi__UI__Theme;
+ typedef KEYINFO_REC *Irssi__UI__Keyinfo;
++typedef KEY_REC *Irssi__UI__Key;
+-- 
+1.7.4.2
+
+
+From 16dc3266a8931ccf45978428882f6f21ff5c39ca Mon Sep 17 00:00:00 2001
+From: Tom Feist <shabble@metavore.org>
+Date: Thu, 7 Apr 2011 00:24:37 +0100
+Subject: [PATCH 2/2] bindings: working as separate xs files.
+
+---
+ src/perl/Makefile.am    |    2 +-
+ src/perl/ui/Bindings.xs |    7 ++-----
+ src/perl/ui/UI.xs       |    1 +
+ 3 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/src/perl/Makefile.am b/src/perl/Makefile.am
+index 1091df4..d0850d3 100644
+--- a/src/perl/Makefile.am
++++ b/src/perl/Makefile.am
+@@ -100,7 +100,7 @@ ui_sources = \
+ 	ui/Formats.xs \
+ 	ui/Themes.xs \
+ 	ui/Window.xs \
+-	ui//Bindings.xs \
++	ui/Bindings.xs \
+ 	ui/Makefile.PL.in \
+ 	ui/typemap \
+ 	ui/module.h
+diff --git a/src/perl/ui/Bindings.xs b/src/perl/ui/Bindings.xs
+index 6522377..6c7037c 100644
+--- a/src/perl/ui/Bindings.xs
++++ b/src/perl/ui/Bindings.xs
+@@ -1,6 +1,6 @@
+ #include "module.h"
+ 
+-void populate_binding_array(AV *value_array, KEY_REC *key_rec) {
++static void populate_binding_array(AV *value_array, KEY_REC *key_rec) {
+     char *kinfo = key_rec->info->id;
+     char *kdata = key_rec->data;
+ 
+@@ -15,8 +15,7 @@ void populate_binding_array(AV *value_array, KEY_REC *key_rec) {
+               : newSV(0));
+ }
+ 
+-MODULE = Irssi::UI  PACKAGE = Irssi
+-
++MODULE = Irssi::UI::Bindings  PACKAGE = Irssi
+ PROTOTYPES: ENABLE
+ 
+ HV*
+@@ -25,7 +24,6 @@ PREINIT:
+     GSList *info;
+     GSList  *key;
+ CODE:
+-
+     RETVAL = newHV();
+     sv_2mortal((SV*)RETVAL);
+ 
+@@ -58,7 +56,6 @@ char *key
+ char *function
+ char *data
+ CODE:
+-
+     if (key_info_find(function) == NULL)
+         RETVAL = &PL_sv_no;
+ 	else {
+diff --git a/src/perl/ui/UI.xs b/src/perl/ui/UI.xs
+index d8c7f7a..87b14ae 100644
+--- a/src/perl/ui/UI.xs
++++ b/src/perl/ui/UI.xs
+@@ -106,3 +106,4 @@ BOOT:
+ 	irssi_boot(UI__Formats);
+ 	irssi_boot(UI__Themes);
+ 	irssi_boot(UI__Window);
++    irssi_boot(UI__Bindings);
+-- 
+1.7.4.2
+
