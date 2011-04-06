@@ -60,6 +60,8 @@
 #
 # Ex-mode supports (activated by : in command mode) the following commands:
 #
+# * Command History:   <uparrow>, <downarrow>
+#                      :eh       - show ex history
 # * Switching buffers: :[N]b [N] - switch to channel number
 #                      :b#       - switch to last channel
 #                      :b <partial-channel-name>
@@ -115,10 +117,16 @@
 # (prepend vim_mode_ to setting name) or using the :set ex-command. The
 # following settings are available:
 #
-# * utf8: support UTF-8 characters, boolean, default on
-# * debug: enable debug output, boolean, default off
-# * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
-# * start_cmd: start every line in command mode, boolean, default off
+# * utf8:                 support UTF-8 characters, boolean, default on
+# * debug:                enable debug output, boolean, default off
+# * cmd_seq:              char that when double-pressed simulates <esc>,
+#                         string, default ''
+# * start_cmd:            start every line in command mode, boolean, default off
+# * max_undo_lines:       size of the undo buffer. Integer, default 50 items.
+# * ex_history_size:      number of items stored in the ex-mode history.
+#                         Integer, default 100.
+# * prompt_leading_space: determines whether ex mode prepends a space to the
+#                         displayed input. Boolean, default on
 #
 # In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
 # settings, but only vim_mode's settings can be set/displayed.
@@ -150,8 +158,8 @@
 #
 # Installation:
 #
-# As always copy the script into .irssi/scripts and load it with
-#     /script load # vim_mode.pl
+# As always, copy the script into .irssi/scripts and load it with
+#     /script load vim_mode.pl
 #
 # Use the following command to get a statusbar item that shows which mode
 # you're in.
@@ -165,7 +173,7 @@
 #
 # Dependencies:
 #
-# For proper :ex mode support, requires the installation of uberprompt.pl
+# For proper :ex mode support, vim-mode requires the installation of uberprompt.pl
 # Uberprompt can be downloaded from:
 #
 # http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
@@ -208,6 +216,7 @@
 #
 # * estragib: a lot of testing and many bug reports and feature requests
 # * iaj: testing
+# * tmr: explaining how various bits of vim work
 #
 # LICENCE:
 #
