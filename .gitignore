@@ -2,3 +2,4 @@
 /nightfrog
 /modules/*/*.so
 /modules/*/*.o
+/vim-mode/TAGS
