@@ -319,19 +319,19 @@ my $commands
             repeatable => 1 },
 
      # arrow like movement
-      h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
-      l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     h      => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
+     l      => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
      "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
-     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
-             no_operator => 1 },
-     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
-             no_operator => 1 },
-     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
-             no_operator => 1 },
-     G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
-             needs_count => 1, no_operator => 1 },
+     j      => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
+                 no_operator => 1 },
+     k      => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
+                 no_operator => 1 },
+     gg     => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
+                 no_operator => 1 },
+     G      => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
+                 needs_count => 1, no_operator => 1 },
      # char movement, take an additional parameter and use $movement
       f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
               selection_needs_move_right => 1 },
@@ -354,11 +354,11 @@ my $commands
      gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
              selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => 'i', func => \&cmd__i, type => C_TEXTOBJECT },
-     _a => { char => 'a', func => \&cmd__a, type => C_TEXTOBJECT },
+     _i => { char => 'i', func => \&cmd__i,      type => C_TEXTOBJECT },
+     _a => { char => 'a', func => \&cmd__a,      type => C_TEXTOBJECT },
      # line movement
-     '0' => { char => '0', func => \&cmd_0, type => C_NORMAL },
-     '^' => { char => '^', func => \&cmd_caret, type => C_NORMAL },
+     '0' => { char => '0', func => \&cmd_0,      type => C_NORMAL },
+     '^' => { char => '^', func => \&cmd_caret,  type => C_NORMAL },
      '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
      # delete chars
      x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
@@ -433,7 +433,7 @@ my $commands
 my $commands_ex
   = {
      # arrow keys - not actually used, see handle_input_buffer()
-
+     # TODO: make these work.
      "\e[A"    => { char => ':exprev',    func => \&ex_history_back,
                     type => C_EX },
      "\e[B"    => { char => ':exnext',    func => \&ex_history_fwd,
@@ -517,6 +517,16 @@ my $commands_ex
 
 # default command mode mappings
 my $maps = {};
+
+# current imap still pending (first character entered)
+my $imap = undef;
+
+# maps for insert mode
+my $imaps
+  = {
+     # CTRL-R, insert register
+     "\x12" => { map  => undef, func => \&insert_ctrl_r },
+    };
 
 
 # GLOBAL VARIABLES
@@ -604,19 +614,6 @@ my $registers
      '*' => '', # same
      '_' => '', # black hole register, always empty
     };
-foreach my $char ('a' .. 'z') {
-    $registers->{$char} = '';
-}
-
-# current imap still pending (first character entered)
-my $imap = undef;
-
-# maps for insert mode
-my $imaps
-  = {
-     # CTRL-R, insert register
-     "\x12" => { map  => undef, func => \&insert_ctrl_r },
-    };
 
 # index into the history list (for j,k)
 my $history_index = undef;
@@ -647,8 +644,10 @@ sub script_is_loaded {
 
 sub insert_ctrl_r {
     my ($key) = @_;
-
+    _debug("ctrl-r called");
     my $char = chr($key);
+    _debug("ctrl-r called with $char");
+
     return if not defined $registers->{$char} or $registers->{$char} eq '';
 
     my $pos = _insert_at_position($registers->{$char}, 1, _input_pos());
@@ -2338,8 +2337,10 @@ sub got_key {
         $input_buf_timer
           = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
         print "Buffer Timer tag: $input_buf_timer" if DEBUG;
-    } elsif ($mode == M_INS or $mode == M_EX) {
-        if ($key == 3) { # Ctrl-C enters command mode, or cancels ex mode.
+
+    } elsif ($mode == M_INS) {
+
+        if ($key == 3) { # Ctrl-C enters command mode
             _update_mode(M_CMD);
             _stop();
             return;
@@ -2399,6 +2400,13 @@ sub got_key {
         Irssi::statusbar_items_redraw("vim_mode");
 
     } elsif ($mode == M_EX) {
+
+        if ($key == 3) { # C-c cancels Ex mdoe as well.
+            _update_mode(M_CMD);
+            _stop();
+            return;
+        }
+
         handle_command_ex($key);
     }
 }
@@ -2833,12 +2841,16 @@ sub _tab_complete {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
-    Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+    Irssi::statusbar_item_register ('vim_mode',    0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
     # Register all available settings.
     foreach my $name (keys %$settings) {
         _setting_register($name);
+    }
+
+    foreach my $char ('a' .. 'z') {
+        $registers->{$char} = '';
     }
 
     setup_changed();
@@ -2859,6 +2871,8 @@ sub vim_mode_init {
 
     if ($settings->{start_cmd}->{value}) {
         _update_mode(M_CMD);
+    } else {
+        _update_mode(M_INS);
     }
 }
 
