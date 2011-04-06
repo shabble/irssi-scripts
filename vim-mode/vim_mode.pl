@@ -499,11 +499,6 @@ my $commands_ex
 # default command mode mappings
 my $maps = {};
 
-# Add all default mappings.
-foreach my $char (keys %$commands) {
-    next if $char =~ /^_/; # skip private commands (text-objects for now)
-    add_map($char, $commands->{$char});
-}
 
 # GLOBAL VARIABLES
 
@@ -618,7 +613,7 @@ sub script_is_loaded {
     return exists($Irssi::Script::{shift . '::'});
 }
 
-vim_mode_init();
+
 
 
 # INSERT MODE COMMANDS
@@ -2782,13 +2777,22 @@ sub _tab_complete {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
-    Irssi::signal_add 'setup changed' => \&setup_changed;
     Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
     # Register all available settings.
     foreach my $name (keys %$settings) {
         _setting_register($name);
+    }
+
+    setup_changed();
+
+    Irssi::signal_add 'setup changed' => \&setup_changed;
+
+    # Add all default mappings.
+    foreach my $char (keys %$commands) {
+        next if $char =~ /^_/; # skip private commands (text-objects for now)
+        add_map($char, $commands->{$char});
     }
 
     # Load the vim_moderc file if it exists.
@@ -3220,3 +3224,5 @@ sub _command_with_context {
         Irssi::command($command);
     }
 }
+
+vim_mode_init();
