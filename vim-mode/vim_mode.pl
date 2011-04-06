@@ -423,6 +423,16 @@ my $commands
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
+     # arrow keys - not actually used, see handle_input_buffer()
+
+     "\e[A"    => { char => ':exprev',    func => \&ex_history_back,
+                    type => C_EX },
+     "\e[B"    => { char => ':exnext',    func => \&ex_history_fwd,
+                    type => C_EX },
+
+     # normal Ex mode commands.
+     eh        => { char => ':exhist',    func => \&ex_history_show,
+                    type => C_EX },
      s         => { char => ':s',         func => \&ex_substitute,
                     type => C_EX },
      bnext     => { char => ':bnext',     func => \&ex_bnext,
@@ -515,6 +525,8 @@ my $settings
      start_cmd      => { type => S_BOOL, value => 0 },
      # not used yet
      max_undo_lines => { type => S_INT,  value => 50 },
+     # size of history buffer for Ex mode.
+     ex_history_size => { type => S_INT, value => 100 },
      # prompt_leading_space
      prompt_leading_space => { type => S_BOOL, value => 1 },
     };
@@ -535,6 +547,10 @@ my $should_ignore = 0;
 
 # ex mode buffer
 my @ex_buf;
+
+# ex mode history storage.
+my @ex_history;
+my $ex_history_index = 0;
 
 # we are waiting for another mapped key (e.g. g pressed, but there are
 # multiple mappings like gg gE etc.)
@@ -1629,6 +1645,10 @@ sub cmd_ex_command {
         return _warn("Ex-mode $1$2 doesn't exist!");
     }
 
+    # add this item to the ex mode history
+    ex_history_add($arg_str);
+    $ex_history_index = 0; # and reset the history position.
+
     my $count = $1;
     if ($count eq '') {
         $count = undef;
@@ -2378,20 +2398,33 @@ sub handle_input_buffer {
         _update_mode(M_CMD);
 
     } else {
-        # we need to identify what we got, and either replay it
-        # or pass it off to the command handler.
-        # if ($mode == M_CMD) {
-        #     # command
-        #     my $key_str = join '', map { chr } @input_buf;
-        #     if ($key_str =~ m/^\e\[([ABCD])/) {
-        #         print "Arrow key: $1" if DEBUG;
-        #     } else {
-        #         print "Dunno what that is." if DEBUG;
-        #     }
-        # } else {
-        #     _emulate_keystrokes(@input_buf);
-        # }
-        _emulate_keystrokes(@input_buf);
+        # we have more than a single esc, implying an escape sequence
+        # (meta-* or esc-*)
+
+        # currently, we only extract escape sequences if:
+        # a) we're in ex mode
+        # b) they're arrow keys (for history control)
+
+        if ($mode == M_EX) {
+            # ex mode
+            my $key_str = join '', map { chr } @input_buf;
+            if ($key_str =~ m/^\e\[([ABCD])/) {
+                my $arrow = $1;
+                _debug( "Arrow key: $arrow");
+                if ($arrow eq 'A') { # up
+                    ex_history_back();
+                } elsif ($arrow eq 'B') { # down
+                    ex_history_fwd();
+                } else {
+                    $arrow =~ s/C/right/;
+                    $arrow =~ s/D/left/;
+                    _debug("Arrow key $arrow not supported");
+                }
+            }
+        } else {
+            # otherwise, we just forward them to irssi.
+            _emulate_keystrokes(@input_buf);
+        }
 
         # Clear insert buffer, pressing "special" keys (like arrow keys)
         # resets it.
@@ -2729,7 +2762,7 @@ sub handle_command_ex {
     # DEL key - remove last character
     if ($key == 127) {
         print "Delete" if DEBUG;
-        if (scalar @ex_buf > 0) {
+        if (@ex_buf > 0) {
             pop @ex_buf;
             _set_prompt(':' . join '', @ex_buf);
         # Backspacing over : exits ex-mode.
@@ -2749,12 +2782,15 @@ sub handle_command_ex {
         @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
 
     # Ignore control characters for now.
-    } elsif ($key < 32) {
+    } elsif ($key > 0 && $key < 32) {
         # TODO: use them later, e.g. completion
 
     # Append entered key
     } else {
-        push @ex_buf, chr $key;
+        if ($key != -1) {
+            # check we're not called from an ex_history_* function
+            push @ex_buf, chr $key;
+        }
         _set_prompt(':' . join '', @ex_buf);
     }
 
@@ -3199,6 +3235,14 @@ sub _warn {
     print '%_vim_mode: ', $warning, '%_';
 }
 
+sub _debug {
+    return unless DEBUG;
+
+    my ($format, @args) = @_;
+    my $str = sprintf($format, @args);
+    print $str;
+}
+
 sub _command_with_context {
     my ($command) = @_;
     my $context;
@@ -3225,4 +3269,70 @@ sub _command_with_context {
     }
 }
 
+sub ex_history_add {
+    my ($line) = @_;
+
+    # check it's not an exact dupe of the previous history line
+
+    my $last_hist = $ex_history[$ex_history_index];
+    $last_hist = '' unless defined $last_hist;
+
+    return if $last_hist eq $line;
+
+    _debug("Adding $line to ex command history");
+
+    # add it to the history
+    unshift @ex_history, $line;
+
+    if ($settings->{ex_history_size}->{value} < @ex_history) {
+        pop @ex_history; # junk the last entry if we've hit the max.
+    }
+}
+
+sub ex_history_fwd {
+
+    my $hist_max = $#ex_history;
+    $ex_history_index++;
+    if ($ex_history_index > $hist_max) {
+        $ex_history_index = 0;
+        _debug("ex history hit top, wrapping to 0");
+    }
+
+    my $line = $ex_history[$ex_history_index];
+    $line = '' if not defined $line;
+
+    _debug("Ex history line: $line");
+
+    @ex_buf = split '', $line;
+    handle_command_ex(-1);
+}
+
+sub ex_history_back {
+    my $hist_max = $#ex_history;
+    $ex_history_index--;
+    if ($ex_history_index == -1) {
+        $ex_history_index = $hist_max;
+        _debug("ex history hit bottom, wrapping to $hist_max");
+
+    }
+
+    my $line = $ex_history[$ex_history_index];
+    $line = '' if not defined $line;
+
+    _debug("Ex history line: $line");
+    @ex_buf = split '', $line;
+    handle_command_ex(-1);
+
+}
+
+sub ex_history_show {
+    my $win = Irssi::active_win();
+    $win->print("Ex command history:");
+    for my $i (0 .. $#ex_history) {
+        my $flag = $i == $ex_history_index
+          ? ' <'
+          : '';
+        $win->print("$i " . $ex_history[$i] . $flag);
+    }
+}
 vim_mode_init();
