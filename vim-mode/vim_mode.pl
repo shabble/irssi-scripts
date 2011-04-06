@@ -267,24 +267,24 @@ sub M_CMD () { 1 }
 # insert mode
 sub M_INS () { 0 }
 # extended mode (after a :?)
-sub M_EX () { 2 }
+sub M_EX  () { 2 }
 
 # operator command
-sub C_OPERATOR () { 0 }
+sub C_OPERATOR   () { 0 }
 # normal command, no special handling necessary
-sub C_NORMAL () { 1 }
+sub C_NORMAL     () { 1 }
 # command taking another key as argument
-sub C_NEEDSKEY () { 2 }
+sub C_NEEDSKEY   () { 2 }
 # text-object command (i a)
 sub C_TEXTOBJECT () { 3 }
 # commands entering insert mode
-sub C_INSERT () { 4 }
+sub C_INSERT     () { 4 }
 # ex-mode commands
-sub C_EX () { 5 }
+sub C_EX         () { 5 }
 # irssi commands
-sub C_IRSSI () { 6 }
+sub C_IRSSI      () { 6 }
 # does nothing
-sub C_NOP () { 7 }
+sub C_NOP        () { 7 }
 
 # setting types, match irssi types as they are stored as irssi settings
 sub S_BOOL () { 0 }
