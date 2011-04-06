@@ -538,6 +538,8 @@ my $settings
      ex_history_size => { type => S_INT, value => 100 },
      # prompt_leading_space
      prompt_leading_space => { type => S_BOOL, value => 1 },
+     # <Leader> value for prepending to commands.
+     map_leader     => { type => S_STR,  value => '\\' },
     };
 
 sub DEBUG { $settings->{debug}->{value} }
@@ -2040,6 +2042,7 @@ sub _parse_mapping {
     my ($string) = @_;
 
     $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
+    _warn("Parse mapping: $string");
     if (index($string, '<invalid>') != -1) {
         return undef;
     }
@@ -2065,6 +2068,8 @@ sub _parse_mapping_bracket {
     # <BS>
     } elsif ($string eq 'bs') {
         $string = chr(127);
+    } elsif ($string eq 'leader') {
+        $string = $settings->{map_leader}->{value};
     # Invalid char, return special string to recognize the error.
     } else {
         $string = '<invalid>';
@@ -2073,6 +2078,9 @@ sub _parse_mapping_bracket {
 }
 sub _parse_mapping_reverse {
     my ($string) = @_;
+
+    my $escaped_leader = quotemeta($settings->{map_leader}->{value});
+    $string =~ s/$escaped_leader/<Leader>/g;
 
     # Convert char to <char-name>.
     $string =~ s/ /<Space>/g;
@@ -2087,6 +2095,9 @@ sub _parse_mapping_reverse {
 }
 sub _parse_partial_command_reverse {
     my ($string) = @_;
+
+    my $escaped_leader = quotemeta($settings->{map_leader}->{value});
+    $string =~ s/$escaped_leader/<Leader>/g;
 
     # Convert Ctrl-X to ^X.
     $string =~ s/([\x01-\x1A])/"^" . chr(ord($1) + 64)/ge;
@@ -2327,8 +2338,8 @@ sub got_key {
         $input_buf_timer
           = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
         print "Buffer Timer tag: $input_buf_timer" if DEBUG;
-    } elsif ($mode == M_INS) {
-        if ($key == 3) { # Ctrl-C enter command mode
+    } elsif ($mode == M_INS or $mode == M_EX) {
+        if ($key == 3) { # Ctrl-C enters command mode, or cancels ex mode.
             _update_mode(M_CMD);
             _stop();
             return;
@@ -3032,7 +3043,7 @@ sub delete_map {
     }
     push @add, $keys;
 
-    # Restore default keybindings in case we :unmaped a <Nop> or a remapped
+    # Restore default keybindings in case we :unmapped a <Nop> or a remapped
     # key.
     foreach my $key (@add) {
         if (exists $commands->{$key}) {
