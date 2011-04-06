@@ -27,8 +27,9 @@ my @regions;
 
 my ($term_w, $term_h) = (0, 0);
 
-my $key_capture = 0;
+my $overlay_active = 0;
 my $prompt_len = 5;
+my $region_id = 0;
 
 sub DEBUG () { 1 }
 
@@ -54,6 +55,16 @@ sub update_terminal_size {
     }
 
     print "Terminal detected as $term_w cols by $term_h rows" if DEBUG;
+}
+
+sub find_region {
+    my ($pos) = @_;
+    foreach my $region (@regions) {
+        next unless $pos > $region->{start};
+        return $region if $pos <= $region->{end};
+    }
+    print "failed to find region for pos: $pos";
+    return undef;
 }
 
 sub redraw_overlay {
@@ -90,55 +101,25 @@ sub intercept_keypress {
 
 }
 
-sub new_region {
-    my $key = shift;
-    print "Creating new Region";
-    my $new_region
-      = {
-         text  => '',
-         start => _pos() -1,
-         style => '%_',
-         open  => 1,
-         draw  => 1,
-        };
-
-    insert_into_region($key, $new_region);
-
-    push @regions, $new_region;
-}
-
-sub insert_into_region {
-    my ($key, $region) = @_;
-
-    # if ($key == 127) { # backspace
-    #     substr($region->{text}, -1, 1) = '';
-    # } else {
-    #     $region->{text} .= chr $key;
-    # }
-    my $input = Irssi::parse_special('$L');
-    my $len = _pos() - $region->{start};
-#    print "Input: $input, len: $len" if DEBUG;
-
-    my $str = substr($input, $region->{start} , $len);
-#    print "Str: $str" if DEBUG;
-    $region->{text} = $str;
-
- #   printf("region [%d-%d] now contains '%s'",
- #          $region->{start}, _pos(),
- #          $region->{text}) if DEBUG;
-}
-
 sub observe_keypress {
     my $key = shift;
-    if ($key_capture && $key > 31 && $key <= 127) {
+    print "Key " . chr ($key) . " pressed, pos: " . _pos();
+    if ($key > 31 && $key <= 127) {
         # see if we're still appending to the last region:
         #print "Observed printable key: " . chr($key) if DEBUG;
         #print '';
         my $latest_region = $regions[-1];
         $latest_region = {} unless defined $latest_region;
 
-        if (not $latest_region->{open}) {
-            new_region($key);
+
+        my $pos = _pos();
+        my $reg = find_region($pos);
+
+        if (defined $reg) {
+            insert_into_region($key, $reg);
+        } elsif (not $latest_region->{open}) {
+            my $style = $overlay_active?'%_':'';
+            new_region($style, $key);
         } else {
             insert_into_region($key, $latest_region);
         }
@@ -148,6 +129,7 @@ sub observe_keypress {
         redraw_overlay();
     }
 }
+
 sub init {
 
     die "This script requires uberprompt.pl"
@@ -160,8 +142,7 @@ sub init {
     Irssi::signal_add      ('terminal resized',        \&update_terminal_size);
     Irssi::signal_add_first('gui print text finished', \&augment_redraw);
 
-    Irssi::command_bind('region_start', \&region_toggle);
-    Irssi::command('/bind ^C /region_start');
+    setup_bindings();
 
     Irssi::signal_add('prompt changed', sub {
                           print "Updated prompt length: $_[1]";
@@ -173,22 +154,119 @@ sub init {
     update_terminal_size();
 }
 
+sub setup_bindings {
+
+    Irssi::command_bind('region_start', \&region_toggle);
+    Irssi::command_bind('region_clear', \&region_clear);
+    Irssi::command_bind('region_print', \&print_regions);
+
+
+    Irssi::command('/bind ^C /region_start');
+    ##Irssi::command('/bind ^D /region_clear');
+    Irssi::command('/bind ^D /region_print');
+
+}
+
+
+################################################################################
+
+sub escape_style {
+    my ($style) = @_;
+    $style =~ s/%/%%/g;
+
+    return $style;
+}
+
+sub print_regions {
+    foreach my $reg (@regions) {
+        printf("start: %d end: %d style: %s, text: \"%s\", open: %d, draw: %d",
+               $reg->{start}, $reg->{end}, escape_style($reg->{style}),
+               $reg->{text},  $reg->{open}, $reg->{draw});
+    }
+}
+
+sub new_region {
+    my ($style, $key) = @_;
+
+    my $new_id = $region_id++;
+    _debug("Creating new Region: $new_id");
+
+    my $new_region
+      = {
+         id    => $region_id++,
+         text  => '',
+         start => _pos(),
+         end   => _pos(),
+         style => $style,
+         open  => 1,
+         draw  => 1,
+        };
+
+    insert_into_region($key, $new_region);
+
+    push @regions, $new_region;
+}
+
+sub delete_region {
+    my ($region) = @_;
+    my $idx = 0;
+    foreach my $i (0..$#regions) {
+        if ($regions[$i]->{id} == $region->{id}) {
+            $idx = $i;
+            last;
+        }
+    }
+    print "Deleting region: $idx";
+    splice(@regions, $idx, 1); # remove the selected region.
+}
+
+sub insert_into_region {
+    my ($key, $region) = @_;
+
+    my $pos = _pos();
+
+    if ($key == 127) { # backspace
+        substr($region->{text}, -1, 1) = '';
+        $region->{end}--;
+        if ($region->{end} <= $region->{start}) {
+            delete_region($region);
+        }
+    } else {
+        printf("text: '%s', pos: %d, offset: %d",
+               $region->{text}, $pos, $pos - $region->{start});
+        if ( $region->{end} < $pos) {
+            $region->{text} .= chr $key;
+        } else {
+            substr($region->{text}, $pos - $region->{start}, 0) = chr $key;
+        }
+        $region->{end}++;
+    }
+}
+
+sub region_clear {
+    @regions = ();
+    Irssi::signal_emit('command redraw');
+}
+
 sub region_toggle {
-    $key_capture = not $key_capture;
-    printf("Region is %sactive", $key_capture?'':'in');
+    $overlay_active = not $overlay_active;
+    _debug("Region is %sactive", $overlay_active?'':'in');
     #@regions = ();
     # terminate the previous region
-    my $latest_region = $regions[-1];
-    if (defined $latest_region) {
-        $latest_region->{open} = 0;
+
+    my $region = find_region(_pos());
+    if (defined $region) {
+        $region->{open} = 0;
+        $region->{end}  = _pos();
+        debug("Region closed: %d-%d", $region->{start}, $region->{end});
     }
 }
 
 sub script_is_loaded {
     my $name = shift;
-    print "Checking if $name is loaded" if DEBUG;
+    _debug("Checking if $name is loaded");
     no strict 'refs';
-    my $retval = defined %{ "Irssi::Script::${name}::" };
+    my $retval =  %{ "Irssi::Script::${name}::" };
     use strict 'refs';
 
     return $retval;
@@ -196,6 +274,14 @@ sub script_is_loaded {
 
 sub _pos {
     return Irssi::gui_input_get_pos();
+}
+
+sub _input {
+    return Irssi::parse_special('$L');
+}
+
+sub _debug {
+    printf @_ if DEBUG();
 }
 
 init();
