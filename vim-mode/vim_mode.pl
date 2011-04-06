@@ -626,7 +626,7 @@ my $completion_active = 0;
 my $completion_string = '';
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{shift . '::'});
+    return exists($Irssi::Script::{shift(@_) . '::'});
 }
 
 
