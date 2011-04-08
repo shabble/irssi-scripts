@@ -2074,6 +2074,10 @@ sub _parse_mapping_bracket {
 sub _parse_mapping_reverse {
     my ($string) = @_;
 
+    if (not defined $string) {
+        _warn("Unable to reverse-map command: " . join('', @ex_buf));
+        return;
+    }
     # Convert char to <char-name>.
     $string =~ s/ /<Space>/g;
     $string =~ s/\n/<CR>/g;
@@ -2789,7 +2793,11 @@ sub handle_command_ex {
         print "Tab pressed" if DEBUG;
         print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
         @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
-
+        _debug("Candidates: " . join(", ", @tab_candidates));
+        if (@tab_candidates == 1) {
+            @ex_buf = ( split('', $tab_candidates[0]), ' ');
+            _set_prompt(':' . join '', @ex_buf);
+        }
     # Ignore control characters for now.
     } elsif ($key > 0 && $key < 32) {
         # TODO: use them later, e.g. completion
