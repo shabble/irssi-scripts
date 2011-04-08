@@ -91,7 +91,7 @@ sub sig_send_text {
     if ($target_nick) {
         if (not $witem->nick_find($target_nick)) {
 
-            return if $target_nick =~ m/^https?/i;
+            return if $target_nick =~ m/^(?:https?)|ftp/i;
 
               if ($permit_pending) {
 
