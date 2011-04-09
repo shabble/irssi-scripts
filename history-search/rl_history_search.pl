@@ -78,6 +78,11 @@ my $match_index = 0;
 my $split_ref;
 my $original_win_ref;
 
+# formats
+my $list_format;
+
+my $use_flex_match = 1;
+
 my $DEBUG_ENABLED = 0;
 sub DEBUG () { $DEBUG_ENABLED }
 
@@ -121,6 +126,7 @@ sub history_init {
     Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
 
+    $list_format = Irssi::theme_register([ list_format => '$*' ]);
     setup_changed();
 }
 
@@ -158,7 +164,13 @@ sub update_history_matches {
     $match_str = $search_str unless defined $match_str;
 
     my %unique;
-    my @matches = grep { m/\Q$match_str/i } @history_cache;
+    my @matches;
+
+    if ($use_flex_match) {
+        @matches = grep { flex_match($_) >= 0 } @history_cache;
+    } else {
+        @matches = grep { m/\Q$match_str/i } @history_cache;
+    }
 
     @search_matches = ();
 
@@ -175,6 +187,56 @@ sub update_history_matches {
     print "updated matches: ", scalar(@search_matches), " ",
       join(", ", @search_matches) if DEBUG;
 }
+
+sub flex_match {
+    my ($obj) = @_;
+
+    my $pattern = $search_str;
+    my $source  = $obj; #->{name};
+
+    #_debug_print "Flex match: $pattern / $source";
+
+    # default to matching everything if we don't have a pattern to compare
+    # against.
+
+    return 0 unless $pattern;
+
+    my @chars = split '', lc($pattern);
+    my $ret = -1;
+    my $first = 0;
+
+    my $lc_source = lc($source);
+
+    #$obj->{hilight_field} = 'name';
+
+    foreach my $char (@chars) {
+        my $pos = index($lc_source, $char, $ret);
+        if ($pos > -1) {
+
+            # store the beginning of the match
+            #$obj->{b_pos} = $pos unless $first;
+            $first = 1;
+
+            #_debug_print("matched: $char at $pos in $source");
+            $ret = $pos + 1;
+
+        } else {
+
+            #$obj->{b_pos} = $obj->{e_pos} = -1;
+            #_debug_print "Flex returning: -1";
+
+            return -1;
+        }
+    }
+
+    #_debug_print "Flex returning: $ret";
+
+    #store the end of the match.
+    #$obj->{e_pos} = $ret;
+
+    return $ret;
+}
+
 
 sub get_history_match {
     return $search_matches[$match_index];
@@ -318,7 +380,7 @@ sub close_listing_split {
 
     # restore original window focus
     if (Irssi::active_win()->{refnum} != $original_win_ref->{refnum}) {
-        Irssi::command("window goto $original_win_ref->{refnum}");
+        $original_win_ref->set_active();
     }
 }
 
@@ -334,8 +396,12 @@ sub print_current_matches {
     return unless defined $split_ref;
     return unless @search_matches > 0;
 
-    $split_ref->command("clear");
-    $split_ref->print('Current history matches. Press <esc> to close.');
+    $split_ref->command("^clear");
+    my $orig_ts_level = Irssi::parse_special('$timestamp_level');
+    $split_ref->command("^set timestamp_level $orig_ts_level -CLIENTCRAP");
+
+    $split_ref->print('Current history matches. Press <esc> to close.',
+                      Irssi::MSGLEVEL_CLIENTCRAP|Irssi::MSGLEVEL_NEVER);
 
     my $hist_entry = get_history_match();
 
@@ -344,9 +410,12 @@ sub print_current_matches {
         my $entry = $search_matches[$j];
 
         my $hilight = $hist_entry eq $entry
-          ? '%_'
+          ? '%g'
           : '';
-        my $str = sprintf("%s%-6d %s%s", $hilight, $j, $entry, $hilight);
-        $split_ref->print($str);
+        $hilight = Irssi::parse_special($hilight);
+        my $str = sprintf("%s%-6d %s%%n", $hilight, $j, $entry);
+        $split_ref->print($str, Irssi::MSGLEVEL_CLIENTCRAP|Irssi::MSGLEVEL_NEVER);
     }
+    $split_ref->command("^set timestamp_level $orig_ts_level");
+
 }
