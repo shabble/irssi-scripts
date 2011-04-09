@@ -74,6 +74,9 @@ my @history_cache  = ();
 my @search_matches = ();
 my $match_index = 0;
 
+# split info
+my $split_ref;
+my $original_win_ref;
 
 my $DEBUG_ENABLED = 0;
 sub DEBUG () { $DEBUG_ENABLED }
@@ -125,11 +128,10 @@ sub setup_changed {
     $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
 }
 
-
 sub history_search {
     $search_active = 1;
     $search_str = '';
-    $match_index = -1;
+    $match_index = 0;
 
     @history_cache = Irssi::active_win()->get_history_lines();
     @search_matches = ();
@@ -139,6 +141,7 @@ sub history_search {
 
 sub history_exit {
     $search_active = 0;
+    close_listing_split();
     Irssi::signal_emit('change prompt', '', 'UP_INNER');
 }
 
@@ -160,6 +163,7 @@ sub update_history_matches {
     @search_matches = ();
 
     # uniquify the results, whilst maintaining order.
+    # TODO: duplicates should keep teh most recent one?
     foreach my $m (@matches) {
         unless (exists($unique{$m})) {
             # add them in reverse order.
@@ -205,6 +209,29 @@ sub handle_keypress {
 
     return unless $search_active;
 
+    if ($key == 7) { # Ctrl-G
+        print "aborting search" if DEBUG;
+        history_exit();
+
+        # cancel empties the inputline.
+        Irssi::gui_input_set('');
+        Irssi::gui_input_set_pos(0);
+
+        Irssi::signal_stop();
+        return;
+    }
+
+    if ($key == 9) { # TAB
+        update_history_matches();
+        if (not defined $split_ref) {
+            create_listing_split();
+        } else {
+            print_current_matches();
+        }
+
+        Irssi::signal_stop();
+        return;
+    }
 	if ($key == 10) { # enter
         print "selecting history and quitting" if DEBUG;
         history_exit();
@@ -216,6 +243,7 @@ sub handle_keypress {
         prev_match();
         update_input();
         update_history_prompt();
+        print_current_matches();
         Irssi::signal_stop(); # prevent the bind from being re-triggered.
         return;
     }
@@ -225,18 +253,28 @@ sub handle_keypress {
         next_match();
         update_input();
         update_history_prompt();
+        print_current_matches();
 
         Irssi::signal_stop();
         return;
     }
 
-    if ($key == 7) { # Ctrl-G
-        print "aborting search" if DEBUG;
-        history_exit();
+    # TODO: handle arrow-keys?
 
-        # cancel empties the inputline.
-        Irssi::gui_input_set('');
-        Irssi::gui_input_set_pos(0);
+    if ($key == 27) {
+        close_listing_split();
+        Irssi::signal_stop();
+        return;
+    }
+
+
+    if ($key >= 32 and $key < 127) { # printable
+        $search_str .= chr($key);
+
+        update_history_matches();
+        update_history_prompt();
+        update_input();
+        print_current_matches();
 
         Irssi::signal_stop();
         return;
@@ -251,19 +289,7 @@ sub handle_keypress {
         update_history_matches();
         update_history_prompt();
         update_input();
-
-        Irssi::signal_stop();
-        return;
-    }
-
-    # TODO: handle esc- sequences and arrow-keys?
-
-    if ($key >= 32) { # printable
-        $search_str .= chr($key);
-
-        update_history_matches();
-        update_history_prompt();
-        update_input();
+        print_current_matches();
 
         Irssi::signal_stop();
         return;
@@ -272,4 +298,55 @@ sub handle_keypress {
     # any other key exits, for now.
     history_exit();
     #Irssi::signal_stop();
+}
+
+sub create_listing_split {
+
+    return unless @search_matches > 0;
+
+    $original_win_ref = Irssi::active_win;
+
+    Irssi::signal_add_first('window created', 'sig_win_created');
+    Irssi::command('window new split');
+    Irssi::signal_remove('window created', 'sig_win_created');
+}
+
+sub close_listing_split {
+    return unless defined $split_ref;
+    Irssi::command("window close $split_ref->{refnum}");
+    undef $split_ref;
+
+    # restore original window focus
+    if (Irssi::active_win()->{refnum} != $original_win_ref->{refnum}) {
+        Irssi::command("window goto $original_win_ref->{refnum}");
+    }
+}
+
+sub sig_win_created {
+    my ($win) = @_;
+    $split_ref = $win;
+    # printing directly from this handler causes irssi to segfault.
+    Irssi::timeout_add_once(10, \&print_current_matches, {});
+}
+
+sub print_current_matches {
+
+    return unless defined $split_ref;
+    return unless @search_matches > 0;
+
+    $split_ref->command("clear");
+    $split_ref->print('Current history matches. Press <esc> to close.');
+
+    my $hist_entry = get_history_match();
+
+    foreach my $i (0..$#search_matches) {
+        my $j =  $#search_matches - $i;
+        my $entry = $search_matches[$j];
+
+        my $hilight = $hist_entry eq $entry
+          ? '%_'
+          : '';
+        my $str = sprintf("%s%-6d %s%s", $hilight, $j, $entry, $hilight);
+        $split_ref->print($str);
+    }
 }
