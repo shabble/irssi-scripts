@@ -28,6 +28,11 @@
 #
 # * You can use ^G to exit search mode without selecting.
 #
+# * Pressing <TAB> whilst the search is active will open a new split
+#   window, showing all matching completions.  <Esc> will close the window
+#   again, as will any other action that exits history search mode.
+#   Possible candidates can be cycled through as normal using C-r and C-s.
+#
 # * Any other ctrl- or meta- key binding will terminate search mode, leaving the
 #   selected item in the input line.
 #
@@ -50,9 +55,9 @@
 
 # TODO:
 #
-# * document tab behaviour
+# * DONE document tab behaviour
 # * add keys (C-n/C-p) to scroll history list
-# * if list is bigger than split size, centre it so selected item is visible
+# * DONE if list is bigger than split size, centre it so selected item is visible
 # * allow a mechanism to select by number from list
 
 use strict;
@@ -76,6 +81,9 @@ $VERSION = '2.0';
 
 my $search_str = '';
 my $search_active = 0;
+
+my $select_num_active = 0;
+my $num_buffer;
 
 my @history_cache  = ();
 my @search_matches = ();
@@ -146,10 +154,11 @@ sub history_search {
     $search_str = '';
     $match_index = 0;
 
-    @history_cache = Irssi::active_win()->get_history_lines();
+    my $win = Irssi::active_win;
+    @history_cache = $win->get_history_lines();
     @search_matches = ();
 
-    $original_win_ref = Irssi::active_win;
+    $original_win_ref = $win;
 
     update_history_matches();
     update_history_prompt();
@@ -158,15 +167,12 @@ sub history_search {
 sub history_exit {
     $search_active = 0;
     close_listing_split();
-    Irssi::signal_emit('change prompt', '', 'UP_INNER');
+    _set_prompt('');
 }
 
 sub update_history_prompt {
     my $col = scalar(@search_matches) ? '%g' : '%r';
-    Irssi::signal_emit('change prompt',
-                       ' reverse-i-search: `' . $col . $search_str
-                       . '%n' . "'",
-                       'UP_INNER');
+    _set_prompt(' reverse-i-search: `' . $col . $search_str . '%n' . "'");
 }
 
 sub update_history_matches {
@@ -204,7 +210,7 @@ sub flex_match {
     my $pattern = $search_str;
     my $source  = $obj; #->{name};
 
-    #_debug_print "Flex match: $pattern / $source";
+    #_debug("Flex match: $pattern / $source");
 
     # default to matching everything if we don't have a pattern to compare
     # against.
@@ -247,6 +253,30 @@ sub flex_match {
     return $ret;
 }
 
+sub enter_select_num_mode {
+    # require that the list be shown.
+    return unless defined $split_ref;
+    return if $select_num_active; # TODO: should we prevent restarting?
+
+    $num_buffer = 0;
+    _set_prompt("Num select: ");
+    $select_num_active = 1;
+}
+
+sub exit_select_num_mode {
+
+    $select_num_active = 0;
+    $num_buffer = 0;
+    update_history_prompt();
+}
+
+sub history_select_num {
+    if ($num_buffer > 0 && $num_buffer <= $#search_matches) {
+        $match_index = $num_buffer;
+        my $match = get_history_match();
+        _debug("Num select: got $match");
+    }
+}
 
 sub get_history_match {
     return $search_matches[$match_index];
@@ -280,6 +310,32 @@ sub handle_keypress {
 	my ($key) = @_;
 
     return unless $search_active;
+
+    if ($select_num_active) {
+        if ($key >= 48 and $key <= 57) { # Number key
+
+            $num_buffer = ($num_buffer * 10) + $key - 48;
+            _set_prompt("Num select: $num_buffer");
+
+        } elsif ($key == 10) { # ENTER
+
+            history_select_num();
+            update_input();
+            exit_select_num_mode();
+            history_exit();
+
+        } else { # anything else quits.
+            exit_select_num_mode();
+        }
+        Irssi::signal_stop();
+        return;
+    }
+
+    if ($key == 6) { # Ctrl-F
+        enter_select_num_mode();
+        Irssi::signal_stop();
+        return;
+    }
 
     if ($key == 7) { # Ctrl-G
         print "aborting search" if DEBUG;
@@ -338,7 +394,6 @@ sub handle_keypress {
         Irssi::signal_stop();
         return;
     }
-
 
     if ($key >= 32 and $key < 127) { # printable
         $search_str .= chr($key);
@@ -484,4 +539,9 @@ sub _debug {
     my ($msg, @args) = @_;
     my $str = sprintf($msg, @args);
     $original_win_ref->print($str);
+}
+sub _set_prompt {
+    my ($str) = @_;
+    $str = ' ' . $str if length $str;
+    Irssi::signal_emit('change prompt', $str, 'UP_INNER');
 }
