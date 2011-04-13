@@ -69,7 +69,7 @@ use Time::HiRes qw/sleep/;
 use IO::Handle;
 use IO::Pipe;
 use IPC::Open3;
-
+use Symbol qw/gensym geniosym/;
 
 use Data::Dumper;
 
@@ -83,10 +83,13 @@ our %IRSSI = (
              );
 
 
-my $forked = 0;
+my $pid = 0;
 
 my $command;
 my $command_options;
+
+my ($sin, $serr, $sout) = (new IO::Handle, new IO::Handle, new IO::Handle);
+my ($stdout_tag, $stderr_tag);
 
 
 sub parse_options {
@@ -96,7 +99,9 @@ sub parse_options {
         my $opt_hash = $options[0];
         my $rest     = $options[1];
 
-        print Dumper($opt_hash);
+        $rest =~ s/^\s*(.*?)\s*$/$1/; # trim surrounding space.
+
+        print Dumper([$opt_hash, $rest]);
         return ($opt_hash, $rest);
     } else {
         _error("Error parsing $command options");
@@ -104,64 +109,66 @@ sub parse_options {
     }
 }
 
-
+sub schedule_cleanup {
+    my $fd = shift;
+    Irssi::timeout_add_once(100, sub { $_[0]->close }, $fd);
+}
 
 sub do_fork_and_exec {
     my ($options, $cmd) = @_;
 
-    my $stdout_pipe = IO::Pipe->new;
-    my $stderr_pipe = IO::Pipe->new;
+    #Irssi::timeout_add_once(100, sub { die }, {});
 
-#    return if $forked;
+    return unless $cmd;
 
-    #my $pid = fork();
+    #_msg("type of siin is %s, out is %s, err is %s", ref $sin, ref $sout, ref $serr);
+
+    $sin->autoflush;
+    $sout->autoflush;
+    $serr->autoflush;
+
+    drop_privs();
+
+    $pid = open3($sin, $sout, $serr, $cmd);
+
+    # _msg("Pid %s, in: %s, out: %s, err: %s, cmd: %s",
+    #      $pid, $sin, $sout, $serr, $cmd);
+
+    # _msg("filenos, Pid %s, in: %s, out: %s, err: %s",
+    #      $pid, $sin->fileno, $sout->fileno, $serr->fileno);
 
     if (not defined $pid) {
-        _error("Fork failed: $! Aborting");
-        $_->close for $stdout_pipe->handles;
-        undef $stdout_pipe;
+        _error("open3 failed: $! Aborting");
+
+        $_->close for ($sin, $serr, $sout);
+        undef($_) for ($sin, $serr, $sout);
+
         return;
     }
 
-#    $forked = 1;
+    # parent
+    if ($pid) {
 
-    if ($pid > 0) {             # this is the parent (Irssi)
-        my $tag;
+
+        eval {
+            my @out_args = ($sout, $cmd, $options);
+            $stdout_tag = Irssi::input_add( $sout->fileno, Irssi::INPUT_READ,
+                                            \&child_output, \@out_args);
+            die unless $stdout_tag;
+
+            my @err_args = ($serr, $cmd, $options);
+            $stderr_tag = Irssi::input_add($serr->fileno, Irssi::INPUT_READ,
+                                           \&child_error, \@err_args);
+            die unless $stderr_tag;
+
+        };
 
         Irssi::pidwait_add($pid);
 
-        my $stdout_reader = $stdout_pipe->reader;
-        $stdout_reader->autoflush;
-
-        my @args = ($stdout_reader, \$tag, $pid, $cmd, $options);
-        $tag = Irssi::input_add($stdout_reader->fileno,
-                                Irssi::INPUT_READ,
-                                \&child_output,
-                                \@args);
-
-    } else {                    # child
-        # make up some data - block if we like.
-        drop_privs();
-        my $stdout_fh = $stdout_pipe->writer;
-        $stdout_fh->autoflush;
-
-        my @data = qx/$cmd/;
-        my $retval = ${^CHILD_ERROR_NATIVE};
-
-        $stdout_fh->print($_) for @data;
-
-        my $done_str = "__DONE__$retval\n";
-        if ($data[$#data] =~ m/\n$/) {
-        } else {
-            $done_str = "\n" . $done_str;
-        }
-        $stdout_fh->print($done_str);
-
-        $stdout_fh->close;
-
-        POSIX::_exit(1);
+        die "input_add failed to initialise: $@" if $@;
     }
 }
+
 sub drop_privs {
     my @temp = ($EUID, $EGID);
     my $orig_uid = $UID;
@@ -177,40 +184,79 @@ sub drop_privs {
       unless $UID == $EUID && $GID eq $EGID;
 }
 
+sub child_error {
+    my $args = shift;
+    my ($stderr_reader, $cmd, $options) = @$args;
+
+  read_err_data_loop:
+    my $data = '';
+    my $bytes_read = sysread($stderr_reader, $data, 256);
+    if (not defined $bytes_read) {
+        _error("stderr: sysread failed:: $!");
+
+    } elsif ($bytes_read == 0) {
+        _msg("stderr: sysread got EOF");
+
+    } elsif ($bytes_read < 256) {
+        # that's all, folks.
+        _msg("stderr: read %d bytes: %s", $bytes_read, $data);
+    } else {
+        # we maybe need to read some more
+        _msg("stderr: read %d bytes: %s, maybe more", $bytes_read, $data);
+        goto read_err_data_loop;
+    }
+
+}
+
+sub sig_pidwait {
+    my ($pidwait, $status) = @_;
+    if ($pidwait == $pid) {
+        _msg("PID %d has terminated. Status %d (or maybe %d .... %d)",
+             $pidwait, $status, $?, ${^CHILD_ERROR_NATIVE} );
+        $pid = 0;
+
+        _msg('removing input stdout tag');
+        Irssi::input_remove($stdout_tag);
+
+        _msg('removing input stderr tag');
+        Irssi::input_remove($stderr_tag);
+
+    }
+}
+
 sub child_output {
     my $args = shift;
     my ($stdout_reader, $tag_ref, $pid, $cmd, $options) = @$args;
 
     my $return_value = 0;
 
-    while (defined(my $data = <$stdout_reader>)) {
+  read_out_data_loop:
+    my $data = '';
+    my $bytes_read = sysread($stdout_reader, $data, 256);
+    if (not defined $bytes_read) {
+        _error("stdout: sysread failed:: $!");
 
-        chomp $data;
+    } elsif ($bytes_read == 0) {
+        _msg("stdout: sysread got EOF");
 
-        # TODO: do we want to remove empty lines?
-        #return unless length $data;
-
-        if ($data =~ m/^__DONE__(\d+)$/) {
-            $return_value = $1;
-            last;
-        } else {
-            _msg("$data");
-        }
+    } elsif ($bytes_read < 256) {
+        # that's all, folks.
+        _msg("stdout: read %d bytes: %s", $bytes_read, $data);
+    } else {
+        # we maybe need to read some more
+        _msg("stdout: read %d bytes: %s, maybe more", $bytes_read, $data);
+        goto read_out_data_loop;
     }
 
-    if (not exists $options->{'-'}) {
-        _msg("process %d (%s) terminated with return code %d",
-             $pid, $cmd, $return_value);
-    }
-
-    $stdout_reader->close;
-    Irssi::input_remove($$tag_ref);
+    #schedule_cleanup($stdout_reader);
+    #$stdout_reader->close;
 }
 
 sub _error {
-    my ($msg) = @_;
+    my ($msg, @params) = @_;
     my $win = Irssi::active_win();
-    $win->print($msg, Irssi::MSGLEVEL_CLIENTERROR);
+    my $str = sprintf($msg, @params);
+    $win->print($str, Irssi::MSGLEVEL_CLIENTERROR);
 }
 
 sub _msg {
@@ -233,6 +279,15 @@ sub cmd_exec {
 
 }
 
+sub cmd_input {
+    my ($args) = @_;
+    if ($pid) {
+        print $sin "$args\n";
+    } else {
+        _error("no execs are running to accept input");
+    }
+}
+
 sub exec_init {
     $command = "exec";
     $command_options = join ' ',
@@ -243,6 +298,9 @@ sub exec_init {
 
     Irssi::command_bind($command, \&cmd_exec);
     Irssi::command_set_options($command, $command_options);
+    Irssi::command_bind('input', \&cmd_input);
+
+    Irssi::signal_add('pidwait', \&sig_pidwait);
 }
 
-exec_init();
+  exec_init();
