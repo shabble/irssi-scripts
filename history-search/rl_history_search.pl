@@ -149,6 +149,8 @@ sub history_search {
     @history_cache = Irssi::active_win()->get_history_lines();
     @search_matches = ();
 
+    $original_win_ref = Irssi::active_win;
+
     update_history_prompt();
 }
 
@@ -373,17 +375,17 @@ sub create_listing_split {
 
     return unless @search_matches > 0;
 
-    $original_win_ref = Irssi::active_win;
-
     Irssi::signal_add_first('window created', 'sig_win_created');
     Irssi::command('window new split');
     Irssi::signal_remove('window created', 'sig_win_created');
 }
 
 sub close_listing_split {
-    return unless defined $split_ref;
-    Irssi::command("window close $split_ref->{refnum}");
-    undef $split_ref;
+
+    if (defined $split_ref) {
+        Irssi::command("window close $split_ref->{refnum}");
+        undef $split_ref;
+    }
 
     # restore original window focus
     if (Irssi::active_win()->{refnum} != $original_win_ref->{refnum}) {
@@ -401,28 +403,84 @@ sub sig_win_created {
 sub print_current_matches {
 
     return unless defined $split_ref;
-    return unless @search_matches > 0;
 
-    $split_ref->command("^clear");
+    my $num_matches = scalar(@search_matches);
+    return unless $num_matches > 0;
+
+    # for some woefully unobvious reason, we need to refetch
+    # the window reference in order for its attribute hash
+    # to be regenerated.
+    my $s_win = Irssi::window_find_refnum($split_ref->{refnum});
+
+    my $split_height = $s_win->{height};
+
+    $s_win->command("^scrollback clear");
+
+    # disable timestamps to ensure a clean window.
     my $orig_ts_level = Irssi::parse_special('$timestamp_level');
-    $split_ref->command("^set timestamp_level $orig_ts_level -CLIENTCRAP");
+    $s_win->command("^set timestamp_level $orig_ts_level -CLIENTCRAP");
 
-    $split_ref->print('%_Current history matches. Press <esc> to close.%_',
-                      Irssi::MSGLEVEL_CLIENTCRAP|Irssi::MSGLEVEL_NEVER);
+
+    $original_win_ref->print("Num matches: $num_matches, height: $split_height")
+      if DEBUG;
+
+    # print header
+    # TODO: make this a format?
+    $s_win->print('%_Current history matches. Press <esc> to close.%_',
+                  MSGLEVEL_CLIENTCRAP | MSGLEVEL_NEVER);
+
+    $split_height -= 2; # account for header line;
 
     my $hist_entry = get_history_match();
 
-    foreach my $i (0..$#search_matches) {
-        my $j =  $#search_matches - $i;
-        my $entry = $search_matches[$j];
+    my ($start, $end);
+
+    if ($num_matches > $split_height) {
+        # we have too many matches to fit in the window. decide on a new
+        # start and end point.
+
+        my $half_height = int ($split_height / 2);
+
+        # initial start pos is in the middle of the screen.
+        $start = $match_index >= $half_height
+          ? $match_index - $half_height
+          : 0;
+        # and ends with the max number of matches we can fit
+        $end   = $start + $split_height > $num_matches - 1
+          ? $num_matches - 1
+          : $start + $split_height;
+
+        # readjust start if the screen isn't filled.
+        if ($end - $start < $split_height) {
+            $start = $end - $split_height;
+        }
+
+        _debug("sh: $split_height, hh: $half_height, "
+                . "mi: $match_index, start: $start, end: $end");
+    } else {
+        $start = 0;
+        $end   = $#search_matches;
+    }
+
+    foreach my $i ($start..$end) {
+        my $j =  $num_matches - $i;
+        my $entry = $search_matches[$i];
 
         my $hilight = $hist_entry eq $entry
           ? '%g'
           : '';
         $hilight = Irssi::parse_special($hilight);
         my $str = sprintf("%s%-6d %s%%n", $hilight, $j, $entry);
-        $split_ref->print($str, Irssi::MSGLEVEL_CLIENTCRAP|Irssi::MSGLEVEL_NEVER);
+        $s_win->print($str, MSGLEVEL_CLIENTCRAP|MSGLEVEL_NEVER);
     }
-    $split_ref->command("^set timestamp_level $orig_ts_level");
 
+    # restore timestamp settings.
+    $s_win->command("^set timestamp_level $orig_ts_level");
+}
+
+sub _debug {
+    return unless DEBUG;
+    my ($msg, @args) = @_;
+    my $str = sprintf($msg, @args);
+    $original_win_ref->print($str);
 }
