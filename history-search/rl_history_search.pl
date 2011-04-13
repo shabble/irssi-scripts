@@ -151,6 +151,7 @@ sub history_search {
 
     $original_win_ref = Irssi::active_win;
 
+    update_history_matches();
     update_history_prompt();
 }
 
