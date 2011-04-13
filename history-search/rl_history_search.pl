@@ -48,6 +48,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+# TODO:
+#
+# * document tab behaviour
+# * add keys (C-n/C-p) to scroll history list
+# * if list is bigger than split size, centre it so selected item is visible
+# * allow a mechanism to select by number from list
+
 use strict;
 use Irssi;
 use Irssi::TextUI;
@@ -400,7 +407,7 @@ sub print_current_matches {
     my $orig_ts_level = Irssi::parse_special('$timestamp_level');
     $split_ref->command("^set timestamp_level $orig_ts_level -CLIENTCRAP");
 
-    $split_ref->print('Current history matches. Press <esc> to close.',
+    $split_ref->print('%_Current history matches. Press <esc> to close.%_',
                       Irssi::MSGLEVEL_CLIENTCRAP|Irssi::MSGLEVEL_NEVER);
 
     my $hist_entry = get_history_match();
