@@ -37,7 +37,7 @@
 #   selected item in the input line.
 #
 # Original script Copyright 2007  Wouter Coekaerts <coekie@irssi.org>
-# Heavy modifications by Shabble <shabble+irssi@metavore.org>, 2010.
+# Heavy modifications Copyright 2010-11 Tom Feist <shabble+irssi@metavore.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,18 +56,20 @@
 # TODO:
 #
 # * DONE document tab behaviour
-# * add keys (C-n/C-p) to scroll history list
+# * add keys (C-n/C-p) to scroll history list if necessary.
 # * DONE if list is bigger than split size, centre it so selected item is visible
-# * allow a mechanism to select by number from list
+# * INPROG allow a mechanism to select by number from list
+# * steal more of the code from ido_switcher to hilight match positions.
+# * make flex matching optional (key or setting)
+# * add some online help (? or C-h triggered, maybe?)
 
 use strict;
 use Irssi;
 use Irssi::TextUI;
 use Data::Dumper;
 
-use vars qw($VERSION %IRSSI);
-$VERSION = '2.0';
-%IRSSI =
+our $VERSION = '2.5';
+our %IRSSI =
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
    contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
@@ -76,7 +78,7 @@ $VERSION = '2.0';
                 . ' (like ctrl-R in readline applications)',
    license     => 'GPLv2 or later',
    url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
-   changed     => '24/7/2010'
+   changed     => '14/4/2011'
   );
 
 my $search_str = '';
@@ -147,6 +149,10 @@ sub history_init {
 
 sub setup_changed {
     $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
+}
+
+sub history_window_open {
+    return defined $split_ref;
 }
 
 sub history_search {
@@ -255,7 +261,7 @@ sub flex_match {
 
 sub enter_select_num_mode {
     # require that the list be shown.
-    return unless defined $split_ref;
+    return unless history_window_open();
     return if $select_num_active; # TODO: should we prevent restarting?
 
     $num_buffer = 0;
@@ -351,7 +357,7 @@ sub handle_keypress {
 
     if ($key == 9) { # TAB
         update_history_matches();
-        if (not defined $split_ref) {
+        if (not history_window_open()) {
             create_listing_split();
         } else {
             print_current_matches();
@@ -438,7 +444,7 @@ sub create_listing_split {
 
 sub close_listing_split {
 
-    if (defined $split_ref) {
+    if (history_window_open()) {
         Irssi::command("window close $split_ref->{refnum}");
         undef $split_ref;
     }
@@ -458,7 +464,7 @@ sub sig_win_created {
 
 sub print_current_matches {
 
-    return unless defined $split_ref;
+    return unless history_window_open();
 
     my $num_matches = scalar(@search_matches);
     return unless $num_matches > 0;
