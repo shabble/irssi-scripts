@@ -160,22 +160,25 @@ sub _print {
     my $win = Irssi::active_win;
     my $str = join('', @_);
     $need_clear = 1;
-    $win->print($str, Irssi::MSGLEVEL_NEVER);
+    $win->print($str, MSGLEVEL_NEVER);
 }
 
 sub _debug_print {
     return unless DEBUG;
     my $win = Irssi::active_win;
     my $str = join('', @_);
-    $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
+    $win->print($str, MSGLEVEL_CLIENTCRAP);
 }
 
 sub _print_clear {
     return unless $need_clear;
     my $win = Irssi::active_win();
-    $win->command('/scrollback levelclear -level NEVER');
+    $win->command('/^scrollback levelclear -level NEVER');
 }
 
+# TODO: use the code from rl_history_search to put this into a disposable
+#       split win.
+# TODO: create formats for this.
 sub display_help {
 
     my @message =
