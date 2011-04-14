@@ -62,6 +62,14 @@
 # * steal more of the code from ido_switcher to hilight match positions.
 # * make flex matching optional (key or setting)
 # * add some online help (? or C-h triggered, maybe?)
+# * make temp_split stuff more generic (to be used by help, etc)
+# * figure out why sometimes the split list doesn't update correctly (eg: no matches)
+# * consider tracking history manually (via send command/send text)
+#  * Pro: we could timestamp it.
+#  * Con: Would involve catching up/down and all the other history selection
+#         mechanisms.
+#  * Compromise - tag history as it comes it (match it with data via sig handlers?)
+# * Possibility of saving/restoring history over sessions?
 
 use strict;
 use Irssi;
@@ -75,7 +83,7 @@ our %IRSSI =
    contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
    name        => 'rl_history_search',
    description => 'Search within your typed history as you type'
-                . ' (like ctrl-R in readline applications)',
+   . ' (like ctrl-R in readline applications)',
    license     => 'GPLv2 or later',
    url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
    changed     => '14/4/2011'
@@ -129,7 +137,7 @@ sub load_uberprompt_failed {
     Irssi::signal_remove('script error', 'load_prompt_failed');
 
     print "Script could not be loaded. Script cannot continue. "
-      . "Check you have uberprompt.pl installed in your path and "
+        . "Check you have uberprompt.pl installed in your path and "
         .  "try again.";
 
     die "Script Load Failed: " . join(" ", @_);
@@ -151,7 +159,7 @@ sub setup_changed {
     $DEBUG_ENABLED = Irssi::settings_get_bool('histsearch_debug');
 }
 
-sub history_window_open {
+sub temp_split_active () {
     return defined $split_ref;
 }
 
@@ -172,7 +180,7 @@ sub history_search {
 
 sub history_exit {
     $search_active = 0;
-    close_listing_split();
+    close_temp_split();
     _set_prompt('');
 }
 
@@ -214,7 +222,7 @@ sub flex_match {
     my ($obj) = @_;
 
     my $pattern = $search_str;
-    my $source  = $obj; #->{name};
+    my $source  = $obj;         #->{name};
 
     #_debug("Flex match: $pattern / $source");
 
@@ -261,7 +269,7 @@ sub flex_match {
 
 sub enter_select_num_mode {
     # require that the list be shown.
-    return unless history_window_open();
+    return unless temp_split_active();
     return if $select_num_active; # TODO: should we prevent restarting?
 
     $num_buffer = 0;
@@ -323,27 +331,27 @@ sub handle_keypress {
             $num_buffer = ($num_buffer * 10) + $key - 48;
             _set_prompt("Num select: $num_buffer");
 
-        } elsif ($key == 10) { # ENTER
+        } elsif ($key == 10) {  # ENTER
 
             history_select_num();
             update_input();
             exit_select_num_mode();
             history_exit();
 
-        } else { # anything else quits.
+        } else {                # anything else quits.
             exit_select_num_mode();
         }
         Irssi::signal_stop();
         return;
     }
 
-    if ($key == 6) { # Ctrl-F
+    if ($key == 6) {            # Ctrl-F
         enter_select_num_mode();
         Irssi::signal_stop();
         return;
     }
 
-    if ($key == 7) { # Ctrl-G
+    if ($key == 7) {            # Ctrl-G
         print "aborting search" if DEBUG;
         history_exit();
 
@@ -354,11 +362,15 @@ sub handle_keypress {
         Irssi::signal_stop();
         return;
     }
+    if ($key == 8) {            # C-h
+        $original_win_ref->print("This would show help, "
+                                 . "if there was any. Coming soon!");
+    }
 
-    if ($key == 9) { # TAB
+    if ($key == 9) {            # TAB
         update_history_matches();
-        if (not history_window_open()) {
-            create_listing_split();
+        if (not temp_split_active()) {
+            create_temp_split() if @search_matches > 0;
         } else {
             print_current_matches();
         }
@@ -366,23 +378,23 @@ sub handle_keypress {
         Irssi::signal_stop();
         return;
     }
-	if ($key == 10) { # enter
+	if ($key == 10) {           # enter
         print "selecting history and quitting" if DEBUG;
         history_exit();
         return;
 	}
 
-    if ($key == 18) { # Ctrl-R
+    if ($key == 18) {           # Ctrl-R
         print "skipping to prev match" if DEBUG;
         prev_match();
         update_input();
         update_history_prompt();
         print_current_matches();
-        Irssi::signal_stop(); # prevent the bind from being re-triggered.
+        Irssi::signal_stop();   # prevent the bind from being re-triggered.
         return;
     }
 
-    if ($key == 19) { # Ctrl-S
+    if ($key == 19) {           # Ctrl-S
         print "skipping to next match" if DEBUG;
         next_match();
         update_input();
@@ -396,7 +408,7 @@ sub handle_keypress {
     # TODO: handle arrow-keys?
 
     if ($key == 27) {
-        close_listing_split();
+        close_temp_split();
         Irssi::signal_stop();
         return;
     }
@@ -413,7 +425,7 @@ sub handle_keypress {
         return;
     }
 
-    if ($key == 127) { # DEL
+    if ($key == 127) {          # DEL
 
         if (length $search_str) {
             $search_str = substr($search_str, 0, -1);
@@ -433,18 +445,16 @@ sub handle_keypress {
     #Irssi::signal_stop();
 }
 
-sub create_listing_split {
-
-    return unless @search_matches > 0;
+sub create_temp_split {
 
     Irssi::signal_add_first('window created', 'sig_win_created');
     Irssi::command('window new split');
     Irssi::signal_remove('window created', 'sig_win_created');
 }
 
-sub close_listing_split {
+sub close_temp_split {
 
-    if (history_window_open()) {
+    if (temp_split_active()) {
         Irssi::command("window close $split_ref->{refnum}");
         undef $split_ref;
     }
@@ -464,10 +474,10 @@ sub sig_win_created {
 
 sub print_current_matches {
 
-    return unless history_window_open();
+    return unless temp_split_active();
 
     my $num_matches = scalar(@search_matches);
-    return unless $num_matches > 0;
+    #return unless $num_matches > 0;
 
     # for some woefully unobvious reason, we need to refetch
     # the window reference in order for its attribute hash
@@ -491,7 +501,11 @@ sub print_current_matches {
     $s_win->print('%_Current history matches. Press <esc> to close.%_',
                   MSGLEVEL_CLIENTCRAP | MSGLEVEL_NEVER);
 
-    $split_height -= 2; # account for header line;
+    if ($num_matches == 0) {
+        $s_win->print('(No Matches)', MSGLEVEL_CLIENTCRAP | MSGLEVEL_NEVER);
+        return;
+    }
+    $split_height -= 2;         # account for header line;
 
     my $hist_entry = get_history_match();
 
@@ -518,7 +532,7 @@ sub print_current_matches {
         }
 
         _debug("sh: $split_height, hh: $half_height, "
-                . "mi: $match_index, start: $start, end: $end");
+               . "mi: $match_index, start: $start, end: $end");
     } else {
         $start = 0;
         $end   = $#search_matches;
@@ -540,11 +554,21 @@ sub print_current_matches {
     $s_win->command("^set timestamp_level $orig_ts_level");
 }
 
+sub print_help {
+
+}
+
+sub _print_to_active {
+    my ($msg, @args) = @_;
+    my $str = sprintf($msg, @args);
+    $original_win_ref->print($str,MSGLEVEL_CLIENTCRAP | MSGLEVEL_NEVER);
+}
+
 sub _debug {
     return unless DEBUG;
     my ($msg, @args) = @_;
     my $str = sprintf($msg, @args);
-    $original_win_ref->print($str);
+    $original_win_ref->print($str, MSGLEVEL_CLIENTCRAP | MSGLEVEL_NEVER);
 }
 sub _set_prompt {
     my ($str) = @_;
