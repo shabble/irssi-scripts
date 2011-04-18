@@ -8,6 +8,9 @@
 # http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
 #
 # and follow the instructions at the top of that file for installation.
+# If uberprompt.pl is available, but not loaded, this script will make one
+# attempt to load it before giving up.  This eliminates the need to precisely
+# arrange the startup order of your scripts.
 #
 # SETUP:
 #
@@ -19,7 +22,27 @@
 #
 # C-g (or whatever you've set the above bind to), enters window switching mode.
 #
-# NB: When entering window switching mode, the contents of your input line will
+# EXTENDED USAGE:
+#
+# It is possible to pass arguments to the /ido_switch_start command, which
+# correspond to some of the interactively settable parameters listed below.
+# The following options are available:
+#
+# * -channels -- search through only channels.
+# * -queries  -- search through only queries.
+# * -all      -- search both queries and channels (Default).
+# * -active   -- limit search to only window items with activity.
+# * -exact    -- enable exact-substring matching
+# * -flex     -- enable flex-string matching
+#    [If neither of -exact or -flex are given, the default is the value of
+#     /set ido_use_flex]
+#
+# EXAMPLE:
+#
+# /bind ^G /ido_switch_start -channels
+# /bind ^F /ido_switch_start -queries -active
+#
+# NOTE: When entering window switching mode, the contents of your input line will
 # be saved and cleared, to avoid visual clutter whilst using the switching
 # interface.  It will be restored once you exit the mode using either C-g, Esc,
 # or RET.
@@ -76,10 +99,26 @@
 
 # BUGS:
 #
-# * Sometimes selecting a channel with the same name on a different
+# * FIXED Sometimes selecting a channel with the same name on a different
 #   network will take you to the wrong channel.
 #
-#
+# TODO:
+
+# DONE C-g - cancel
+# DONE C-spc - narrow
+# DONE flex matching (on by default, but optional)
+# TODO server/network narrowing
+# DONE colourised output (via uberprompt)
+# DONE C-r / C-s rotate matches
+# DONE toggle queries/channels
+# DONE remove inputline content, restore it afterwards.
+# TODO tab - display all possibilities in window (clean up afterwards)
+#       how exactly will this work?
+# DONE sort by recent activity/recently used windows (separate commands?)
+# TODO need to be able to switch ordering of active ones (numerical, or most recently
+#      active, priority to PMs/hilights, etc?)
+# DONE should space auto-move forward to next window for easy stepping through
+#      sequential/active windows?
 #
 use strict;
 use Irssi;
@@ -100,22 +139,10 @@ $VERSION = '2.0';
   );
 
 
-# TODO:
-# DONE C-g - cancel
-# DONE C-spc - narrow
-# DONE flex matching (on by default, but optional)
-# TODO server/network narrowing
-# DONE colourised output (via uberprompt)
-# DONE C-r / C-s rotate matches
-# DONE toggle queries/channels
-# DONE remove inputline content, restore it afterwards.
-# TODO tab - display all possibilities in window (clean up afterwards)
-#       how exactly will this work?
-# DONE sort by recent activity/recently used windows (separate commands?)
-# TODO need to be able to switch ordering of active ones (numerical, or most recently
-#      active, priority to PMs/hilights, etc?)
-# DONE should space auto-move forward to next window for easy stepping through
-#      sequential/active windows?
+
+my $CMD_NAME = 'ido_switch_start';
+my $CMD_OPTS = '-channels -queries -all -active -exact -flex';
+
 
 my $input_copy     = '';
 my $input_pos_copy = 0;
@@ -285,7 +312,9 @@ sub ido_switch_init {
     Irssi::settings_add_bool('ido_switch', 'ido_show_active_first', 1);
     Irssi::settings_add_int ('ido_switch', 'ido_show_count',        5);
 
-    Irssi::command_bind('ido_switch_start', \&ido_switch_start);
+
+    Irssi::command_bind($CMD_NAME, \&ido_switch_start);
+    Irssi::command_set_options($CMD_NAME, $CMD_OPTS);
 
     Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
@@ -300,23 +329,46 @@ sub setup_changed {
     $sort_active_first = Irssi::settings_get_bool('ido_show_active_first');
 }
 
-
 sub ido_switch_start {
+
+    my ($args, $server, $witem) = @_;
+
     # store copy of input line to restore later.
     $input_copy     = Irssi::parse_special('$L');
     $input_pos_copy = Irssi::gui_input_get_pos();
 
     Irssi::gui_input_set('');
 
-    # set startup flags
+    my $options = {};
+    my @opts = Irssi::command_parse_options($CMD_NAME, $args);
+    if (@opts and ref($opts[0]) eq 'HASH') {
+        $options = $opts[0];
+        print "Options: " . Dumper($options);
+    }
+
+    # clear / initialise match variables.
     $ido_switch_active = 1;
     $search_str        = '';
     $match_index       = 0;
-    $mode_type         = 'ALL';
 
-    # refresh in case we toggled it last time.
-    $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
-    $active_only    = 0;
+    # configure settings from provided arguments.
+
+    # use provided options first, or fall back to /setting.
+    $ido_use_flex = exists $options->{exact}
+      ? 0
+      : exists $options->{flex}
+      ? 1
+      : Irssi::settings_get_bool('ido_use_flex');
+
+    # only select active items
+    $active_only = exists $options->{active};
+
+    # what type of items to search.
+    $mode_type   = exists $options->{queries}
+      ? 'QUERY'
+      : exists $options->{channels}
+      ? 'CHANNEL'
+      : 'ALL';
 
     _debug_print "Win cache: " . join(", ", map { $_->{name} } @window_cache);
 
@@ -443,7 +495,7 @@ sub get_all_windows {
         # take the top $ido_show_count entries and display them.
         my $match_count  = scalar @search_matches;
         my $show_count   = $ido_show_count;
-        my $match_string = '[No match';
+        my $match_string = '[No matches]';
 
         $show_count = $match_count if $match_count < $show_count;
 
@@ -505,7 +557,7 @@ sub get_all_windows {
         push @indicators, 'Active' if $active_only;
         push @indicators, ucfirst(lc($mode_type));
 
-        my $flex = sprintf(' %%k[%%n%s%%k]%%n ', join ',', @indicators);
+        my $flex = sprintf(' %%b[%%n%s%%b]%%n ', join ', ', @indicators);
 
         my $search = '';
         $search = (sprintf '`%s\': ', $search_str) if length $search_str;
