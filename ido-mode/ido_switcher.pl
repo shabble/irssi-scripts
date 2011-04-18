@@ -16,7 +16,7 @@ Uberprompt can be downloaded from:
 
 L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
 
-and follow the instructions at the top of that file for installation.
+and follow the instructions at the top of that file or its README for installation.
 
 If uberprompt.pl is available, but not loaded, this script will make one
 attempt to load it before giving up.  This eliminates the need to precisely
@@ -25,6 +25,8 @@ arrange the startup order of your scripts.
 =head2 SETUP
 
 C</bind ^G /ido_switch_start [options]>
+
+Where C<^G> is a key of your choice.
 
 =head2 USAGE
 

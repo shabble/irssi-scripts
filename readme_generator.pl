@@ -8,10 +8,12 @@ use warnings;
 #
 # Not sure how it's going to work with multiple files in a dir though. Sections?
 
+# Change of plan! Github supports POD, so we just use Pod::Select to scrape it.
 
 use File::Find;
 use File::Spec;
-use Pod::Markdown;
+use Pod::Select;
+
 use feature qw/say/;
 use Cwd;
 
@@ -32,9 +34,11 @@ find(\&wanted, @dirs);
 sub wanted {
     my ($file, $dir, $path) = ($_, $File::Find::dir, $File::Find::name);
     return unless $file =~ m/\.pl$/;
+    return if $file =~ m/^\./;
 
     _err("processing file: $path");
-    read_input_file($dir, $file);
+    #read_input_file($dir, $file);
+    create_output_file($dir, $file);
 }
 
 sub read_input_file {
@@ -43,39 +47,34 @@ sub read_input_file {
     my $filepath = File::Spec->catfile($dir, $filename);
     _err("reading $filepath");
 
-    my $parser = Pod::Markdown->new;
-    $parser->parse_from_file($filepath);
-
     create_output_file($dir, "README.md", $parser);
 }
 
 sub create_output_file {
-    my ($dir, $filename, $parser) = @_;
+    my ($dir, $in_file) = @_;
 
-    my $filepath = File::Spec->catfile($dir, $filename);
+    my $parser = Pod::Select->new;
 
-    my $markdown = $parser->as_markdown;
+    my $out_file = "README.pod";
 
-    return unless length chomp($markdown);
-    return if $markdown =~ m/^\s*$/;
-
-
+    my $in_file_path = File::Spec->catfile($dir, $in_file);
+    my $out_file_path = File::Spec->catfile($dir, $out_file);
     my $sec_sep = '';
 
-    if (-f $filepath and not $overwrite) {
-        _err("$filepath already exists, going to append") unless $overwrite;
-        $sec_sep = "\n\n* * * *\n\n";
+    if (-f $out_file_path and not $overwrite) {
+        _err("$out_file_path already exists, going to append") unless $overwrite;
+        $sec_sep = "\n\n=for html <br />\n\n";
     }
 
     my $mode = $overwrite ? '>' : '>>';
 
     _err("Writing to $mode $filepath");
 
-    open my $wfh, $mode, $filepath
-      or die "Couldn't open $filepath for $mode output: $!";
+    open my $wfh, $mode, $out_file_path
+      or die "Couldn't open $out_file_path for $mode output: $!";
 
-    print $wfh $sec_sep;
-    print $wfh $parser->as_markdown; # fetch it again since we chomped $markdown.
+    $parser->parse_from_file($in_file_path, $wfh);
+
     close $wfh;
 }
 
