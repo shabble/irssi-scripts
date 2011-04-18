@@ -43,7 +43,14 @@ sub read_input_file {
 
     close $rfh;
 
-    create_output_file($dir, 'README.md', $parser);
+    my @other_files = glob($dir . "/*.pl");
+
+    if (@other_files > 1) {
+        $filename =~ s/\.pl$//;
+        create_output_file($dir, "README-$filename.md", $parser);
+    } else {
+        create_output_file($dir, "README.md", $parser);
+    }
 }
 
 sub create_output_file {
