@@ -270,13 +270,13 @@ sub prompt_subcmd_handler {
 
 sub _error($) {
     my ($msg) = @_;
-    Irssi::active_win->print($msg, Irssi::MSGLEVEL_CLIENTERROR);
+    Irssi::active_win->print($msg, MSGLEVEL_CLIENTERROR);
 }
 
 sub _debug_print($) {
     return unless DEBUG;
     my ($msg) = @_;
-    Irssi::active_win->print($msg, Irssi::MSGLEVEL_CLIENTCRAP);
+    Irssi::active_win->print($msg, MSGLEVEL_CLIENTCRAP);
 }
 
 sub _print_help {
@@ -316,7 +316,7 @@ sub _print_help {
            "",
           );
 
-        Irssi::print($_, Irssi::MSGLEVEL_CLIENTCRAP) for @help_lines;
+        Irssi::print($_, MSGLEVEL_CLIENTCRAP) for @help_lines;
         Irssi::signal_stop;
     }
 }
