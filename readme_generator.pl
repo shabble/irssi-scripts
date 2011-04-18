@@ -45,12 +45,12 @@ sub read_input_file {
 
     my @other_files = glob($dir . "/*.pl");
 
-    if (@other_files > 1) {
-        $filename =~ s/\.pl$//;
-        create_output_file($dir, "README-$filename.md", $parser);
-    } else {
+    # if (@other_files > 1) {
+    #     $filename =~ s/\.pl$//;
+    #     create_output_file($dir, "README-$filename.md", $parser);
+    # } else {
         create_output_file($dir, "README.md", $parser);
-    }
+    #    }
 }
 
 sub create_output_file {
@@ -58,9 +58,20 @@ sub create_output_file {
 
     my $filepath = File::Spec->catfile($dir, $filename);
 
+    my $markdown = $parser->as_markdown;
+    return unless length chomp($markdown);
+    return if $markdown =~ m/^\s*$/;
+
     _err("Writing to $filepath");
 
-    open my $wfh, '>', $filepath or die "Couldn't open $filepath for output: $!";
+    my $sec_sep = '';
+    if (-f $filepath) {
+        _err("$filepath already exists, going to append");
+        $sec_sep = "\n\n* * * *\n\n";
+    }
+
+    open my $wfh, '>>', $filepath or die "Couldn't open $filepath for output: $!";
+    print $wfh $sec_sep;
     print $wfh $parser->as_markdown;
     close $wfh;
 }
