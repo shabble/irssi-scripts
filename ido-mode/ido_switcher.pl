@@ -114,6 +114,8 @@ activated:
 =item I<All other keys> (C<a-z, A-Z>, etc) - Add that character to the current search
                         string.
 
+=back
+
 =head3 USAGE NOTES
 
 =over 4

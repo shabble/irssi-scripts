@@ -83,13 +83,14 @@ activated:
 - _All other keys_ (`a-z, A-Z`, etc) - Add that character to the current search
                         string.
 
-        ### USAGE NOTES
-        - Using C-e (show actives), followed by repeatedly pressing space will cycle
-           through all your currently active windows.
-    - If you enter a search string fragment, and realise that more than one candidate
-       is still presented, rather than delete the whole string and modify it, you can
-       use C-SPC to 'lock' the current matching candidates, but allow you to search
-       through those matches alone.
+### USAGE NOTES
+
+- Using C-e (show actives), followed by repeatedly pressing space will cycle
+   through all your currently active windows.
+- If you enter a search string fragment, and realise that more than one candidate
+   is still presented, rather than delete the whole string and modify it, you can
+   use C-SPC to 'lock' the current matching candidates, but allow you to search
+   through those matches alone.
 
 # AUTHORS
 
@@ -117,23 +118,23 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 # BUGS:
 
-    - __FIXED__ Sometimes selecting a channel with the same name on a different
-       network will take you to the wrong channel.
+- __FIXED__ Sometimes selecting a channel with the same name on a different
+   network will take you to the wrong channel.
 
 # TODO
 
-                                                - __DONE__ C-g - cancel
-                                            - __DONE__ C-spc - narrow
-                                        - __DONE__ flex matching (on by default, but optional)
-                                    - TODO server/network narrowing
-                                - __DONE__ colourised output (via uberprompt)
-                            - __DONE__ C-r / C-s rotate matches
-                        - __DONE__ toggle queries/channels
-                    - __DONE__ remove inputline content, restore it afterwards.
-                - TODO tab - display all possibilities in window (clean up afterwards)
-                how exactly will this work?
-            - __DONE__ sort by recent activity/recently used windows (separate commands?)
-        - __TODO__ need to be able to switch ordering of active ones (numerical, or most
-        recently active, priority to PMs/hilights, etc?)
-    - __DONE__ should space auto-move forward to next window for easy stepping
-         through sequential/active windows?
+- __DONE__ C-g - cancel
+- __DONE__ C-spc - narrow
+- __DONE__ flex matching (on by default, but optional)
+- TODO server/network narrowing
+- __DONE__ colourised output (via uberprompt)
+- __DONE__ C-r / C-s rotate matches
+- __DONE__ toggle queries/channels
+- __DONE__ remove inputline content, restore it afterwards.
+- TODO tab - display all possibilities in window (clean up afterwards)
+how exactly will this work?
+- __DONE__ sort by recent activity/recently used windows (separate commands?)
+- __TODO__ need to be able to switch ordering of active ones (numerical, or most
+recently active, priority to PMs/hilights, etc?)
+- __DONE__ should space auto-move forward to next window for easy stepping
+     through sequential/active windows?
