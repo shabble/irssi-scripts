@@ -199,7 +199,7 @@ C<:ls>, C<:buffers>
 
 =item Display registers:
 
-<:reg[isters] {args}>, C<:di[splay] {args}>
+C<:reg[isters] {args}>, C<:di[splay] {args}>
 
 =item Display undolist:
 
@@ -312,33 +312,19 @@ following settings are available:
 
 =over 4
 
-=item * utf8
+=item * utf8 - Support UTF-8 characters, boolean, default on
 
-Support UTF-8 characters, boolean, default on
+=item * debug - Enable debug output, boolean, default off
 
-=item debug 
+=item * cmd_seq - Char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
 
-Enable debug output, boolean, default off
+=item * start_cmd - Start every line in command mode, boolean, default off
 
-=item cmd_seq
+=item * max_undo_lines - Sze of the undo buffer. Integer, default 50 items.
 
-Char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
+=item * ex_history_size - Number of items stored in the ex-mode history. Integer, default 100.
 
-=item start_cmd
-
-Start every line in command mode, boolean, default off
-
-=item max_undo_lines 
-
-Sze of the undo buffer. Integer, default 50 items.
-
-=item ex_history_size 
-
-Number of items stored in the ex-mode history. Integer, default 100.
-
-=item prompt_leading_space
-
-Ddetermines whether ex mode prepends a space to the displayed input. Boolean, default on
+=item * prompt_leading_space - Ddetermines whether ex mode prepends a space to the displayed input. Boolean, default on
 
 =back
 
