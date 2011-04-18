@@ -28,12 +28,16 @@ to use them.
 * `feature_tests/` has a bunch of different little scripts written to test certain
   aspects of Irssi behaviour.  None of them are likely to be particularly useful
   unless you're looking for simple examples of various things on which to build.
-  The exception is 'key_test.pl', which is good for figuring out what keycodes
-  Irssi sees when you give it input.
-  
-  pipes.pl might also be interesting as a barebones template for a script which
-  uses forking and pipes to handle async tasks in the background without hanging
-  Irssi.
+  Some of the ones which might actually be useful are:
+
+ * `key_test.pl` - decodes and prints keyboard inputs from the `gui key pressed`
+   signal.  Useful for checking what keycode a particular combo generates.
+
+ * `template.pl` - A basic outline of a script to use as a starting point
+   for others.
+
+ * `pipes.pl` A barebones template for a script which uses forking and pipes
+   to handle async tasks in the background without hanging Irssi.
   
 * `modules/` contains a few half-baked attempts at loadable modules for Irssi,
   none of which do very much at the moment.  They might be useful as templates
@@ -70,6 +74,9 @@ to use them.
   (or if you prefix your message with a nonexistent nick), the script will
   ask you to confirm that you want to send the message, much like
   `scrolled_reminder`.
+  
+* `undo/` contains 2 scripts, `undo.pl` and `kill-ring.pl`. See their header
+  for further documentation.
   
 * `testing/` is a Perl framework external to Irssi (ie: not a script) that will
   ultimately allow you to write unit tests for your scripts, and run them in a
