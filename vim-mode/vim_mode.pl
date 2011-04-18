@@ -33,9 +33,9 @@ disabled in irssi < 0.8.13:
 
 =over 4
 
-=item C<j> C<k> (only with count, they work fine without count in older versions)
+=item * C<j> C<k> (only with count, they work fine without count in older versions)
 
-=item C<gg>, C<G>
+=item * C<gg>, C<G>
 
 =back
 
@@ -75,7 +75,7 @@ Currently Supported ex-commands:
 
 =over 4
 
-=item C<:map>
+=item * C<:map>
 
 =back
 
@@ -89,47 +89,88 @@ It supports most commonly used command mode features:
 
 =over 2
 
-=item Insert/Command mode. C<Escape> and C<Ctrl-C> enter command mode.  C</set
-vim_mode_cmd_seq j> allows to use C<jj> as Escape (any other character can be used as well).
+=item * Insert/Command mode.
 
-=item Cursor motion: C<h l 0 ^ $ E<lt>SpaceE<gt> E<lt>BSE<gt> f t F T>
+C<Esc> and C<Ctrl-C> enter command mode.  C</set vim_mode_cmd_seq j> allows
+to use C<jj> as Escape (any other character can be used as well).
 
-=item History motion: C<j k gg G> C<gg> moves to the oldest (first) history
-line.  C<G> without a count moves to the current input line, with a count it goes to the I<count-th> history line (1 is the oldest).
+=item * Cursor motion:
 
-=item Cursor word motion: C<w b ge e W gE B E>
+C<h l 0 ^ $ E<lt>SpaceE<gt> E<lt>BSE<gt> f t F T>
 
-=item Word objects (only the following work yet): C<aw aW>
+=item * History motion:
 
-=item Yank and paste: C<y p P>
+C<j k gg G> C<gg> moves to the oldest (first) history line.  C<G> without a
+count moves to the current input line, with a count it goes to the I<count-th>
+history line (1 is the oldest).
 
-=item Change and delete: C<c d>
+=item * Cursor word motion: 
 
-=item Delete at cursor: C<x X>
+C<w b ge e W gE B E>
 
-=item Replace at cursor: C<r>
+=item * Word objects (only the following work yet): 
 
-=item Insert mode: C<i a I A>
+C<aw aW>
 
-=item Switch case: C<~>
+=item * Yank and paste:
 
-=item Repeat change: C<.>
+ C<y p P>
 
-=item Repeat C<ftFT: ; ,>
+=item * Change and delete: 
 
-=item Registers: C<"a-"z "" "0 "* "+ "_> (black hole)
+C<c d>
 
-=item Line-wise shortcuts: C<dd cc yy>
+=item * Delete at cursor: 
 
-=item Shortcuts: C<s S C D>
+C<x X>
 
-=item Scroll the scrollback buffer: C<Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B>
+=item * Replace at cursor: 
 
-=item Switch to last active window: C<Ctrl-6/Ctrl-^>
+C<r>
 
-=item Switch split windows: <Ctrl-W j Ctrl-W k>
+=item * Insert mode: 
 
-=item Undo/Redo: C<u Ctrl-R>
+C<i a I A>
+
+=item * Switch case: 
+
+C<~>
+
+=item * Repeat change: 
+
+C<.>
+
+=item * Repeat 
+
+C<ftFT: ; ,>
+
+=item * Registers: 
+
+C<"a-"z "" "0 "* "+ "_> (black hole)
+
+=item * Line-wise shortcuts: 
+
+C<dd cc yy>
+
+=item * Shortcuts: 
+
+C<s S C D>
+
+=item * Scroll the scrollback buffer: 
+
+C<Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B>
+
+=item * Switch to last active window: 
+
+C<Ctrl-6/Ctrl-^>
+
+=item * Switch split windows: 
+
+<Ctrl-W j Ctrl-W k>
+
+=item * Undo/Redo: 
+
+C<u Ctrl-R>
 
 =back
 
@@ -139,13 +180,13 @@ Counts and combinations work as well, e.g. C<d5fx> or C<3iabcE<lt>escE<gt>>. Cou
 
 =over 4
 
-=item Appending to register with C<"A-"Z>
+=item * Appending to register with C<"A-"Z>
 
-=item C<""> is the default yank/delete register.
+=item * C<""> is the default yank/delete register.
 
-=item C<"0> contains the last yank (if no register was specified).
+=item * C<"0> contains the last yank (if no register was specified).
 
-=item The special registers C<"* "+> both contain irssi's internal cut-buffer.
+=item * The special registers C<"* "+> both contain irssi's internal cut-buffer.
 
 =back
 
@@ -155,7 +196,7 @@ The following insert mode mappings are supported:
 
 =over 4
 
-=item Insert register content: Ctrl-R x (where x is the register to insert)
+=item * Insert register content: Ctrl-R x (where x is the register to insert)
 
 =back
 
@@ -165,7 +206,7 @@ Ex-mode (activated by C<:> in command mode) supports the following commands:
 
 =over 4
 
-=item Command History:
+=item * Command History:
 
 C<E<lt>uparrowE<gt>> - cycle backwards through history
 
@@ -173,7 +214,7 @@ C<E<lt>downarrowE<gt>> - cycle forwards through history
 
 C<:eh> - show ex history
 
-=item Switching buffers:
+=item * Switching buffers:
 
 C<:[N]b [N]> - switch to channel number
 
@@ -189,41 +230,41 @@ C<:[N]bn[ext] [N]> - switch to next window
 
 C<:[N]bp[rev] [N]> - switch to previous window
 
-=item Close window:
+=item * Close window:
 
 C<:[N]bd[elete] [N]>
 
-=item Display windows:
+=item * Display windows:
 
 C<:ls>, C<:buffers>
 
-=item Display registers:
+=item * Display registers:
 
 C<:reg[isters] {args}>, C<:di[splay] {args}>
 
-=item Display undolist:
+=item * Display undolist:
 
 C<:undol[ist]> (mostly used for debugging)
 
-=item Source files:
+=item * Source files:
 
 C<:so[urce]> - only sources vim_moderc at the moment,
                          F<{file}> not supported
 
-=item Mappings:
+=item * Mappings:
 
 C<:map> - display custom mappings
 
-=item Save mappings:
+=item * Saving mappings:
 
 C<:mkv[imrc][!]> - like in Vim, but [file] not supported
 
-=item Substitute: 
+=item * Substitution:
 
-C<:s///> - I<i> and I<g> are supported as flags, only /// can be used as
-                             separator, uses Perl regex instead of Vim regex
+C<:s///> - I<i> and I<g> are supported as flags, only C<///> can be used as
+eparator, and it uses Perl regex syntax instead of Vim syntax.
 
-=item Settings: 
+=item * Settings:
 
 C<:se[t]> - display all options
 
@@ -352,6 +393,7 @@ or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
 =head1 AUTHORS
 
 Copyright E<copy> 2010-2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>> and
+
 Copyright E<copy> 2010-2011 Simon Ruderich C<E<lt>simon@ruderich.orgE<gt>>
 
 =head1 THANKS
@@ -360,11 +402,11 @@ Particular thanks go to
 
 =over 4
 
-=item estragib: a lot of testing and many bug reports and feature requests
+=item * estragib: a lot of testing and many bug reports and feature requests
 
-=item iaj: testing
+=item * iaj: testing
 
-=item tmr: explaining how various bits of vim work
+=item * tmr: explaining how various bits of vim work
 
 =back
 
