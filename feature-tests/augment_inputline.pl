@@ -1,3 +1,12 @@
+=pod
+
+=head1 NAME
+
+test
+
+=cut
+
+
 use strict;
 use Irssi;
 use Irssi::TextUI; # for sbar_items_redraw

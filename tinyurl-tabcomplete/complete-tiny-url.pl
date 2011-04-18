@@ -1,3 +1,22 @@
+=pod
+
+=head1 NAME
+
+=head1 DESCRIPTION
+
+=head1 INSTALLATION
+
+=head1 USAGE
+
+=head1 AUTHORS
+
+=head1 LICENCE
+
+=head1 BUGS
+
+=cut
+
+
 use strict;
 use vars qw($VERSION %IRSSI);
 
