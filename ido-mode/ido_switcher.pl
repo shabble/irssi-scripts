@@ -37,24 +37,36 @@ the possible interactive options.
 
 =head3 EXTENDED USAGE:
 
-It is possible to pass arguments to the /ido_switch_start command, which
+It is possible to pass arguments to the C</ido_switch_start> command, which
 correspond to some of the interactively settable parameters listed below.
 
 The following options are available:
 
 =over 4
 
-=item C<-channels> -- search through only channels.
+=item C<-channels>
 
-=item C<-queries>  -- search through only queries.
+Search through only channels.
 
-=item C<-all>      -- search both queries and channels (Default).
+=item C<-queries>
 
-=item C<-active>   -- limit search to only window items with activity.
+Search through only queries.
 
-=item C<-exact>    -- enable exact-substring matching
+=item C<-all>
 
-=item C<-flex>     -- enable flex-string matching
+search both queries and channels (Default).
+
+=item C<-active>
+
+Lmit search to only window items with activity.
+
+=item C<-exact>
+
+Enable exact-substring matching
+
+=item C<-flex>
+
+Enable flex-string matching
 
 =back
 
@@ -83,38 +95,65 @@ activated:
 
 =over 4
 
-=item C<C-g>   - Exit the mode without changing windows.
+=item C<C-g>
 
-=item C<Esc>   - Exit, as above.
+ Exit the mode without changing windows.
 
-=item C<C-s>   - Rotate the list of window candidates forward by 1
+=item C<Esc>
 
-=item C<C-r>   - Rotate the list of window candidates backward by 1
+Exit, as above.
 
-=item C<C-e>   - Toggle 'Active windows only' filter
+=item C<C-s>
 
-=item C<C-f>   - Switch between 'Flex' and 'Exact' matching.
+Rotate the list of window candidates forward by one item
 
-=item C<C-d>   - Select a network or server to filter candidates by
+=item C<C-r>
 
-=item C<C-u>   - Clear the current search string
+Rotate the list of window candidates backward by one item
 
-=item C<C-q>   - Cycle between showing only queries, channels, or all.
+=item C<C-e>
 
-=item C<C-SPC> - Filter candidates by current search string, and then reset
-                 the search string
+Toggle 'Active windows only' filter
 
-=item C<RET>   - Select the current head of the candidate list (the green one)
+=item C<C-f>
 
-=item C<SPC>   - Select the current head of the list, without exiting the
-                 switching mode. The head is then moved one place to the right,
-                 allowing one to cycle through channels by repeatedly pressing space.
+Switch between 'Flex' and 'Exact' matching.
 
-=item C<TAB>   - B<[currently in development]> displays all possible completions
-                 at the bottom of the current window.
+=item C<C-d>
 
-=item I<All other keys> (C<a-z, A-Z>, etc) - Add that character to the current search
-                        string.
+Select a network or server to filter candidates by
+
+=item C<C-u>
+
+Clear the current search string
+
+=item C<C-q>
+
+Cycle between showing only queries, channels, or all.
+
+=item C<C-SPC>
+
+Filter candidates by current search string, and then reset
+the search string
+
+=item C<RET>
+
+Select the current head of the candidate list (the green one)
+
+=item C<SPC>
+
+Select the current head of the list, without exiting the
+switching mode. The head is then moved one place to the right,
+allowing one to cycle through channels by repeatedly pressing space.
+
+=item C<TAB>
+
+B<[currently in development]> displays all possible completions
+at the bottom of the current window.
+
+=item I<All other keys> (C<a-z, A-Z>, etc)
+
+Add that character to the current search string.
 
 =back
 
@@ -122,13 +161,17 @@ activated:
 
 =over 4
 
-=item Using C-e (show actives), followed by repeatedly pressing space will cycle
-   through all your currently active windows.
+=item * 
 
-=item If you enter a search string fragment, and realise that more than one candidate
-   is still presented, rather than delete the whole string and modify it, you can
-   use C-SPC to 'lock' the current matching candidates, but allow you to search
-   through those matches alone.
+Using C-e (show actives), followed by repeatedly pressing space will cycle
+through all your currently active windows.
+
+=item *
+
+If you enter a search string fragment, and realise that more than one candidate
+is still presented, rather than delete the whole string and modify it, you
+can use C-SPC to 'lock' the current matching candidates, but allow you to
+search through those matches alone.
 
 =back
 
@@ -205,9 +248,9 @@ use Irssi;
 use Irssi::TextUI;
 use Data::Dumper;
 
-use vars qw($VERSION %IRSSI);
-$VERSION = '2.0';
-%IRSSI =
+
+our $VERSION = '2.1';
+our %IRSSI   =
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
    contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
