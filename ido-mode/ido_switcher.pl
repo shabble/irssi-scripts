@@ -558,7 +558,7 @@ sub get_all_windows {
 
         if ($mode_type ne 'ALL') {
             @mode_cache = @window_cache;
-            @window_cache = grep { print "Type: " . $_->{type}; $_->{type} eq $mode_type } @window_cache;
+            @window_cache = grep { $_->{type} eq $mode_type } @window_cache;
         } else {
             @window_cache = @mode_cache if @mode_cache;
         }
