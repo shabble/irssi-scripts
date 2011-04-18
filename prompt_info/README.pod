@@ -57,7 +57,9 @@ show help for uberprompt commands
 
 =back
 
-=head1 UBERPROMPT FORMAT:
+=head1 SETTINGS
+
+=head2 UBERPROMPT FORMAT
 
 C</set uberprompt_format E<lt>formatE<gt>>
 
@@ -76,6 +78,58 @@ B<Note:> This setting completely overrides the C<prompt="...";> line in your
 .theme file, and may cause unexpected behaviour if your theme wishes to set a
 different form of prompt. It can be simply copied from the theme file into the
 above setting.
+
+=head2 OTHER SETTINGS
+
+=over 4
+
+=item * C<uberprompt_autostart>
+
+Boolean value, which determines if uberprompt should enable itself automatically
+upon loading.  If Off, it must be enabled manually with C</prompt on>.  Defaults to On.
+
+=item * C<uberprompt_debug>
+
+Boolean value, which determines if uberprompt should print debugging information.
+Defaults to Off, and should probably be left that way unless requested for bug-tracing
+purposes.
+
+=item * C<uberprompt_format>
+
+String value containing the format-string which uberprompt uses to display the
+prompt. Defaults to "C<[$*$uber] >", where C<$*> is the content the prompt would
+normally display, and C<$uber> is a placeholder variable for dynamic content, as
+described in the section above.
+
+=item * C<uberprompt_load_hook>
+
+String value which can contain one or more commands to be run whenever the uberprompt
+is enabled, either via autostart, or C</prompt on>. Defaults to the empty string, in
+which case no commands are run.  Some examples include:
+
+C</set uberprompt_load_hook /echo prompt enabled> or
+
+C</^sbar prompt add -after input vim_mode> for those using vim_mode.pl who want
+the command status indicator on the prompt line.
+
+=item * C<uberprompt_unload_hook>
+
+String value, defaulting to the empty string, which can contain commands which
+are executed when the uberprompt is disabled, either by unloading the script,
+or by the command C</prompt off>.
+
+=item * C<uberprompt_use_replaces>
+
+Boolean value, defaults to Off. If enabled, the format string for the prompt
+will be subject to the I<replaces> section of the theme.  The most obvious
+effect of this is that bracket characters C<[ ]> are displayed in a different
+colour, typically quite dark.
+
+=back
+
+B<Note:> For both C<uberprompt_*_hook> settings above, multiple commands can
+be chained together in the form C</eval /^cmd1 ; /^cmd2>. The C<^> prevents
+any output from the commands (such as error messages) being displayed.
 
 =head2 SCRIPTING USAGE
 
