@@ -239,11 +239,11 @@ C<:se[t] {option} {value}> - change option to value
 
 =over 4
 
-=item C<:map {lhs}>       - display mappings starting with {lhs}
+=item * C<:map {lhs}>       - display mappings starting with {lhs}
 
-=item C<:map {lhs} {rhs}> - add mapping
+=item * C<:map {lhs} {rhs}> - add mapping
 
-=item C<:unm[ap] {lhs}>   - remove custom mapping
+=item * C<:unm[ap] {lhs}>   - remove custom mapping
 
 =back
 
@@ -257,17 +257,17 @@ C<E<lt>E<gt>> notation is used
 
 =over 4
 
-=item C<E<lt>C-AE<gt>> - C<E<lt>C-ZE<gt>>,
+=item * C<E<lt>C-AE<gt>> - C<E<lt>C-ZE<gt>>,
 
-=item C<E<lt>C-^E<gt>>, C<E<lt>C-6E<gt>>
+=item * C<E<lt>C-^E<gt>>, C<E<lt>C-6E<gt>>
 
-=item C<E<lt>SpaceE<gt>>
+=item * C<E<lt>SpaceE<gt>>
 
-=item C<E<lt>CRE<gt>> - Enter
+=item * C<E<lt>CRE<gt>> - Enter
 
-=item C<E<lt>BSE<gt>> - Backspace
+=item * C<E<lt>BSE<gt>> - Backspace
 
-=item C<E<lt>NopE<gt>> - No-op (Do Nothing).
+=item * C<E<lt>NopE<gt>> - No-op (Do Nothing).
 
 =back
 
@@ -279,23 +279,23 @@ Examples:
 
 =over 4
 
-=item C<:map w  W>      - to remap w to work like W
+=item * C<:map w  W>      - to remap w to work like W
 
-=item C<:map gb :bnext> - to map gb to call :bnext
+=item * C<:map gb :bnext> - to map gb to call :bnext
 
-=item C<:map gB :bprev>
+=item * C<:map gB :bprev>
 
-=item C<:map g1 :b 1>   - to map g1 to switch to buffer 1
+=item * C<:map g1 :b 1>   - to map g1 to switch to buffer 1
 
-=item C<:map gb :b>     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
+=item * C<:map gb :b>     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
 
-=item C<:map E<lt>C-LE<gt> /clear> - map Ctrl-L to irssi command /clear
+=item * C<:map E<lt>C-LE<gt> /clear> - map Ctrl-L to irssi command /clear
 
-=item C<:map E<lt>C-GE<gt> /window goto 1>
+=item * C<:map E<lt>C-GE<gt> /window goto 1>
 
-=item C<:map E<lt>C-EE<gt> <Nop>> - disable <C-E>, it does nothing now
+=item * C<:map E<lt>C-EE<gt> <Nop>> - disable <C-E>, it does nothing now
 
-=item C<:unmap E<lt>C-EE<gt>> - restore default behavior of C<E<lt>C-EE<gt>>
+=item * C<:unmap E<lt>C-EE<gt>> - restore default behavior of C<E<lt>C-EE<gt>>
 after disabling it
 
 =back
@@ -312,19 +312,33 @@ following settings are available:
 
 =over 4
 
-=item utf8:                 support UTF-8 characters, boolean, default on
+=item * utf8
 
-=item debug:                enable debug output, boolean, default off
+Support UTF-8 characters, boolean, default on
 
-=item cmd_seq:              char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
+=item debug 
 
-=item start_cmd:            start every line in command mode, boolean, default off
+Enable debug output, boolean, default off
 
-=item max_undo_lines:       size of the undo buffer. Integer, default 50 items.
+=item cmd_seq
 
-=item ex_history_size:      number of items stored in the ex-mode history. Integer, default 100.
+Char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
 
-=item prompt_leading_space: determines whether ex mode prepends a space to the displayed input. Boolean, default on
+=item start_cmd
+
+Start every line in command mode, boolean, default off
+
+=item max_undo_lines 
+
+Sze of the undo buffer. Integer, default 50 items.
+
+=item ex_history_size 
+
+Number of items stored in the ex-mode history. Integer, default 100.
+
+=item prompt_leading_space
+
+Ddetermines whether ex mode prepends a space to the displayed input. Boolean, default on
 
 =back
 
@@ -394,13 +408,19 @@ THE SOFTWARE.
 
 =over 4
 
-=item  count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+=item *
 
-=item mapping an incomplete ex-command doesn't open the ex-mode with the partial
-  command (e.g. C<:map gb :b> causes an error instead of opening the ex-mode and
-  displaying C<:bE<lt>cursorE<gt>>)
+count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
 
-=item undo/redo cursor positions are mostly wrong
+=item *
+
+mapping an incomplete ex-command doesn't open the ex-mode with the partial
+command (e.g. C<:map gb :b> causes an error instead of opening the ex-mode and
+displaying C<:bE<lt>cursorE<gt>>)
+
+=item *
+
+ undo/redo cursor positions are mostly wrong
 
 =back
 
@@ -408,21 +428,31 @@ THE SOFTWARE.
 
 =over 4
 
-=item History:
+=item *
+
+History:
 
 =over 4
 
-=item C< * /,?,n,N> to search through history (like rl_history_search.pl)
+=item *
+
+ C< * /,?,n,N> to search through history (like rl_history_search.pl)
 
 =back
 
-=item Window switching (C<:b>)
+=item *
+
+Window switching (C<:b>)
 
 =over 4
 
-=item Tab completion of window(-item) names
+=item *
 
-=item non-sequential matches(?)
+Tab completion of window(-item) names
+
+=item *
+
+non-sequential matches(?)
 
 =back
 
@@ -438,7 +468,7 @@ Things we're not ever likely to do:
 
 =over 4
 
-=item Macros
+=item * Macros
 
 =back
 
@@ -455,9 +485,9 @@ use Irssi::TextUI;              # for sbar_items_redraw
 use Irssi::Irc;                 # necessary for 0.8.14
 
 
-use vars qw($VERSION %IRSSI);
-$VERSION = "1.0.1";
-%IRSSI =
+
+our $VERSION = "1.0.2";
+our %IRSSI   =
   (
    authors         => "Tom Feist (shabble), Simon Ruderich (rudi_s)",
    contact         => 'shabble+irssi@metavore.org, '
