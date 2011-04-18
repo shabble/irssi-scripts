@@ -27,22 +27,35 @@ uberprompt_format setting. See below for details.
 Although the script is designed primarily for other scripts to set
 status information into the prompt, the following commands are available:
 
-TODO: Document positional settings.
+=over 4
 
-/prompt set   - sets the prompt to the given argument. $p in the argument will
-                be replaced by the original prompt content.
-                A parameter corresponding to the UP_* constants listed below
-                is required, in the format `/prompt set -inner Hello!'
+=item * C</prompt set [-inner|-pre|-post|only] E<lt>msgE<gt>>
 
-/prompt set [-inner|-pre|-post|only] <msg>
+Sets the prompt to the given argument. Any use of C<$p> in the argument will
+be replaced by the original prompt content.
 
-/prompt clear - clears the additional data provided to the prompt.
-/prompt on    - enables the uberprompt (things may get confused if this is used
-                whilst the prompt is already enabled)
-/prompt off   - restore the original irssi prompt and prompt_empty statusbars.
-                unloading the script has the same effect.
+A parameter corresponding to the C<UP_*> constants listed below is required, in
+the format C</prompt set -inner Hello!>
 
-/help prompt  - show help for uberprompt commands
+=item * C</prompt clear>
+
+Clears the additional data provided to the prompt.
+
+=item * C</prompt on>
+
+Eenables the uberprompt (things may get confused if this is used
+whilst the prompt is already enabled)
+
+=item * C</prompt off>
+
+Restore the original irssi prompt and prompt_empty statusbars.  unloading the
+script has the same effect.
+
+=item * C</help prompt>
+
+show help for uberprompt commands
+
+=back
 
 =head1 UBERPROMPT FORMAT:
 
@@ -54,7 +67,7 @@ F<default.theme>.
 Changing this setting will update the prompt immediately, unlike editing your theme.
 
 An additional variable available within this format is C<$uber>, which expands to
-the content of prompt data provided with the C<UP_INNER> or </prompt set -inner>
+the content of prompt data provided with the C<UP_INNER> or C</prompt set -inner>
 placement argument.
 
 For all other placement arguments, it will expand to the empty string.
