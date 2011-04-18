@@ -14,7 +14,7 @@ This script requires that you have first installed and loaded F<uberprompt.pl>
 
 Uberprompt can be downloaded from:
 
-L<http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
 
 and follow the instructions at the top of that file for installation.
 
@@ -33,7 +33,7 @@ You can then type either a search string, or use one of the additional key-bindi
 to change the behaviour of the search.  C<C-h> provides online help regarding
 the possible interactive options.
 
-=head3  EXTENDED USAGE:
+=head3 EXTENDED USAGE:
 
 It is possible to pass arguments to the /ido_switch_start command, which
 correspond to some of the interactively settable parameters listed below.
@@ -126,8 +126,9 @@ activated:
    use C-SPC to 'lock' the current matching candidates, but allow you to search
    through those matches alone.
 
+=back
 
-=head 1 AUTHORS
+=head1 AUTHORS
 
 Based originally on L<window_switcher.pl|http://scripts.irssi.org/scripts/window_switcher.pl> script Copyright 2007 Wouter Coekaerts
 C<E<lt>coekie@irssi.orgE<gt>>.

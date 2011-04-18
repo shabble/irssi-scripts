@@ -12,7 +12,7 @@ This script requires that you have first installed and loaded `uberprompt.pl`
 
 Uberprompt can be downloaded from:
 
-[http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl](http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl)
+[https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl](https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl)
 
 and follow the instructions at the top of that file for installation.
 
@@ -91,49 +91,49 @@ activated:
        use C-SPC to 'lock' the current matching candidates, but allow you to search
        through those matches alone.
 
+# AUTHORS
 
+Based originally on [window_switcher.pl](http://scripts.irssi.org/scripts/window_switcher.pl) script Copyright 2007 Wouter Coekaerts
+`<coekie@irssi.org>`.
 
-    Based originally on [window_switcher.pl](http://scripts.irssi.org/scripts/window_switcher.pl) script Copyright 2007 Wouter Coekaerts
-    `<coekie@irssi.org>`.
+Primary functionality Copyright 2010-2011 Tom Feist
+`<shabble+irssi@metavore.org>`.
 
-    Primary functionality Copyright 2010-2011 Tom Feist
-    `<shabble+irssi@metavore.org>`.
+# LICENCE
 
-    # LICENCE
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+# BUGS:
 
-    # BUGS:
+    - __FIXED__ Sometimes selecting a channel with the same name on a different
+       network will take you to the wrong channel.
 
-        - __FIXED__ Sometimes selecting a channel with the same name on a different
-           network will take you to the wrong channel.
+# TODO
 
-    # TODO
-
-                                                                                                - __DONE__ C-g - cancel
-                                                                                        - __DONE__ C-spc - narrow
-                                                                                - __DONE__ flex matching (on by default, but optional)
-                                                                        - TODO server/network narrowing
-                                                                - __DONE__ colourised output (via uberprompt)
-                                                        - __DONE__ C-r / C-s rotate matches
-                                                - __DONE__ toggle queries/channels
-                                        - __DONE__ remove inputline content, restore it afterwards.
-                                - TODO tab - display all possibilities in window (clean up afterwards)
-                                how exactly will this work?
-                        - __DONE__ sort by recent activity/recently used windows (separate commands?)
-                - __TODO__ need to be able to switch ordering of active ones (numerical, or most
-                recently active, priority to PMs/hilights, etc?)
-        - __DONE__ should space auto-move forward to next window for easy stepping
-             through sequential/active windows?
+                                                - __DONE__ C-g - cancel
+                                            - __DONE__ C-spc - narrow
+                                        - __DONE__ flex matching (on by default, but optional)
+                                    - TODO server/network narrowing
+                                - __DONE__ colourised output (via uberprompt)
+                            - __DONE__ C-r / C-s rotate matches
+                        - __DONE__ toggle queries/channels
+                    - __DONE__ remove inputline content, restore it afterwards.
+                - TODO tab - display all possibilities in window (clean up afterwards)
+                how exactly will this work?
+            - __DONE__ sort by recent activity/recently used windows (separate commands?)
+        - __TODO__ need to be able to switch ordering of active ones (numerical, or most
+        recently active, priority to PMs/hilights, etc?)
+    - __DONE__ should space auto-move forward to next window for easy stepping
+         through sequential/active windows?
