@@ -97,9 +97,14 @@ The possible position arguments are the following strings:
 =over 4
 
 =item * C<UP_PRE>   - place the provided string before the prompt - C<$string$prompt>
+
 =item * C<UP_INNER> - place the provided string inside the prompt - C<{prompt $* $string}>
+
 =item * C<UP_POST>  - place the provided string after the prompt  - C<$prompt$string>
+
 =item * C<UP_ONLY>  - replace the prompt with the provided string - C<$string>
+
+=back
 
 All strings may use the special variable 'C<$prompt>' to include the prompt
 verbatim at that position in the string.  It is probably only useful for
