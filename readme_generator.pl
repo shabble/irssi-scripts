@@ -37,17 +37,7 @@ sub wanted {
     return if $file =~ m/^\./;
 
     _err("processing file: $path");
-    #read_input_file($dir, $file);
     create_output_file($dir, $file);
-}
-
-sub read_input_file {
-    my ($dir, $filename) = @_;
-
-    my $filepath = File::Spec->catfile($dir, $filename);
-    _err("reading $filepath");
-
-    create_output_file($dir, "README.md", $parser);
 }
 
 sub create_output_file {
@@ -68,12 +58,14 @@ sub create_output_file {
 
     my $mode = $overwrite ? '>' : '>>';
 
-    _err("Writing to $mode $filepath");
+    _err("Writing to $mode $out_file_path");
 
     open my $wfh, $mode, $out_file_path
       or die "Couldn't open $out_file_path for $mode output: $!";
 
     $parser->parse_from_file($in_file_path, $wfh);
+
+    print $wfh "\n\n=cut\n\n";
 
     close $wfh;
 }
