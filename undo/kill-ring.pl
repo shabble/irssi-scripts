@@ -39,8 +39,91 @@ our $VERSION = '0.1';
 our %IRSSI = (
               authors     => 'shabble',
               contact     => 'shabble+irssi@metavore.org',
-              name        => '',
-              description => '',
+              name        => 'kill-ring',
+              description => 'keeps track of changes to the cutbuffer'
+                             . ' and allows you to cycle through them',
               license     => 'MIT',
               updated     => '$DATE'
              );
+
+my @cut_buf_history;
+
+sub cut_buffer_init {
+    Irssi::signal_add_first('gui key pressed' => \&sig_cmd_undo);
+    Irssi::command_bind('cut_buf_cycle' => \&cmd_cut_buf_cycle);
+}
+
+sub add_to_history {
+    my ($str) = @_;
+
+    return unless defined $str;
+
+    my $head = $cut_buf_history[-1];
+
+    if (defined $head and $str ne $head) {
+        push @cut_buf_history, $str;
+    } elsif (not defined $head) {
+        push @cut_buf_history, $str;
+    }
+
+    # enforce maximum size
+    # TODO: make this a setting?
+
+    if (@cut_buf_history > 100) {
+        shift @cut_buf_history;
+    }
+}
+
+sub cmd_cut_buf_cycle {
+    print '%_Cut buffer contains:%_';
+    foreach my $buf (@cut_buf_history) {
+        print "$buf"
+   }
+}
+
+sub sig_cmd_undo {
+    my ($key) = @_;
+    add_to_history(_cut_buf());
+}
+
+sub _cut_buf {
+    return Irssi::parse_special('$U', 0, 0);
+}
+
+sub _input {
+    my ($data) = @_;
+
+    my $current_data = Irssi::parse_special('$L', 0, 0);
+
+    # TODO: set this back up.
+
+    # if ($settings->{utf8}->{value}) {
+    #     $current_data = decode_utf8($current_data);
+    # }
+
+    if (defined $data) {
+        # if ($settings->{utf8}->{value}) {
+        #     Irssi::gui_input_set(encode_utf8($data));
+        # } else {
+        Irssi::gui_input_set($data);
+        #}
+    } else {
+        $data = $current_data;
+    }
+
+    return $data;
+}
+
+sub _input_pos {
+    my ($pos) = @_;
+    my $cur_pos = Irssi::gui_input_get_pos();
+    if (defined $pos) {
+        Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
+    } else {
+        $pos = $cur_pos;
+    }
+
+    return $pos;
+}
+
+cut_buffer_init();
