@@ -10,17 +10,17 @@ Search and select windows similar to ido-mode for emacs
 
 =head1 INSTALLATION
 
-#
-# This script requires that you have first installed and loaded 'uberprompt.pl'
-# Uberprompt can be downloaded from:
-#
-# http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
-#
-# and follow the instructions at the top of that file for installation.
-# If uberprompt.pl is available, but not loaded, this script will make one
-# attempt to load it before giving up.  This eliminates the need to precisely
-# arrange the startup order of your scripts.
-#
+This script requires that you have first installed and loaded F<uberprompt.pl>
+
+Uberprompt can be downloaded from:
+
+L<http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+
+and follow the instructions at the top of that file for installation.
+
+If uberprompt.pl is available, but not loaded, this script will make one
+attempt to load it before giving up.  This eliminates the need to precisely
+arrange the startup order of your scripts.
 
 =head2 SETUP
 
