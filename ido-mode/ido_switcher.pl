@@ -1,6 +1,15 @@
-# Search and select windows similar to ido-mode for emacs
-#
-# INSTALL:
+=pod
+
+=head1 NAME
+
+ido_switcher.pl
+
+=head1 DESCRIPTION 
+
+Search and select windows similar to ido-mode for emacs
+
+=head1 INSTALLATION
+
 #
 # This script requires that you have first installed and loaded 'uberprompt.pl'
 # Uberprompt can be downloaded from:
@@ -12,114 +21,180 @@
 # attempt to load it before giving up.  This eliminates the need to precisely
 # arrange the startup order of your scripts.
 #
-# SETUP:
-#
-# * Setup: /bind ^G /ido_switch_start
-#
-# * Then type ctrl-G and type what you're searching for
-#
-# USAGE:
-#
-# C-g (or whatever you've set the above bind to), enters window switching mode.
-#
-# EXTENDED USAGE:
-#
-# It is possible to pass arguments to the /ido_switch_start command, which
-# correspond to some of the interactively settable parameters listed below.
-# The following options are available:
-#
-# * -channels -- search through only channels.
-# * -queries  -- search through only queries.
-# * -all      -- search both queries and channels (Default).
-# * -active   -- limit search to only window items with activity.
-# * -exact    -- enable exact-substring matching
-# * -flex     -- enable flex-string matching
-#    [If neither of -exact or -flex are given, the default is the value of
-#     /set ido_use_flex]
-#
-# EXAMPLE:
-#
-# /bind ^G /ido_switch_start -channels
-# /bind ^F /ido_switch_start -queries -active
-#
-# NOTE: When entering window switching mode, the contents of your input line will
-# be saved and cleared, to avoid visual clutter whilst using the switching
-# interface.  It will be restored once you exit the mode using either C-g, Esc,
-# or RET.
 
-# The following key-bindings are available only once the mode has been
-# activated:
-#
-# * C-g   - cancel out of the mode without changing windows.
-# * Esc   - cancel out, as above.
-# * C-s   - rotate the list of window candidates forward by 1
-# * C-r   - rotate the list of window candidates backward by 1
-# * C-e   - Toggle 'Active windows only' filter
-# * C-f   - Switch between 'Flex' and 'Exact' matching.
-# * C-d   - Select a network or server to filter candidates by
-# * C-u   - Clear the current search string
-# * C-q   - Cycle between showing only queries, channels, or all.
-# * C-SPC - Filter candidates by current search string, and then reset
-#            the search string
-# * RET   - Select the current head of the candidate list (the green one)
-# * SPC   - Select the current head of the list, without exiting the
-#            switching mode. The head is then moved one place to the right,
-#            allowing one to cycle through channels by repeatedly pressing space.
-# * TAB   - [currently in development] displays all possible completions
-#            at the bottom of the current window.
-# * All other keys (a-z, A-Z, etc) - Add that character to the current search
-#                                     string.
-#
-# USAGE NOTES:
-#
-# * Using C-e (show actives), followed by repeatedly pressing space will cycle
-#   through all your currently active windows.
-#
-# * If you enter a search string fragment, and realise that more than one candidate
-#   is still presented, rather than delete the whole string and modify it, you can
-#   use C-SPC to 'lock' the current matching candidates, but allow you to search
-#   through those matches alone.
-#
-# Based in part on window_switcher.pl script Copyright 2007 Wouter Coekaerts
-# <coekie@irssi.org>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+=head2 SETUP
 
-# BUGS:
-#
-# * FIXED Sometimes selecting a channel with the same name on a different
-#   network will take you to the wrong channel.
-#
-# TODO:
+C</bind ^G /ido_switch_start [options]>
 
-# DONE C-g - cancel
-# DONE C-spc - narrow
-# DONE flex matching (on by default, but optional)
-# TODO server/network narrowing
-# DONE colourised output (via uberprompt)
-# DONE C-r / C-s rotate matches
-# DONE toggle queries/channels
-# DONE remove inputline content, restore it afterwards.
-# TODO tab - display all possibilities in window (clean up afterwards)
-#       how exactly will this work?
-# DONE sort by recent activity/recently used windows (separate commands?)
-# TODO need to be able to switch ordering of active ones (numerical, or most recently
-#      active, priority to PMs/hilights, etc?)
-# DONE should space auto-move forward to next window for easy stepping through
-#      sequential/active windows?
-#
+=head2 USAGE
+
+C<C-g> (or whatever you've set the above bind to), enters IDO window switching mode.
+You can then type either a search string, or use one of the additional key-bindings
+to change the behaviour of the search.  C<C-h> provides online help regarding
+the possible interactive options.
+
+=head3  EXTENDED USAGE:
+
+It is possible to pass arguments to the /ido_switch_start command, which
+correspond to some of the interactively settable parameters listed below.
+
+The following options are available:
+
+=over 4
+
+=item C<-channels> -- search through only channels.
+
+=item C<-queries>  -- search through only queries.
+
+=item C<-all>      -- search both queries and channels (Default).
+
+=item C<-active>   -- limit search to only window items with activity.
+
+=item C<-exact>    -- enable exact-substring matching
+
+=item C<-flex>     -- enable flex-string matching
+
+=back
+
+I<If neither of C<-exact> or C<-flex> are given, the default is the value of
+C</set ido_use_flex>>
+
+=head4 EXAMPLE
+
+=over 2
+
+=item C</bind ^G /ido_switch_start -channels>
+
+=item C</bind ^F /ido_switch_start -queries -active>
+
+=back
+
+B<NOTE:> When entering window switching mode, the contents of your input line will
+be saved and cleared, to avoid visual clutter whilst using the switching
+interface.  It will be restored once you exit the mode using either C<C-g>, C<Esc>,
+or C<RET>.
+
+=head3 INTERACTIVE COMMANDS
+
+The following key-bindings are available only once the mode has been
+activated:
+
+=over 4
+
+=item C<C-g>   - Exit the mode without changing windows.
+
+=item C<Esc>   - Exit, as above.
+
+=item C<C-s>   - Rotate the list of window candidates forward by 1
+
+=item C<C-r>   - Rotate the list of window candidates backward by 1
+
+=item C<C-e>   - Toggle 'Active windows only' filter
+
+=item C<C-f>   - Switch between 'Flex' and 'Exact' matching.
+
+=item C<C-d>   - Select a network or server to filter candidates by
+
+=item C<C-u>   - Clear the current search string
+
+=item C<C-q>   - Cycle between showing only queries, channels, or all.
+
+=item C<C-SPC> - Filter candidates by current search string, and then reset
+                 the search string
+
+=item C<RET>   - Select the current head of the candidate list (the green one)
+
+=item C<SPC>   - Select the current head of the list, without exiting the
+                 switching mode. The head is then moved one place to the right,
+                 allowing one to cycle through channels by repeatedly pressing space.
+
+=item C<TAB>   - B<[currently in development]> displays all possible completions
+                 at the bottom of the current window.
+
+=item I<All other keys> (C<a-z, A-Z>, etc) - Add that character to the current search
+                        string.
+
+=head3 USAGE NOTES
+
+=over 4
+
+=item Using C-e (show actives), followed by repeatedly pressing space will cycle
+   through all your currently active windows.
+
+=item If you enter a search string fragment, and realise that more than one candidate
+   is still presented, rather than delete the whole string and modify it, you can
+   use C-SPC to 'lock' the current matching candidates, but allow you to search
+   through those matches alone.
+
+
+=head 1 AUTHORS
+
+Based originally on L<window_switcher.pl|http://scripts.irssi.org/scripts/window_switcher.pl> script Copyright 2007 Wouter Coekaerts
+C<E<lt>coekie@irssi.orgE<gt>>.
+
+Primary functionality Copyright 2010-2011 Tom Feist
+C<E<lt>shabble+irssi@metavore.orgE<gt>>.
+
+=head1 LICENCE
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+=head1 BUGS:
+
+=over 4
+
+=item B<FIXED> Sometimes selecting a channel with the same name on a different
+   network will take you to the wrong channel.
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item B<DONE> C-g - cancel
+
+=item B<DONE> C-spc - narrow
+
+=item B<DONE> flex matching (on by default, but optional)
+
+=item TODO server/network narrowing
+
+=item B<DONE> colourised output (via uberprompt)
+
+=item B<DONE> C-r / C-s rotate matches
+
+=item B<DONE> toggle queries/channels
+
+=item B<DONE> remove inputline content, restore it afterwards.
+
+=item TODO tab - display all possibilities in window (clean up afterwards)
+how exactly will this work?
+
+=item B<DONE> sort by recent activity/recently used windows (separate commands?)
+
+=item B<TODO> need to be able to switch ordering of active ones (numerical, or most
+recently active, priority to PMs/hilights, etc?)
+
+=item B<DONE> should space auto-move forward to next window for easy stepping
+     through sequential/active windows?
+
+=back
+
+=cut
+
 use strict;
 use Irssi;
 use Irssi::TextUI;
