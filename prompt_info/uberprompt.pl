@@ -255,6 +255,8 @@ my $emit_request = 0;
 my $expando_refresh_timer;
 my $expando_vars = {};
 
+my $init_callbacks = {load => '', unload => ''};
+
 pre_init();
 
 sub pre_init {
@@ -345,6 +347,10 @@ sub init {
     Irssi::expando_create('rbrace', \&exp_rbrace, {});
 
     Irssi::settings_add_str ('uberprompt', 'uberprompt_format', '[$*$uber] ');
+
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_load_hook',   '');
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_unload_hook', '');
+
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
@@ -454,6 +460,11 @@ sub reload_settings {
 
     $use_replaces  = Irssi::settings_get_bool('uberprompt_use_replaces');
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
+
+    $init_callbacks = {
+                       load   => Irssi::settings_get_str('uberprompt_load_hook'),
+                       unload => Irssi::settings_get_str('uberprompt_unload_hook'),
+                      };
 
     if (DEBUG) {
         Irssi::signal_add 'prompt changed', 'debug_prompt_changed';
@@ -613,6 +624,17 @@ sub replace_prompt_items {
                   qw/-alignment left -before input -priority '-1'/);
 
     _sbar_command('prompt', 'position', '100');
+
+    my $load_hook = $init_callbacks->{load};
+    if (defined $load_hook and length $load_hook) {
+        eval {
+            Irssi::command($load_hook);
+        };
+        if ($@) {
+            _error("Uberprompt user load-hook command ($load_hook) failed: $@");
+        }
+    }
+
 }
 
 sub restore_prompt_items {
@@ -622,6 +644,17 @@ sub restore_prompt_items {
     _debug_print("Restoring original prompt");
 
     _sbar_command('prompt', 'reset');
+
+    my $unload_hook = $init_callbacks->{unload};
+
+    if (defined $unload_hook and length $unload_hook) {
+        eval {
+            Irssi::command($unload_hook);
+        };
+        if ($@) {
+            _error("Uberprompt user unload-hook command ($unload_hook) failed: $@");
+        }
+    }
 }
 
 sub _sbar_command {
