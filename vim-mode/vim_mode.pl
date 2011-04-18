@@ -2519,9 +2519,9 @@ sub _matching_windows {
 
 # STATUS ITEMS
 
-# vi mode status item.
-sub vim_mode_cb {
-    my ($sb_item, $get_size_only) = @_;
+#TODO: give these things better names.
+sub vim_mode_cmd {
+
     my $mode_str = '';
     if ($mode == M_INS) {
         $mode_str = 'Insert';
@@ -2530,7 +2530,7 @@ sub vim_mode_cb {
     } else {
         $mode_str = '%_Command%_';
         if ($register ne '"' or $numeric_prefix or $operator or $movement or
-                                $pending_map) {
+            $pending_map) {
             my $partial = '';
             if ($register ne '"') {
                 $partial .= '"' . $register;
@@ -2552,6 +2552,18 @@ sub vim_mode_cb {
             $mode_str .= " ($partial)";
         }
     }
+    return $mode_str;
+}
+
+sub vim_exp_mode {
+    my ($server, $witem, $arg) = @_;
+    return vim_mode_cmd();
+}
+
+# vi mode status item.
+sub vim_mode_cb {
+    my ($sb_item, $get_size_only) = @_;
+    my $mode_str = vim_mode_cmd();
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
 }
 
@@ -3112,6 +3124,8 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_mode',    0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
+    Irssi::expando_create('vim_cmd_mode' => \&vim_exp_mode, {});
+
     # Register all available settings.
     foreach my $name (keys %$settings) {
         _setting_register($name);
@@ -3459,6 +3473,8 @@ sub _update_mode {
     }
 
     Irssi::statusbar_items_redraw("vim_mode");
+    Irssi::statusbar_items_redraw ('uberprompt');
+
 }
 
 sub _set_prompt {
