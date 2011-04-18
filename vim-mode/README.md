@@ -22,7 +22,7 @@ Uberprompt can be downloaded from:
 and follow the instructions at the top of that file for installation.
 
 If you don't need Ex-mode, you can run vim_mode.pl without the
-uberprompt.pl script, but it is recommended.
+uberprompt.pl script, but it is strongly recommended that you use it.
 
 ### Irssi requirements
 
@@ -42,12 +42,13 @@ to a script of this size and complexity.
 
 ## SETUP
 
-Use the following command to get a statusbar item that shows which mode
+Run the following command to add a statusbar item that shows which mode
 you're in.
 
 `/statusbar window add vim_mode`
 
-And the following to let `:b _name_` display a list of matching channels
+And the following to let `:b [str]` display a list of channels matching your
+search string.
 
 `/statusbar window add vim_windows`
 
@@ -70,34 +71,28 @@ Currently Supported ex-commands:
 
 # USAGE
 
+The following section is divided into the different modes as supported by Vim itself:
+
 ## COMMAND MODE
 
 It supports most commonly used command mode features:
 
-                - Insert/Command mode. Escape and Ctrl-C enter command mode.
-                  /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
-                  can be used as well).
-                - Cursor motion: h l 0 ^ $ <Space> <BS> f t F T
-                - History motion: j k gg G
-                  gg moves to the oldest (first) history line.
-                  G without a count moves to the current input line, with a count it goes to
-                  the count-th history line (1 is the oldest).
-                - Cursor word motion: `w b ge e W gE B E`
-                - Word objects (only the following work yet): `aw aW`
-                - Yank and paste: `y p P`
-                - Change and delete: `c d`
-                - Delete at cursor: `x X`
-                - Replace at cursor: `r`
-                - Insert mode: `i a I A`
-                - Switch case: `~`
-                - Repeat change: `.`
-                - Repeat `ftFT: ; ,`
-                - Registers: `"a-"z "" "0 "* "+ "_` (black hole)
-                - Appending to register with `"A-"Z`
-            - `""` is the default yank/delete register.
-        - `"0` contains the last yank (if no register was specified).
-    - The special registers `"* "+` both contain irssi's internal cut-buffer.
-
+- Insert/Command mode. `Escape` and `Ctrl-C` enter command mode.  `/set
+vim_mode_cmd_seq j` allows to use `jj` as Escape (any other character can be used as well).
+- Cursor motion: `h l 0 ^ $ <Space> <BS> f t F T`
+- History motion: `j k gg G` `gg` moves to the oldest (first) history
+line.  `G` without a count moves to the current input line, with a count it goes to the _count-th_ history line (1 is the oldest).
+- Cursor word motion: `w b ge e W gE B E`
+- Word objects (only the following work yet): `aw aW`
+- Yank and paste: `y p P`
+- Change and delete: `c d`
+- Delete at cursor: `x X`
+- Replace at cursor: `r`
+- Insert mode: `i a I A`
+- Switch case: `~`
+- Repeat change: `.`
+- Repeat `ftFT: ; ,`
+- Registers: `"a-"z "" "0 "* "+ "_` (black hole)
 - Line-wise shortcuts: `dd cc yy`
 - Shortcuts: `s S C D`
 - Scroll the scrollback buffer: `Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B`
@@ -105,10 +100,14 @@ It supports most commonly used command mode features:
 - Switch split windows: <Ctrl-W j Ctrl-W k>
 - Undo/Redo: `u Ctrl-R`
 
-Counts and combinations work as well, e.g. `d5fx` or `3iabc<esc>`.
-Counts also work with mapped ex-commands (see below), e.g. if you map `gb` to do
-`:bn`, then `2gb` will switch to the second next buffer.  Repeat also supports
-counts.
+Counts and combinations work as well, e.g. `d5fx` or `3iabc<esc>`. Counts also work with mapped ex-commands (see below), e.g. if you map `gb` to do `:bn`, then `2gb` will switch to the second next buffer.  Repeat also supports counts.
+
+### REGISTERS
+
+- Appending to register with `"A-"Z`
+- `""` is the default yank/delete register.
+- `"0` contains the last yank (if no register was specified).
+- The special registers `"* "+` both contain irssi's internal cut-buffer.
 
 ## INSERT MODE
 
@@ -120,52 +119,98 @@ The following insert mode mappings are supported:
 
 Ex-mode (activated by `:` in command mode) supports the following commands:
 
-            - Command History: `<uparrow>`, `<<downarrow>`
-                                   `:eh`       - show ex history
-            - Switching buffers: `:[N]b [N]` - switch to channel number
-                                 `:b#`       - switch to last channel
-                                 `:b` <partial-channel-name>
-                                 `:b` <partial-server>/<partial-channel>
-                                 `:buffer {args}` (same as `:b`)
-                                 `:[N]bn[ext] [N]` - switch to next window
-                                 `:[N]bp[rev] [N]` - switch to previous window
-            - Close window:      `:[N]bd[elete] [N]`
-            - Display windows:  `:ls`, `:buffers`
-            - Display registers: `:reg[isters] {args}`, `:di[splay] {args}`
-            - Display undolist:  `:undol[ist]` (mostly used for debugging)
-            - Source files       `:so[urce]` - only sources vim_moderc at the moment,
-                                     `{file}` not supported
-            - Mappings:          `:map`             - display custom mappings
-            - `:map {lhs}`       - display mappings starting with {lhs}
-        - `:map {lhs} {rhs}` - add mapping
-    - `:unm[ap] {lhs}`   - remove custom mapping
+- Command History:
 
-- Save mappings:     `:mkv[imrc][!]` - like in Vim, but [file] not supported
-- Substitute: `:s///` - _i_ and _g_ are supported as flags, only /// can
-                             be used as separator, uses Perl regex instead of
-                             Vim regex
-- Settings: `:se[t]`                  - display all options
-                     `:se[t] {option}`         - display all matching options
-                     `:se[t] {option} {value}` - change option to value
+`<uparrow>` - cycle backwards through history
+
+`<downarrow>` - cycle forwards through history
+
+`:eh` - show ex history
+
+- Switching buffers:
+
+`:[N]b [N]` - switch to channel number
+
+`:b#`       - switch to last channel
+
+`:b` <partial-channel-name>
+
+`:b` <partial-server>/<partial-channel>
+
+`:buffer {args}` (same as `:b`)
+
+`:[N]bn[ext] [N]` - switch to next window
+
+`:[N]bp[rev] [N]` - switch to previous window
+
+- Close window:
+
+`:[N]bd[elete] [N]`
+
+- Display windows:
+
+`:ls`, `:buffers`
+
+- Display registers:
+
+<:reg[isters] {args}>, `:di[splay] {args}`
+
+- Display undolist:
+
+`:undol[ist]` (mostly used for debugging)
+
+- Source files:
+
+`:so[urce]` - only sources vim_moderc at the moment,
+                         `{file}` not supported
+
+- Mappings:
+
+`:map` - display custom mappings
+
+- Save mappings:
+
+`:mkv[imrc][!]` - like in Vim, but [file] not supported
+
+- Substitute: 
+
+`:s///` - _i_ and _g_ are supported as flags, only /// can be used as
+                             separator, uses Perl regex instead of Vim regex
+
+- Settings: 
+
+`:se[t]` - display all options
+
+`:se[t] {option}`         - display all matching options
+
+`:se[t] {option} {value}` - change option to value
 
 ### MAPPINGS
 
-`{lhs}` is the key combination to be mapped, `{rhs}` the target. The
-`<>`> notation is used
+#### Commands
 
-(e.g. `<C-F>` is Ctrl-F), case is ignored. Supported `<>` keys:
+- `:map {lhs}`       - display mappings starting with {lhs}
+- `:map {lhs} {rhs}` - add mapping
+- `:unm[ap] {lhs}`   - remove custom mapping
+
+#### Parameters
+
+_{lhs}_ is the key combination to be mapped, _{rhs}_ the target. The
+`<>` notation is used
+
+(e.g. `<C-F>` is _Ctrl-F_), case is ignored.
+ Supported `<>` keys are:
 
 - `<C-A>` - `<C-Z>`,
-- `<C-^>`
-- `<C-6>`
+- `<C-^>`, `<C-6>`
 - `<Space>`
-- `&LT;CR&GT;`
-- `&LT;BS&GT;`
-- `<Nop>`
+- `<CR>` - Enter
+- `<BS>` - Backspace
+- `<Nop>` - No-op (Do Nothing).
 
 Mapping ex-mode and irssi commands is supported. When mapping ex-mode commands
 the trailing `<Cr>` is not necessary. Only default mappings can be used
-in {rhs}.
+in _{rhs}_.
 
 Examples:
 
@@ -174,10 +219,11 @@ Examples:
 - `:map gB :bprev`
 - `:map g1 :b 1`   - to map g1 to switch to buffer 1
 - `:map gb :b`     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
-- `:map <C-L` /clear> - map Ctrl-L to irssi command /clear
-- `:map <C-G` /window goto 1>
-- `:map <C-E` <Nop>> - disable <C-E>, it does nothing now
-- `:unmap <C-E`>     - restore default behavior of <C-E> after disabling it
+- `:map <C-L> /clear` - map Ctrl-L to irssi command /clear
+- `:map <C-G> /window goto 1`
+- `:map <C-E> <Nop`> - disable <C-E>, it does nothing now
+- `:unmap <C-E>` - restore default behavior of `<C-E>`
+after disabling it
 
 Note that you must use `/` for irssi commands (like `/clear`), the current value
 of Irssi's cmdchars does __not__ work! This is necessary do differentiate between
@@ -191,14 +237,11 @@ following settings are available:
 
 - utf8:                 support UTF-8 characters, boolean, default on
 - debug:                enable debug output, boolean, default off
-- cmd_seq:              char that when double-pressed simulates <esc>,
-                        string, default ''
-=item start_cmd:            start every line in command mode, boolean, default off
+- cmd_seq:              char that when double-pressed simulates `<Esc>`, string, default '' (disabled)
+- start_cmd:            start every line in command mode, boolean, default off
 - max_undo_lines:       size of the undo buffer. Integer, default 50 items.
-- ex_history_size:      number of items stored in the ex-mode history.
-                            Integer, default 100.
-- prompt_leading_space: determines whether ex mode prepends a space to the
-                        displayed input. Boolean, default on
+- ex_history_size:      number of items stored in the ex-mode history. Integer, default 100.
+- prompt_leading_space: determines whether ex mode prepends a space to the displayed input. Boolean, default on
 
 In contrast to irssi's settings, `:set` accepts 0 and 1 as values for boolean
 settings, but only vim_mode's settings can be set/displayed.
@@ -217,14 +260,14 @@ considered a bug and reported.
 
 __NOTE:__ This script is still under heavy development, and there may be bugs.
 Please submit reproducible sequences to the bug-tracker at:
-[http://github.com/shabble/irssi-scripts/issues](http://github.com/shabble/irssi-scripts/issues)
+[http://github.com/shabble/irssi-scripts/issues/new](http://github.com/shabble/irssi-scripts/issues/new)
 
 or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
 
 # AUTHORS
 
 Copyright &copy; 2010-2011 Tom Feist `<shabble+irssi@metavore.org>` and
-Copyright &copy; 2010-2011 Simon Ruderich `<simon@ruderich.org<gt`>
+Copyright &copy; 2010-2011 Simon Ruderich `<simon@ruderich.org>`
 
 # THANKS
 

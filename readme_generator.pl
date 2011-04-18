@@ -14,6 +14,15 @@ use File::Spec;
 use Pod::Markdown;
 use feature qw/say/;
 use Cwd;
+
+my $overwrite = $ARGV[0];
+if ($overwrite =~ m/--overwrite/) {
+    shift @ARGV; # remove it form list of dirs.
+    $overwrite = 1;
+} else {
+    $overwrite = 0;
+}
+
 my @dirs = map { File::Spec->catdir(getcwd(), $_) } @ARGV;
 
 die unless @dirs;
@@ -32,25 +41,12 @@ sub read_input_file {
     my ($dir, $filename) = @_;
 
     my $filepath = File::Spec->catfile($dir, $filename);
-
-    open my $rfh, '<', $filepath or die "Couldn't open $filepath for input: $!";
-
     _err("reading $filepath");
 
     my $parser = Pod::Markdown->new;
+    $parser->parse_from_file($filepath);
 
-    $parser->parse_from_filehandle($rfh);
-
-    close $rfh;
-
-    my @other_files = glob($dir . "/*.pl");
-
-    # if (@other_files > 1) {
-    #     $filename =~ s/\.pl$//;
-    #     create_output_file($dir, "README-$filename.md", $parser);
-    # } else {
-        create_output_file($dir, "README.md", $parser);
-    #    }
+    create_output_file($dir, "README.md", $parser);
 }
 
 sub create_output_file {
@@ -59,20 +55,27 @@ sub create_output_file {
     my $filepath = File::Spec->catfile($dir, $filename);
 
     my $markdown = $parser->as_markdown;
+
     return unless length chomp($markdown);
     return if $markdown =~ m/^\s*$/;
 
-    _err("Writing to $filepath");
 
     my $sec_sep = '';
-    if (-f $filepath) {
-        _err("$filepath already exists, going to append");
+
+    if (-f $filepath and not $overwrite) {
+        _err("$filepath already exists, going to append") unless $overwrite;
         $sec_sep = "\n\n* * * *\n\n";
     }
 
-    open my $wfh, '>>', $filepath or die "Couldn't open $filepath for output: $!";
+    my $mode = $overwrite ? '>' : '>>';
+
+    _err("Writing to $mode $filepath");
+
+    open my $wfh, $mode, $filepath
+      or die "Couldn't open $filepath for $mode output: $!";
+
     print $wfh $sec_sep;
-    print $wfh $parser->as_markdown;
+    print $wfh $parser->as_markdown; # fetch it again since we chomped $markdown.
     close $wfh;
 }
 

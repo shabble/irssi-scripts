@@ -24,7 +24,7 @@ L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
 and follow the instructions at the top of that file for installation.
 
 If you don't need Ex-mode, you can run vim_mode.pl without the
-uberprompt.pl script, but it is recommended.
+uberprompt.pl script, but it is strongly recommended that you use it.
 
 =head3 Irssi requirements
 
@@ -49,12 +49,13 @@ to a script of this size and complexity.
 
 =head2 SETUP
 
-Use the following command to get a statusbar item that shows which mode
+Run the following command to add a statusbar item that shows which mode
 you're in.
 
 C</statusbar window add vim_mode>
 
-And the following to let C<:b I<name>> display a list of matching channels
+And the following to let C<:b [str]> display a list of channels matching your
+search string.
 
 C</statusbar window add vim_windows>
 
@@ -80,22 +81,21 @@ Currently Supported ex-commands:
 
 =head1 USAGE
 
+The following section is divided into the different modes as supported by Vim itself:
+
 =head2 COMMAND MODE
 
 It supports most commonly used command mode features:
 
-=over 4
+=over 2
 
-=item Insert/Command mode. Escape and Ctrl-C enter command mode.
-  /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
-  can be used as well).
+=item Insert/Command mode. C<Escape> and C<Ctrl-C> enter command mode.  C</set
+vim_mode_cmd_seq j> allows to use C<jj> as Escape (any other character can be used as well).
 
-=item Cursor motion: h l 0 ^ $ <Space> <BS> f t F T
+=item Cursor motion: C<h l 0 ^ $ E<lt>SpaceE<gt> E<lt>BSE<gt> f t F T>
 
-=item History motion: j k gg G
-  gg moves to the oldest (first) history line.
-  G without a count moves to the current input line, with a count it goes to
-  the count-th history line (1 is the oldest).
+=item History motion: C<j k gg G> C<gg> moves to the oldest (first) history
+line.  C<G> without a count moves to the current input line, with a count it goes to the I<count-th> history line (1 is the oldest).
 
 =item Cursor word motion: C<w b ge e W gE B E>
 
@@ -119,18 +119,6 @@ It supports most commonly used command mode features:
 
 =item Registers: C<"a-"z "" "0 "* "+ "_> (black hole)
 
-=over 4
-
-=item Appending to register with C<"A-"Z>
-
-=item C<""> is the default yank/delete register.
-
-=item C<"0> contains the last yank (if no register was specified).
-
-=item The special registers C<"* "+> both contain irssi's internal cut-buffer.
-
-=back 
-
 =item Line-wise shortcuts: C<dd cc yy>
 
 =item Shortcuts: C<s S C D>
@@ -145,10 +133,21 @@ It supports most commonly used command mode features:
 
 =back
 
-Counts and combinations work as well, e.g. C<d5fx> or C<3iabcE<lt>escE<gt>>.
-Counts also work with mapped ex-commands (see below), e.g. if you map C<gb> to do
-C<:bn>, then C<2gb> will switch to the second next buffer.  Repeat also supports
-counts.
+Counts and combinations work as well, e.g. C<d5fx> or C<3iabcE<lt>escE<gt>>. Counts also work with mapped ex-commands (see below), e.g. if you map C<gb> to do C<:bn>, then C<2gb> will switch to the second next buffer.  Repeat also supports counts.
+
+=head3 REGISTERS
+
+=over 4
+
+=item Appending to register with C<"A-"Z>
+
+=item C<""> is the default yank/delete register.
+
+=item C<"0> contains the last yank (if no register was specified).
+
+=item The special registers C<"* "+> both contain irssi's internal cut-buffer.
+
+=back
 
 =head2 INSERT MODE
 
@@ -166,29 +165,77 @@ Ex-mode (activated by C<:> in command mode) supports the following commands:
 
 =over 4
 
-=item Command History: C<E<lt>uparrowE<gt>>, C<E<lt><downarrowE<gt>>
-                       C<:eh>       - show ex history
+=item Command History:
 
-=item Switching buffers: C<:[N]b [N]> - switch to channel number
-                     C<:b#>       - switch to last channel
-                     C<:b> E<lt>partial-channel-nameE<gt>
-                     C<:b> <partial-server>/<partial-channel>
-                     C<:buffer {args}> (same as C<:b>)
-                     C<:[N]bn[ext] [N]> - switch to next window
-                     C<:[N]bp[rev] [N]> - switch to previous window
+C<E<lt>uparrowE<gt>> - cycle backwards through history
 
-=item Close window:      C<:[N]bd[elete] [N]>
+C<E<lt>downarrowE<gt>> - cycle forwards through history
 
-=item Display windows:  C<:ls>, C<:buffers>
+C<:eh> - show ex history
 
-=item Display registers: C<:reg[isters] {args}>, C<:di[splay] {args}>
+=item Switching buffers:
 
-=item Display undolist:  C<:undol[ist]> (mostly used for debugging)
+C<:[N]b [N]> - switch to channel number
 
-=item Source files       C<:so[urce]> - only sources vim_moderc at the moment,
+C<:b#>       - switch to last channel
+
+C<:b> E<lt>partial-channel-nameE<gt>
+
+C<:b> <partial-server>/<partial-channel>
+
+C<:buffer {args}> (same as C<:b>)
+
+C<:[N]bn[ext] [N]> - switch to next window
+
+C<:[N]bp[rev] [N]> - switch to previous window
+
+=item Close window:
+
+C<:[N]bd[elete] [N]>
+
+=item Display windows:
+
+C<:ls>, C<:buffers>
+
+=item Display registers:
+
+<:reg[isters] {args}>, C<:di[splay] {args}>
+
+=item Display undolist:
+
+C<:undol[ist]> (mostly used for debugging)
+
+=item Source files:
+
+C<:so[urce]> - only sources vim_moderc at the moment,
                          F<{file}> not supported
 
-=item Mappings:          C<:map>             - display custom mappings
+=item Mappings:
+
+C<:map> - display custom mappings
+
+=item Save mappings:
+
+C<:mkv[imrc][!]> - like in Vim, but [file] not supported
+
+=item Substitute: 
+
+C<:s///> - I<i> and I<g> are supported as flags, only /// can be used as
+                             separator, uses Perl regex instead of Vim regex
+
+=item Settings: 
+
+C<:se[t]> - display all options
+
+C<:se[t] {option}>         - display all matching options
+
+C<:se[t] {option} {value}> - change option to value
+
+=back
+
+=head3 MAPPINGS
+
+=head4 Commands
 
 =over 4
 
@@ -200,46 +247,33 @@ Ex-mode (activated by C<:> in command mode) supports the following commands:
 
 =back
 
-=item Save mappings:     C<:mkv[imrc][!]> - like in Vim, but [file] not supported
+=head4 Parameters
 
-=item Substitute: C<:s///> - I<i> and I<g> are supported as flags, only /// can
-                             be used as separator, uses Perl regex instead of
-                             Vim regex
+I<{lhs}> is the key combination to be mapped, I<{rhs}> the target. The
+C<E<lt>E<gt>> notation is used
 
-=item Settings: C<:se[t]>                  - display all options
-                     C<:se[t] {option}>         - display all matching options
-                     C<:se[t] {option} {value}> - change option to value
-
-=back
-
-=head3 MAPPINGS
-
-C<{lhs}> is the key combination to be mapped, C<{rhs}> the target. The
-C<E<lt>E<gt>>> notation is used
-
-(e.g. C<E<lt>C-FE<gt>> is Ctrl-F), case is ignored. Supported C<E<lt>E<gt>> keys:
+(e.g. C<E<lt>C-FE<gt>> is I<Ctrl-F>), case is ignored.
+ Supported C<E<lt>E<gt>> keys are:
 
 =over 4
 
 =item C<E<lt>C-AE<gt>> - C<E<lt>C-ZE<gt>>,
 
-=item C<E<lt>C-^E<gt>>
-
-=item C<E<lt>C-6E<gt>>
+=item C<E<lt>C-^E<gt>>, C<E<lt>C-6E<gt>>
 
 =item C<E<lt>SpaceE<gt>>
 
-=item C<E<LT>CRE<GT>>
+=item C<E<lt>CRE<gt>> - Enter
 
-=item C<E<LT>BSE<GT>>
+=item C<E<lt>BSE<gt>> - Backspace
 
-=item C<E<lt>NopE<gt>>
+=item C<E<lt>NopE<gt>> - No-op (Do Nothing).
 
 =back
 
 Mapping ex-mode and irssi commands is supported. When mapping ex-mode commands
 the trailing C<E<lt>CrE<gt>> is not necessary. Only default mappings can be used
-in {rhs}.
+in I<{rhs}>.
 
 Examples:
 
@@ -255,13 +289,14 @@ Examples:
 
 =item C<:map gb :b>     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
 
-=item C<:map <C-L> /clear> - map Ctrl-L to irssi command /clear
+=item C<:map E<lt>C-LE<gt> /clear> - map Ctrl-L to irssi command /clear
 
-=item C<:map <C-G> /window goto 1>
+=item C<:map E<lt>C-GE<gt> /window goto 1>
 
-=item C<:map <C-E> <Nop>> - disable <C-E>, it does nothing now
+=item C<:map E<lt>C-EE<gt> <Nop>> - disable <C-E>, it does nothing now
 
-=item C<:unmap <C-E>>     - restore default behavior of <C-E> after disabling it
+=item C<:unmap E<lt>C-EE<gt>> - restore default behavior of C<E<lt>C-EE<gt>>
+after disabling it
 
 =back
 
@@ -281,17 +316,15 @@ following settings are available:
 
 =item debug:                enable debug output, boolean, default off
 
-=item cmd_seq:              char that when double-pressed simulates <esc>,
-                        string, default ''
+=item cmd_seq:              char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
+
 =item start_cmd:            start every line in command mode, boolean, default off
 
 =item max_undo_lines:       size of the undo buffer. Integer, default 50 items.
 
-=item ex_history_size:      number of items stored in the ex-mode history.
-                            Integer, default 100.
+=item ex_history_size:      number of items stored in the ex-mode history. Integer, default 100.
 
-=item prompt_leading_space: determines whether ex mode prepends a space to the
-                        displayed input. Boolean, default on
+=item prompt_leading_space: determines whether ex mode prepends a space to the displayed input. Boolean, default on
 
 =back
 
@@ -312,14 +345,14 @@ considered a bug and reported.
 
 B<NOTE:> This script is still under heavy development, and there may be bugs.
 Please submit reproducible sequences to the bug-tracker at:
-L<http://github.com/shabble/irssi-scripts/issues>
+L<http://github.com/shabble/irssi-scripts/issues/new>
 
 or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
 
 =head1 AUTHORS
 
 Copyright E<copy> 2010-2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>> and
-Copyright E<copy> 2010-2011 Simon Ruderich C<E<lt>simon@ruderich.org<gt>>
+Copyright E<copy> 2010-2011 Simon Ruderich C<E<lt>simon@ruderich.orgE<gt>>
 
 =head1 THANKS
 
