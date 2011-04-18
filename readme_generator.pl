@@ -12,8 +12,11 @@ use warnings;
 use File::Find;
 use File::Spec;
 use Pod::Markdown;
+use feature qw/say/;
+use Cwd;
+my @dirs = map { File::Spec->catdir(getcwd(), $_) } @ARGV;
 
-my @dirs = @ARGV // '.';
+die unless @dirs;
 
 find(\&wanted, @dirs);
 
@@ -22,30 +25,31 @@ sub wanted {
     return unless $file =~ m/\.pl$/;
 
     _err("processing file: $path");
+    read_input_file($dir, $file);
 }
 
 sub read_input_file {
-    my ($path, $filename) = @_;
+    my ($dir, $filename) = @_;
 
-    my $filepath = File::Spec->catfile($path, $filename);
+    my $filepath = File::Spec->catfile($dir, $filename);
 
-    open my $rfh, '<', $filepath or die "Couldn't open $filepath for output: $!";
+    open my $rfh, '<', $filepath or die "Couldn't open $filepath for input: $!";
 
     _err("reading $filepath");
 
     my $parser = Pod::Markdown->new;
 
-    $parser->parse($rfh);
+    $parser->parse_from_filehandle($rfh);
 
     close $rfh;
 
-    create_output_file($path, 'README.md', $parser);
+    create_output_file($dir, 'README.md', $parser);
 }
 
 sub create_output_file {
-    my ($path, $filename, $parser) = @_;
+    my ($dir, $filename, $parser) = @_;
 
-    my $filepath = File::Spec->catfile($path, $filename);
+    my $filepath = File::Spec->catfile($dir, $filename);
 
     _err("Writing to $filepath");
 
@@ -57,5 +61,5 @@ sub create_output_file {
 sub _err {
     my ($msg, @args) = @_;
     my $str = sprintf($msg, @args);
-    print STDERR $str;
+    say STDERR $str;
 }
