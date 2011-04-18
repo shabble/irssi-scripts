@@ -1,0 +1,221 @@
+
+
+=cut
+
+
+
+=cut
+
+
+
+=cut
+
+
+
+=cut
+
+=pod
+
+=head1 NAME
+
+uberprompt.pl
+
+=head1 DESCRIPTION
+
+This script replaces the default prompt status-bar item with one capable of
+displaying additional information, under either user control or via scripts.
+
+=head1 INSTALLATION
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD F<filename>>.
+
+It is recommended that you make it autoload in one of the
+L<usual ways|https://github.com/shabble/irssi-docs/wiki/Guide#Autorunning_Scripts>.
+
+=head1 SETUP
+
+If you have a custom prompt format, you may need to copy it to the
+uberprompt_format setting. See below for details.
+
+=head1 USAGE
+
+Although the script is designed primarily for other scripts to set
+status information into the prompt, the following commands are available:
+
+TODO: Document positional settings.
+
+/prompt set   - sets the prompt to the given argument. $p in the argument will
+                be replaced by the original prompt content.
+                A parameter corresponding to the UP_* constants listed below
+                is required, in the format `/prompt set -inner Hello!'
+
+/prompt set [-inner|-pre|-post|only] <msg>
+
+/prompt clear - clears the additional data provided to the prompt.
+/prompt on    - enables the uberprompt (things may get confused if this is used
+                whilst the prompt is already enabled)
+/prompt off   - restore the original irssi prompt and prompt_empty statusbars.
+                unloading the script has the same effect.
+
+/help prompt  - show help for uberprompt commands
+
+=head1 UBERPROMPT FORMAT:
+
+C</set uberprompt_format E<lt>formatE<gt>>
+
+The default is C<[$*$uber]>, which is the same as the default provided in
+F<default.theme>.
+
+Changing this setting will update the prompt immediately, unlike editing your theme.
+
+An additional variable available within this format is C<$uber>, which expands to
+the content of prompt data provided with the C<UP_INNER> or </prompt set -inner>
+placement argument.
+
+For all other placement arguments, it will expand to the empty string.
+
+B<Note:> This setting completely overrides the C<prompt="...";> line in your
+.theme file, and may cause unexpected behaviour if your theme wishes to set a
+different form of prompt. It can be simply copied from the theme file into the
+above setting.
+
+=head2 SCRIPTING USAGE
+
+The primary purpose of uberprompt is to be used by other scripts to
+display information in a way that is not possible by printing to the active
+window or using statusbar items.
+
+The content of the prompt can be set from other scripts via the C<"change prompt">
+signal.
+
+For Example:
+
+    signal_emit 'change prompt' 'some_string', UberPrompt::UP_INNER;
+
+will set the prompt to include that content, by default 'C<[$* some_string]>'
+
+The possible position arguments are the following strings:
+
+=over 4
+
+=item * C<UP_PRE>   - place the provided string before the prompt - C<$string$prompt>
+=item * C<UP_INNER> - place the provided string inside the prompt - C<{prompt $* $string}>
+=item * C<UP_POST>  - place the provided string after the prompt  - C<$prompt$string>
+=item * C<UP_ONLY>  - replace the prompt with the provided string - C<$string>
+
+All strings may use the special variable 'C<$prompt>' to include the prompt
+verbatim at that position in the string.  It is probably only useful for
+the C<UP_ONLY> mode however. '$C<prompt_nt>' will include the prompt, minus any
+trailing whitespace.
+
+=head2 CHANGE NOTIFICATIONS
+
+You can also be notified when the prompt changes in response to the previous
+signal or manual C</prompt> commands via:
+
+    signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
+
+This callback will occur whenever the contents of the prompt is changed.
+
+
+=head2 NOTES FOR SCRIPT WRITERS:
+
+The following code snippet can be used within your own script as a preamble
+to ensure that uberprompt is loaded before your script to avoid
+any issues with loading order.  It first checks if uberprompt is loaded, and
+if not, attempts to load it.  If the load fails, the script will die
+with an error message, otherwise it will call your app_init() function.
+
+I<---- start of snippet ---->
+
+    my $DEBUG_ENABLED = 0;
+    sub DEBUG () { $DEBUG_ENABLED }
+
+    # check we have uberprompt loaded.
+
+    sub script_is_loaded {
+       return exists($Irssi::Script::{$_[0] . '::'});
+    }
+
+    if (not script_is_loaded('uberprompt')) {
+
+        print "This script requires 'uberprompt.pl' in order to work. "
+          . "Attempting to load it now...";
+
+        Irssi::signal_add('script error', 'load_uberprompt_failed');
+        Irssi::command("script load uberprompt.pl");
+
+        unless(script_is_loaded('uberprompt')) {
+            load_uberprompt_failed("File does not exist");
+        }
+        app_init();
+    } else {
+        app_init();
+    }
+
+    sub load_uberprompt_failed {
+        Irssi::signal_remove('script error', 'load_prompt_failed');
+
+        print "Script could not be loaded. Script cannot continue. "
+          . "Check you have uberprompt.pl installed in your path and "
+            .  "try again.";
+
+        die "Script Load Failed: " . join(" ", @_);
+    }
+
+I<---- end of snippet ---->
+
+=head1 AUTHORS
+
+Copyright E<copy> 2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>>
+
+=head1 LICENCE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+=head1 BUGS
+
+=over 4
+
+=item * 
+
+Resizing the terminal rapidly whilst using this script in debug mode may cause
+irssi to crash. See bug report at http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item * report failure (somehow) to clients if hte prompt is disabled.
+
+=item * fix issue at autorun startup with sbar item doesn't exist.
+
+=back
+
+
+
+=cut
+
+
+
+=cut
+
