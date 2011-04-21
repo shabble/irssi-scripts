@@ -171,13 +171,10 @@ sub extract_nick {
 sub check_nick_exemptions {
     my ($nick) = @_;
     foreach my $except (@match_exceptions) {
-        print "Testing nick $nick against $except";
         if ($nick =~ $except) {
-            print "FAiled match $except";
             return 0;           # fail
         }
     }
-    print "match ok";
 
     return 1;
 }
@@ -285,7 +282,6 @@ sub sig_setup_changed {
 
     foreach my $except (@except_list) {
 
-        print "Exception regex str: $except";
         $except =~ s|^/||;
         $except =~ s|/$||;
 
@@ -300,7 +296,6 @@ sub sig_setup_changed {
         if ($@ or not defined $regex) {
             print "Regex failed to parse: \"$except\": $@";
         } else {
-            print "Adding match exception: $regex";
             push @match_exceptions, $regex;
         }
     }
