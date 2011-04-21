@@ -21,7 +21,7 @@ our %IRSSI = (
 my $active = 0;
 my $permit_pending = 0;
 my $pending_input = {};
-
+my @match_exceptions;
 
 sub script_is_loaded {
     return exists($Irssi::Script::{$_[0] . '::'});
@@ -78,6 +78,20 @@ sub extract_nick {
 
 }
 
+sub check_nick_exemptions {
+    my ($nick) = @_;
+    foreach my $except (@match_exceptions) {
+        print "Testing nick $nick against $except";
+        if ($nick =~ $except) {
+            print "FAiled match $except";
+            return 0;           # fail
+        }
+    }
+    print "match ok";
+
+    return 1;
+}
+
 sub sig_send_text {
     my ($data, $server, $witem) = @_;
 
@@ -91,27 +105,28 @@ sub sig_send_text {
     if ($target_nick) {
         if (not $witem->nick_find($target_nick)) {
 
-            return if $target_nick =~ m/^(?:https?)|ftp/i;
+            #return if $target_nick =~ m/^(?:https?)|ftp/i;
+            return unless check_nick_exemptions($target_nick);
 
-              if ($permit_pending) {
+            if ($permit_pending) {
 
-                  $pending_input = {};
-                  $permit_pending = 0;
-                  Irssi::signal_continue(@_);
+                $pending_input = {};
+                $permit_pending = 0;
+                Irssi::signal_continue(@_);
 
-              } else {
-                  my $text
-                    = "$target_nick isn't in this channel, send anyway? [Y/n]";
-                  $pending_input
-                    = {
-                       text     => $data,
-                       server   => $server,
-                       win_item => $witem,
-                      };
+            } else {
+                my $text
+                  = "$target_nick isn't in this channel, send anyway? [Y/n]";
+                $pending_input
+                  = {
+                     text     => $data,
+                     server   => $server,
+                     win_item => $witem,
+                    };
 
-                  Irssi::signal_stop;
-                  require_confirmation($text)
-              }
+                Irssi::signal_stop;
+                require_confirmation($text)
+            }
         }
     }
 }
@@ -151,9 +166,56 @@ sub sig_gui_keypress {
 }
 
 sub app_init {
+    Irssi::signal_add('setup changed'         => \&sig_setup_changed);
     Irssi::signal_add_first("send text"       => \&sig_send_text);
     Irssi::signal_add_first('gui key pressed' => \&sig_gui_keypress);
+    Irssi::settings_add_str($IRSSI{name}, 'notifyquit_exceptions', '/^https?/ /^ftp/');
+
+    # horrible name, but will serve.
+    Irssi::command_bind('notifyquit_show_exceptions', \&cmd_show_exceptions);
+
+
+    sig_setup_changed();
+
 }
+
+sub cmd_show_exceptions {
+
+    foreach my $e (@match_exceptions) {
+        print "Exception: $e";
+    }
+}
+
+sub sig_setup_changed {
+
+    my $except_str = Irssi::settings_get_str('notifyquit_exceptions');
+    my @except_list = split( m{(?:^|(?<=/))\s+(?:(?=/)|$)}, $except_str);
+
+    @match_exceptions = ();
+
+    foreach my $except (@except_list) {
+
+        print "Exception regex str: $except";
+        $except =~ s|^/||;
+        $except =~ s|/$||;
+
+        next if $except =~ m/^\s*$/;
+
+        my $regex;
+
+        eval {
+            $regex = qr/$except/i;
+        };
+
+        if ($@ or not defined $regex) {
+            print "Regex failed to parse: \"$except\": $@";
+        } else {
+            print "Adding match exception: $regex";
+            push @match_exceptions, $regex;
+        }
+    }
+}
+
 
 sub require_confirmation {
     $active = 1;
