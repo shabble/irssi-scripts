@@ -1,3 +1,93 @@
+=pod
+
+=head1 NAME
+
+notifyquit.pl
+
+=head1 DESCRIPTION
+
+A script intended to alert people to the fact that their conversation partners
+have quit or left the channel, especially useful in high-traffic channels, or 
+where you have C<JOINS PARTS QUITS> ignored.
+
+=head1 INSTALLATION
+
+This script requires that you have first installed and loaded F<uberprompt.pl>
+
+Uberprompt can be downloaded from:
+
+L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+
+and follow the instructions at the top of that file or its README for installation.
+
+If uberprompt.pl is available, but not loaded, this script will make one
+attempt to load it before giving up.  This eliminates the need to precisely
+arrange the startup order of your scripts.
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD F<notifyquit.pl>>.
+
+=head1 SETUP
+
+This script provides a single setting:
+
+C</SET notifyquit_exceptions>, which defaults to "C</^https?/ /^ftp/>"
+
+The setting is a space-separated list of regular expressions in the format
+C</EXPR/>. If the extracted nickname matches any of these patterns, it isa
+assumed to be a false-positive match, and is sent to the channel with no
+further confirmation.
+
+=head1 USAGE
+
+When responding to users in a channel in the format C<$theirnick: some message>
+(where the C<:> is not necessarily a colon, but the value of your
+C<completion_char> setting), this script will check that the nickname still
+exists in the channel, and will prompt you for confirmation if they have
+since left.
+
+It is intended for use for people who ignore C<JOINS PARTS QUITS>, etc, and
+try to respond to impatient people, or those with a bad connection.
+
+To send the message once prompted, either hit C<enter>, or C<y>.  Pressing C<n>
+will abort sending, but leave the message in your input buffer just in case
+you want to keep it.
+
+=head1 AUTHORS
+
+Original Copyright E<copy> 2011 Jari Matilainen C<E<lt>vague!#irssi@freenodeE<gt>>
+
+Some extra bits
+Copyright E<copy> 2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>>
+
+=head1 LICENCE
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+=head1 BUGS
+
+I<None known.>
+
+Please report any problems to L<https://github.com/shabble/irssi-scripts/issues/new>
+or moan about it in C<#irssi@Freenode>.
+
+=head1 TODO
+
+=over 4
+
+=item * Keep a watchlist of nicks in the channel, and only act to confirm if
+they quit shortly before/during you typing a response.
+
+=back
+
+=cut
+
 ###
 #
 # Parts of the script pertaining to uberprompt borrowed from
