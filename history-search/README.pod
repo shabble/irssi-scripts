@@ -65,7 +65,7 @@ Exits search mode without selecting.
 Opens a new split window, showing all matching completions.  C<E<lt>EscE<gt>>
 will close the window again, as will any other action that exits history search
 mode.  Possible candidates can be cycled through as normal using C<C-r> and
-<C-s>.
+C<<C-s>.
 
 =item * Any other ctrl- or meta- key
 
@@ -78,7 +78,8 @@ functionally equivalent to C<Enter>).
 =head1 AUTHORS
 
 Original script
-[[history_search.pl|http://github.com/coekie/irssi-scripts/blob/master/history_search.pl]] Copyright E<copy> 2007 Wouter Coekaerts C<E<lt>coekie@irssi.orgE<gt>>
+L<http://github.com/coekie/irssi-scripts/blob/master/history_search.pl>
+ Copyright E<copy> 2007 Wouter Coekaerts C<E<lt>coekie@irssi.orgE<gt>>
 
 
 Most of the other fancy stuff Copyright E<copy> 2011 Tom Feist
