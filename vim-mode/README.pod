@@ -78,7 +78,7 @@ For technical reasons, I<uberprompt> must occasionally call C</statusbar prompt
 reset>, which will remove or deactivate any manually added items on the prompt
 statusbar.  To get around this, uberprompt provides two command hooks,
 C<uberprompt_load_hook> and C<uberprompt_unload_hook>.  Both of these settings
-can contain one (or more, using C</EVAL> commands to be executed when the prompt
+can contain one (or more, using C</EVAL>) commands to be executed when the prompt
 is enabled and disabled, respectively.
 
 For I<right-aligned> items (that is, after the input field:
