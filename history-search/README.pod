@@ -77,7 +77,9 @@ functionally equivalent to C<Enter>).
 
 =head1 AUTHORS
 
-Original script L<history_search.pl|https://github.com/coekie/irssi-scripts/blob/master/history_search.pl> Copyright E<copy> 2007 Wouter Coekaerts <coekie@irssi.org>
+Original script
+L<history_search.pl|http://github.com/coekie/irssi-scripts/blob/master/history_search.pl> Copyright E<copy> 2007 Wouter Coekaerts C<E<lt>coekie@irssi.orgE<gt>>
+
 
 Most of the other fancy stuff Copyright E<copy> 2011 Tom Feist
 C<E<lt>shabble+irssi@metavore.orgE<gt>>
