@@ -74,7 +74,14 @@ permanent.
 B<Note:> If you would rather have these statusbar items on your prompt
 line rather than thte window statusbar, please follow these steps.
 
-For I<Right-aligned> items (that is, after the input field:
+For technical reasons, I<uberprompt> must occasionally call C</statusbar prompt
+reset>, which will remove or deactivate any manually added items on the prompt
+statusbar.  To get around this, uberprompt provides two command hooks,
+C<uberprompt_load_hook> and C<uberprompt_unload_hook>.  Both of these settings
+can contain one (or more, using C</EVAL> commands to be executed when the prompt
+is enabled and disabled, respectively.
+
+For I<right-aligned> items (that is, after the input field:
 
 =over 4
 
@@ -88,7 +95,8 @@ For I<Right-aligned> items (that is, after the input field:
 
 =back
 
-For I<Left-aligned> items (before the prompt):
+For I<left-aligned> items (before the prompt):
+
 
 =over 4
 
@@ -115,6 +123,9 @@ with the following:
 
 and then complete stages 3 and 4 as above.  Replace the C<-after> and C<-alignment>
 to suit your location preferences.
+
+B<Note:> It is also possible to place the items between the prompt and input field,
+by specifying C<-after prompt> or C<-before input> as appropriate.
 
 =head3 Expando Variables
 
@@ -171,11 +182,11 @@ C<j k gg G> C<gg> moves to the oldest (first) history line.  C<G> without a
 count moves to the current input line, with a count it goes to the I<count-th>
 history line (1 is the oldest).
 
-=item * Cursor word motion: 
+=item * Cursor word motion:
 
 C<w b ge e W gE B E>
 
-=item * Word objects (only the following work yet): 
+=item * Word objects (only the following work yet):
 
 C<aw aW>
 
@@ -183,59 +194,59 @@ C<aw aW>
 
  C<y p P>
 
-=item * Change and delete: 
+=item * Change and delete:
 
 C<c d>
 
-=item * Delete at cursor: 
+=item * Delete at cursor:
 
 C<x X>
 
-=item * Replace at cursor: 
+=item * Replace at cursor:
 
 C<r>
 
-=item * Insert mode: 
+=item * Insert mode:
 
 C<i a I A>
 
-=item * Switch case: 
+=item * Switch case:
 
 C<~>
 
-=item * Repeat change: 
+=item * Repeat change:
 
 C<.>
 
-=item * Repeat 
+=item * Repeat
 
 C<ftFT: ; ,>
 
-=item * Registers: 
+=item * Registers:
 
 C<"a-"z "" "0 "* "+ "_> (black hole)
 
-=item * Line-wise shortcuts: 
+=item * Line-wise shortcuts:
 
 C<dd cc yy>
 
-=item * Shortcuts: 
+=item * Shortcuts:
 
 C<s S C D>
 
-=item * Scroll the scrollback buffer: 
+=item * Scroll the scrollback buffer:
 
 C<Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B>
 
-=item * Switch to last active window: 
+=item * Switch to last active window:
 
 C<Ctrl-6/Ctrl-^>
 
-=item * Switch split windows: 
+=item * Switch split windows:
 
 <Ctrl-W j Ctrl-W k>
 
-=item * Undo/Redo: 
+=item * Undo/Redo:
 
 C<u Ctrl-R>
 
