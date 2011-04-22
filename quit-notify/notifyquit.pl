@@ -7,7 +7,7 @@ notifyquit.pl
 =head1 DESCRIPTION
 
 A script intended to alert people to the fact that their conversation partners
-have quit or left the channel, especially useful in high-traffic channels, or 
+have quit or left the channel, especially useful in high-traffic channels, or
 where you have C<JOINS PARTS QUITS> ignored.
 
 =head1 INSTALLATION
@@ -84,6 +84,11 @@ or moan about it in C<#irssi@Freenode>.
 =item * Keep a watchlist of nicks in the channel, and only act to confirm if
 they quit shortly before/during you typing a response.
 
+keep track of the most recent departures, and upon sending, see if one of them
+is your target. If so, prompt for confirmation.
+
+So, add them on quit/kick/part, and remove them after a tiemout.
+
 =back
 
 =cut
@@ -97,6 +102,7 @@ they quit shortly before/during you typing a response.
 
 use strict;
 use warnings;
+use Data::Dumper;
 
 our $VERSION = "0.2";
 our %IRSSI = (
@@ -111,7 +117,9 @@ our %IRSSI = (
 my $active = 0;
 my $permit_pending = 0;
 my $pending_input = {};
+my $verbose = 0;
 my @match_exceptions;
+my $watchlist = {};
 
 sub script_is_loaded {
     return exists($Irssi::Script::{$_[0] . '::'});
@@ -171,10 +179,13 @@ sub extract_nick {
 sub check_nick_exemptions {
     my ($nick) = @_;
     foreach my $except (@match_exceptions) {
+        _debug("Testing nick $nick against $except");
         if ($nick =~ $except) {
+            _debug( "FAiled match $except");
             return 0;           # fail
         }
     }
+    _debug("match ok");
 
     return 1;
 }
@@ -190,7 +201,8 @@ sub sig_send_text {
     my $target_nick = extract_nick($data);
 
     if ($target_nick) {
-        if (not $witem->nick_find($target_nick)) {
+        if (check_watchlist($target_nick, $witem, $server)
+            and not $witem->nick_find($target_nick)) {
 
             #return if $target_nick =~ m/^(?:https?)|ftp/i;
             return unless check_nick_exemptions($target_nick);
@@ -212,7 +224,7 @@ sub sig_send_text {
                     };
 
                 Irssi::signal_stop;
-                require_confirmation($text)
+                require_confirmation($text);
             }
         }
     }
@@ -252,18 +264,141 @@ sub sig_gui_keypress {
     }
 }
 
+
+sub add_to_watchlist {
+    my ($nick, $channel, $server) = @_;
+    my $tag = $server->{tag};
+    _debug("Adding $nick to $channel/$tag");
+
+    $watchlist->{$tag}->{$channel}->{$nick} = time();
+}
+
+sub check_watchlist {
+    my ($nick, $channel, $server) = @_;
+    my $tag = $server->{tag};
+
+    my $check = exists ($watchlist->{$tag}->{$channel}->{$nick});
+    _debug("Check for $nick in $channel/$tag is " .( $check ? 'true' : 'false'));
+
+    return $check;
+}
+
+sub remove_from_watchlist {
+    my ($nick, $channel, $server) = @_;
+    my $tag = $server->{tag};
+
+    if (exists($watchlist->{$tag}->{$channel}->{$nick})) {
+        delete($watchlist->{$tag}->{$channel}->{$nick});
+        _debug("Deleted $nick from $channel/$tag");
+    }
+}
+
+sub start_watchlist_expire_timer {
+    my ($nick, $channel, $server, $callback) = @_;
+
+    my $tag = $server->{tag};
+    my $timeout = Irssi::settings_get_time('notifyquit_timeout');
+
+    Irssi::timeout_add_once($timeout,
+                            $callback,
+                            { nick => $nick,
+                              channel => $channel,
+                              server => $server,
+                            });
+}
+
+sub sig_message_quit {
+    my ($server, $nick, $address, $reason) = @_;
+
+    my $tag = $server->{tag};
+
+    _debug( "$nick quit from $tag");
+    add_to_watchlist($nick, "***", $server);
+
+    my $quit_cb = sub {
+
+        # remove from all channels.
+        foreach my $chan (keys %{ $watchlist->{$tag} }) {
+            # if (exists $chan->{$nick}) {
+            #     delete $watchlist->{$tag}->{$chan}->{$nick};
+            # }
+            remove_from_watchlist($nick, $chan, $server)
+        }
+    };
+
+    start_watchlist_expire_timer($nick, '***', $server, $quit_cb);
+
+}
+
+sub sig_message_part {
+    my ($server, $channel, $nick, $address, $reason) = @_;
+
+    my $tag = $server->{tag};
+
+    _debug( "$nick parted from $channel/$tag");
+    add_to_watchlist($nick, $channel, $server);
+    my $part_cb = sub {
+        remove_from_watchlist($nick, $channel, $server);
+    };
+
+    start_watchlist_expire_timer($nick, $channel, $server, $part_cb);
+
+}
+
+sub sig_message_kick {
+    my ($server, $channel, $nick, $kicker, $address, $reason) = @_;
+    _debug( "$nick kicked from $channel by $kicker");
+
+    my $tag = $server->{tag};
+    add_to_watchlist($nick, $channel, $server);
+
+    my $kick_cb = sub {
+        remove_from_watchlist($nick, $channel, $server);
+    };
+
+    start_watchlist_expire_timer($nick, $channel, $server, $kick_cb);
+}
+
+sub sig_message_nick {
+    my ($server, $newnick, $oldnick, $address) = @_;
+    my $tag = $server->{tag};
+
+    _debug("$oldnick changed nick to $newnick ($tag)");
+    #_debug( "Not bothering with this for now.");
+    add_to_watchlist($newnick, '***', $server);
+    remove_from_watchlist($oldnick, '***', $server);
+
+    my $nick_cb = sub { 
+        remove_from_watchlist($newnick, '***', $server);
+    };
+
+    start_watchlist_expire_timer($newnick, '***', $server, $nick_cb);
+}
+
+sub sig_message_join {
+    my ($server, $channel, $nick) = @_;
+    add_to_watchlist($nick, $channel, $server);
+
+}
+
 sub app_init {
     Irssi::signal_add('setup changed'         => \&sig_setup_changed);
+    Irssi::signal_add_first('message quit'    => \&sig_message_quit);
+    #Irssi::signal_add_first('message join'    => \&sig_message_join);
+    Irssi::signal_add_first('message part'    => \&sig_message_part);
+    Irssi::signal_add_first('message kick'    => \&sig_message_kick);
+    Irssi::signal_add_first('message nick'    => \&sig_message_nick);
     Irssi::signal_add_first("send text"       => \&sig_send_text);
     Irssi::signal_add_first('gui key pressed' => \&sig_gui_keypress);
     Irssi::settings_add_str($IRSSI{name}, 'notifyquit_exceptions', '/^https?/ /^ftp/');
+    Irssi::settings_add_bool($IRSSI{name}, 'notifyquit_verbose', 0);
+    Irssi::settings_add_time($IRSSI{name}, 'notifyquit_timeout', '30s');
 
     # horrible name, but will serve.
     Irssi::command_bind('notifyquit_show_exceptions', \&cmd_show_exceptions);
-
+    Irssi::command_bind('notifyquit_show_watchlist', \&cmd_show_watchlist);
 
     sig_setup_changed();
-
 }
 
 sub cmd_show_exceptions {
@@ -273,15 +408,21 @@ sub cmd_show_exceptions {
     }
 }
 
+sub cmd_show_watchlist {
+    Irssi::print Dumper($watchlist);
+}
+
 sub sig_setup_changed {
 
     my $except_str = Irssi::settings_get_str('notifyquit_exceptions');
+    $verbose = Irssi::settings_get_bool('notifyquit_verbose');
     my @except_list = split( m{(?:^|(?<=/))\s+(?:(?=/)|$)}, $except_str);
 
     @match_exceptions = ();
 
     foreach my $except (@except_list) {
 
+        _debug("Exception regex str: $except");
         $except =~ s|^/||;
         $except =~ s|/$||;
 
@@ -296,6 +437,7 @@ sub sig_setup_changed {
         if ($@ or not defined $regex) {
             print "Regex failed to parse: \"$except\": $@";
         } else {
+            _debug("Adding match exception: $regex");
             push @match_exceptions, $regex;
         }
     }
@@ -311,4 +453,14 @@ sub set_prompt {
     my ($msg) = @_;
     $msg = ': ' . $msg if length $msg;
     Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
+}
+
+sub _debug {
+
+    return unless $verbose;
+
+    my ($msg, @params) = @_;
+    my $str = sprintf($msg, @params);
+    print $str;
+
 }
