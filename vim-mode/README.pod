@@ -81,6 +81,8 @@ C<uberprompt_load_hook> and C<uberprompt_unload_hook>.  Both of these settings
 can contain one (or more, using C</EVAL>) commands to be executed when the prompt
 is enabled and disabled, respectively.
 
+See the L<uberprompt documentation|https://github.com/shabble/irssi-scripts/blob/master/prompt_info/README.pod> for further details.
+
 For I<right-aligned> items (that is, after the input field:
 
 =over 4
@@ -97,7 +99,6 @@ For I<right-aligned> items (that is, after the input field:
 
 For I<left-aligned> items (before the prompt):
 
-
 =over 4
 
 =item 1 C</alias vm_add /^statusbar prompt add -before prompt -alignment left vim_mode>
@@ -111,7 +112,7 @@ For I<left-aligned> items (before the prompt):
 =back
 
 If you wish to add both C<vim_mode> and C<vim_windows> items, replace steps 1 and 2
-with the following:
+above with the following (right-aligned):
 
 =over 4
 
@@ -136,10 +137,9 @@ C<$vim_cmd_mode> is the equivalent of the C<vim_mode> statusbar item, and
 C<$vim_wins> is the counterpart of C<vim_windows>.
 
 They can be added to your theme, or inserted into your uberprompt using
-the
+a command such as:
 
-"C</set uberprompt_format [$vim_cmd_mode] $*$uber] >" command.
-
+"C</set uberprompt_format [$vim_cmd_mode] $*$uber] >"
 
 =head3 FILE-BASED CONFIGURATION
 
