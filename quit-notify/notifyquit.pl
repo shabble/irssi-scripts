@@ -201,7 +201,7 @@ sub sig_send_text {
     my $target_nick = extract_nick($data);
 
     if ($target_nick) {
-        if (check_watchlist($target_nick, $witem, $server)
+        if (check_watchlist($target_nick, $witem->{name}, $server)
             and not $witem->nick_find($target_nick)) {
 
             return unless check_nick_exemptions($target_nick);
