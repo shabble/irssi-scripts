@@ -2555,22 +2555,7 @@ sub vim_mode_cmd {
     return $mode_str;
 }
 
-sub vim_exp_mode {
-    my ($server, $witem, $arg) = @_;
-    return vim_mode_cmd();
-}
-
-# vi mode status item.
-sub vim_mode_cb {
-    my ($sb_item, $get_size_only) = @_;
-    my $mode_str = vim_mode_cmd();
-    $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
-}
-
-# :b window list item.
-sub b_windows_cb {
-    my ($sb_item, $get_size_only) = @_;
-
+sub vim_wins_data { 
     my $windows = '';
 
     # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
@@ -2590,6 +2575,31 @@ sub b_windows_cb {
             }
         }
     }
+    return $windows;
+}
+
+sub vim_exp_mode {
+    my ($server, $witem, $arg) = @_;
+    return vim_mode_cmd();
+}
+
+sub vim_exp_wins {
+    my ($server, $witem, $arg) = @_;
+    return vim_wins_data();
+}
+
+# vi mode status item.
+sub vim_mode_cb {
+    my ($sb_item, $get_size_only) = @_;
+    my $mode_str = vim_mode_cmd();
+    $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
+}
+
+# :b window list item.
+sub b_windows_cb {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $windows = vim_wins_data();
 
     $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
@@ -3125,6 +3135,8 @@ sub vim_mode_init {
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
     Irssi::expando_create('vim_cmd_mode' => \&vim_exp_mode, {});
+    Irssi::expando_create('vim_wins'     => \&vim_exp_wins, {});
+
 
     # Register all available settings.
     foreach my $name (keys %$settings) {
