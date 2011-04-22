@@ -51,18 +51,27 @@ terminal, or setting C<defflow off> in your F<~/.screenrc>if using GNU Screen.
 
 =over 4
 
-=item C<Enter> selects a match and terminates search mode.  B<It will also run
-the selected command.>
+=item * C<Enter>
 
-=item C<Ctrl-G> exits search mode without selecting.
+Selects a match and terminates search mode.
+B<It will also run the currently selected command.>
 
-=item C<E<lt>TABE<gt>> will open a new split window, showing all matching
-  completions.  C<E<lt>EscE<gt>> will close the window again, as will any other
-  action that exits history search mode.  Possible candidates can be cycled
-  through as normal using C<C-r> and <C-s>.
+=item * C<Ctrl-G>
 
-=item Any other ctrl- or meta- key binding will terminate search mode, leaving
-  the selected item in the input line.
+Exits search mode without selecting.
+
+=item * C<E<lt>TABE<gt>>
+
+Opens a new split window, showing all matching completions.  C<E<lt>EscE<gt>>
+will close the window again, as will any other action that exits history search
+mode.  Possible candidates can be cycled through as normal using C<C-r> and
+<C-s>.
+
+=item * Any other ctrl- or meta- key
+
+This will terminate search mode, leaving the selected item in the input line.
+It will not run the command (Except for C<Ctrl-J> and C<Ctrl-M>, which are
+functionally equivalent to C<Enter>).
 
 =back
 
@@ -70,7 +79,8 @@ the selected command.>
 
 Original script L<history_search.pl|https://github.com/coekie/irssi-scripts/blob/master/history_search.pl> Copyright E<copy> 2007 Wouter Coekaerts <coekie@irssi.org>
 
-Copyright E<copy> 2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>>
+Most of the other fancy stuff Copyright E<copy> 2011 Tom Feist
+C<E<lt>shabble+irssi@metavore.orgE<gt>>
 
 =head1 LICENCE
 
@@ -90,20 +100,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 =head1 BUGS
 
-faff
-
+Yeah, probably.
 
 =head1 TODO
 
 =over 1
 
-=item * DONE document tab behaviour
+=item * B<DONE> document tab behaviour
 
 =item * add keys (C-n/C-p) to scroll history list if necessary.
 
-=item * DONE if list is bigger than split size, centre it so selected item is visible
+=item * B<DONE> if list is bigger than split size, centre it so selected item is visible
 
-=item * INPROG allow a mechanism to select by number from list
+=item * I<INPROG> allow a mechanism to select by number from list
 
 =item * steal more of the code from ido_switcher to hilight match positions.
 
@@ -116,8 +125,6 @@ faff
 =item * figure out why sometimes the split list doesn't update correctly (eg: no matches)
 
 =item * consider tracking history manually (via send command/send text)
-
-=item
 
 =over 4
 
@@ -132,4 +139,8 @@ faff
 =item * Possibility of saving/restoring history over sessions?
 
 =back
+
+
+
+=cut
 

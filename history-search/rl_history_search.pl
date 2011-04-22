@@ -51,23 +51,23 @@ terminal, or setting C<defflow off> in your F<~/.screenrc>if using GNU Screen.
 
 =over 4
 
-=item C<Enter>
+=item * C<Enter>
 
 Selects a match and terminates search mode.
 B<It will also run the currently selected command.>
 
-=item C<Ctrl-G>
+=item * C<Ctrl-G>
 
 Exits search mode without selecting.
 
-=item C<E<lt>TABE<gt>
+=item * C<E<lt>TABE<gt>>
 
 Opens a new split window, showing all matching completions.  C<E<lt>EscE<gt>>
 will close the window again, as will any other action that exits history search
 mode.  Possible candidates can be cycled through as normal using C<C-r> and
 <C-s>.
 
-=item Any other ctrl- or meta- key
+=item * Any other ctrl- or meta- key
 
 This will terminate search mode, leaving the selected item in the input line.
 It will not run the command (Except for C<Ctrl-J> and C<Ctrl-M>, which are
