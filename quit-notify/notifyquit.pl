@@ -284,6 +284,12 @@ sub check_watchlist {
     my $check = exists ($watchlist->{$tag}->{$channel}->{$nick});
     _debug("Check for $nick in $channel/$tag is " .( $check ? 'true' : 'false'));
 
+    # check the server-wide list if the channel-specific one fails.
+    if (not $check) {
+        $check = exists ($watchlist->{$tag}->{'***'}->{$nick});
+        _debug("Check for $nick in ***/$tag is " .( $check ? 'true' : 'false'));
+    }
+
     return $check;
 }
 
