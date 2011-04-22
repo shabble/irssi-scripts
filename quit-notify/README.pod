@@ -51,8 +51,7 @@ try to respond to impatient people, or those with a bad connection.
 
 To send the message once prompted, either hit C<enter>, or C<y>.  Pressing C<n>
 will abort sending, but leave the message in your input buffer just in case
-you want to keep it.  Keys C<E<lt>Ctrl-cE<gt>> and C<E<lt>Ctrl-gE<gt>> will
-also cancel the message sending in the same way.
+you want to keep it.
 
 =head1 AUTHORS
 

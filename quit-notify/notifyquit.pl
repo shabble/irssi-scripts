@@ -51,8 +51,7 @@ try to respond to impatient people, or those with a bad connection.
 
 To send the message once prompted, either hit C<enter>, or C<y>.  Pressing C<n>
 will abort sending, but leave the message in your input buffer just in case
-you want to keep it.  Keys C<E<lt>Ctrl-cE<gt>> and C<E<lt>Ctrl-gE<gt>> will
-also cancel the message sending in the same way.
+you want to keep it.
 
 =head1 AUTHORS
 
@@ -105,7 +104,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-our $VERSION = "0.2";
+our $VERSION = "0.3";
 our %IRSSI = (
               authors     => "Jari Matilainen",
               contact     => 'vague!#irssi@freenode',
@@ -182,7 +181,7 @@ sub check_nick_exemptions {
     foreach my $except (@match_exceptions) {
         _debug("Testing nick $nick against $except");
         if ($nick =~ $except) {
-            _debug( "FAiled match $except");
+            _debug( "Failed match $except");
             return 0;           # fail
         }
     }
@@ -205,16 +204,16 @@ sub sig_send_text {
         if (check_watchlist($target_nick, $witem, $server)
             and not $witem->nick_find($target_nick)) {
 
-            #return if $target_nick =~ m/^(?:https?)|ftp/i;
             return unless check_nick_exemptions($target_nick);
 
             if ($permit_pending) {
-
                 $pending_input = {};
                 $permit_pending = 0;
                 Irssi::signal_continue(@_);
-
             } else {
+                return unless check_watchlist($target_nick, $witem->{name}, $server);
+                return unless check_watchlist($target_nick, '***', $server);
+
                 my $text
                   = "$target_nick isn't in this channel, send anyway? [Y/n]";
                 $pending_input
@@ -267,11 +266,15 @@ sub sig_gui_keypress {
 
 
 sub add_to_watchlist {
-    my ($nick, $channel, $server) = @_;
+    my ($nick, $channel, $server, $type, $opts) = @_;
     my $tag = $server->{tag};
     _debug("Adding $nick to $channel/$tag");
 
-    $watchlist->{$tag}->{$channel}->{$nick} = time();
+    $watchlist->{$tag}->{$channel}->{$nick} = {
+                                                timestamp => time(),
+                                                type      => $type,
+                                                options   => $opts,
+                                              };
 }
 
 sub check_watchlist {
@@ -294,6 +297,20 @@ sub remove_from_watchlist {
     }
 }
 
+sub cleanup_watchlist {
+  my ($channel, $server) = @_;
+  my $tag = $server->{tag};
+
+  if(!keys %{$watchlist->{$tag}->{$channel}}) {
+    delete($watchlist->{$tag}->{$channel});
+    _debug("Cleanup $channel/$tag");
+  }
+  if(!keys %{$watchlist->{$tag}}) {
+    delete($watchlist->{$tag});
+    _debug("Cleanup $tag");
+  }
+}
+
 sub start_watchlist_expire_timer {
     my ($nick, $channel, $server, $callback) = @_;
 
@@ -314,7 +331,7 @@ sub sig_message_quit {
     my $tag = $server->{tag};
 
     _debug( "$nick quit from $tag");
-    add_to_watchlist($nick, "***", $server);
+    add_to_watchlist($nick, "***", $server, 'quit', undef);
 
     my $quit_cb = sub {
 
@@ -323,12 +340,12 @@ sub sig_message_quit {
             # if (exists $chan->{$nick}) {
             #     delete $watchlist->{$tag}->{$chan}->{$nick};
             # }
-            remove_from_watchlist($nick, $chan, $server)
+            remove_from_watchlist($nick, $chan, $server);
+            cleanup_watchlist($chan, $server);
         }
     };
 
     start_watchlist_expire_timer($nick, '***', $server, $quit_cb);
-
 }
 
 sub sig_message_part {
@@ -337,13 +354,13 @@ sub sig_message_part {
     my $tag = $server->{tag};
 
     _debug( "$nick parted from $channel/$tag");
-    add_to_watchlist($nick, $channel, $server);
+    add_to_watchlist($nick, $channel, $server, 'part', undef);
     my $part_cb = sub {
         remove_from_watchlist($nick, $channel, $server);
+        cleanup_watchlist($channel, $server);
     };
 
     start_watchlist_expire_timer($nick, $channel, $server, $part_cb);
-
 }
 
 sub sig_message_kick {
@@ -351,10 +368,11 @@ sub sig_message_kick {
     _debug( "$nick kicked from $channel by $kicker");
 
     my $tag = $server->{tag};
-    add_to_watchlist($nick, $channel, $server);
+    add_to_watchlist($nick, $channel, $server, 'kick', undef);
 
     my $kick_cb = sub {
         remove_from_watchlist($nick, $channel, $server);
+        cleanup_watchlist($channel, $server);
     };
 
     start_watchlist_expire_timer($nick, $channel, $server, $kick_cb);
@@ -366,26 +384,19 @@ sub sig_message_nick {
 
     _debug("$oldnick changed nick to $newnick ($tag)");
     #_debug( "Not bothering with this for now.");
-    add_to_watchlist($newnick, '***', $server);
-    remove_from_watchlist($oldnick, '***', $server);
+    add_to_watchlist($oldnick, '***', $server, 'nick', $newnick);
 
     my $nick_cb = sub { 
-        remove_from_watchlist($newnick, '***', $server);
+        remove_from_watchlist($oldnick, '***', $server);
+        cleanup_watchlist('***', $server);
     };
 
-    start_watchlist_expire_timer($newnick, '***', $server, $nick_cb);
-}
-
-sub sig_message_join {
-    my ($server, $channel, $nick) = @_;
-    add_to_watchlist($nick, $channel, $server);
-
+    start_watchlist_expire_timer($oldnick, '***', $server, $nick_cb);
 }
 
 sub app_init {
     Irssi::signal_add('setup changed'         => \&sig_setup_changed);
     Irssi::signal_add_first('message quit'    => \&sig_message_quit);
-    #Irssi::signal_add_first('message join'    => \&sig_message_join);
     Irssi::signal_add_first('message part'    => \&sig_message_part);
     Irssi::signal_add_first('message kick'    => \&sig_message_kick);
     Irssi::signal_add_first('message nick'    => \&sig_message_nick);
