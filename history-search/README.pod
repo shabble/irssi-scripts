@@ -1,0 +1,135 @@
+=pod
+
+=head1 NAME
+
+rl_history_search.pl
+
+=head1 DESCRIPTION
+
+Search within your typed history as you type (something like ctrl-R in bash or other
+readline-type applications.)
+
+=head1 INSTALLATION
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD F<filename>>.
+
+This script requires that you have first installed and loaded F<uberprompt.pl>
+
+Uberprompt can be downloaded from:
+
+L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+
+and follow the instructions at the top of that file or its README for installation.
+
+If uberprompt.pl is available, but not loaded, this script will make one
+attempt to load it before giving up.  This eliminates the need to precisely
+arrange the startup order of your scripts.
+
+=head1 SETUP
+
+C</bind ^R /history_search_start>
+
+Where C<^R> is a key of your choice.
+
+=head1 USAGE
+
+Type C<ctrl-R> followed by your search string.  The prompt line will show
+you the most recent command to match the string you've typed.
+
+B<Tip:> You can cycle through multiple matches with C<Ctrl-R> (to select older
+matches), and <Ctrl-S> (to select newer matches).  Cycling off the end of the
+history list returns you to the other end again.
+
+B<NOTE:> C<Ctrl-S> may not work if you have software flow control configured for
+your terminal. It may appear to freeze irssi entirely. If this happens, it can
+be restored with C<Ctrl-Q>, but you will be unable to use the C<Ctrl-S> binding.
+You can disable flow control by running the command C<stty -ixon> in your
+terminal, or setting C<defflow off> in your F<~/.screenrc>if using GNU Screen.
+
+=head2 COMMANDS
+
+=over 4
+
+=item C<Enter> selects a match and terminates search mode.  B<It will also run
+the selected command.>
+
+=item C<Ctrl-G> exits search mode without selecting.
+
+=item C<E<lt>TABE<gt>> will open a new split window, showing all matching
+  completions.  C<E<lt>EscE<gt>> will close the window again, as will any other
+  action that exits history search mode.  Possible candidates can be cycled
+  through as normal using C<C-r> and <C-s>.
+
+=item Any other ctrl- or meta- key binding will terminate search mode, leaving
+  the selected item in the input line.
+
+=back
+
+=head1 AUTHORS
+
+Original script L<history_search.pl|https://github.com/coekie/irssi-scripts/blob/master/history_search.pl> Copyright E<copy> 2007 Wouter Coekaerts <coekie@irssi.org>
+
+Copyright E<copy> 2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>>
+
+=head1 LICENCE
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+=head1 BUGS
+
+faff
+
+
+=head1 TODO
+
+=over 1
+
+=item * DONE document tab behaviour
+
+=item * add keys (C-n/C-p) to scroll history list if necessary.
+
+=item * DONE if list is bigger than split size, centre it so selected item is visible
+
+=item * INPROG allow a mechanism to select by number from list
+
+=item * steal more of the code from ido_switcher to hilight match positions.
+
+=item * make flex matching optional (key or setting)
+
+=item * add some online help (? or C-h triggered, maybe?)
+
+=item * make temp_split stuff more generic (to be used by help, etc)
+
+=item * figure out why sometimes the split list doesn't update correctly (eg: no matches)
+
+=item * consider tracking history manually (via send command/send text)
+
+=item
+
+=over 4
+
+=item * Pro: we could timestamp it.
+
+=item * Con: Would involve catching up/down and all the other history selection mechanisms.
+
+=item * Compromise - tag history as it comes it (match it with data via sig handlers?)
+
+=back
+
+=item * Possibility of saving/restoring history over sessions?
+
+=back
+

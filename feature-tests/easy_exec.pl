@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 # export everything.
-use Irssi; #(@Irssi::EXPORT_OK);
+use Irssi;
 use Irssi::Irc;
 use Irssi::TextUI;
 
@@ -18,33 +18,38 @@ our %IRSSI = (
               license     => 'Public Domain',
              );
 
-#Irssi::signal_add_first 'command script exec', \&better_exec;
-Irssi::command_bind('script exec', \&better_exec);
+# TODO: make this more tab-complete friendly
+init();
 
-sub better_exec {
-    my ($args, $serv, $witem) = @_;
-    # todo: handle permanent arg?
-    my $perm = 0;
-    print "Args: $args";
-    if ($args =~ s/^\s*-permanent\s*(.*)$/$1/) {
-        $perm = 1;
-    }
-    print "Args now: $args";
+sub init {
+    Irssi::command('/alias se script exec use Data::Dumper\;'
+                   .' use Irssi (@Irssi::EXPORT_OK)\; $0-');
+    Irssi::command('/alias sep script exec -permanent '
+                   . 'use Data::Dumper\; use Irssi (@Irssi::EXPORT_OK)\; $0-');
 
-#    eval $args;
-    my $str = "//script exec " .
-     ($perm ? '-permanent' : '')
-     . 'use Irssi (@Irssi::EXPORT_OK); ' . $args;
-     print "Running: $str";
-
-#    Irssi::command($str);
-    Irssi::signal_continue($str, @_[1..$#_]);
+    Irssi::signal_add_last ('complete word', 'sig_complete_word');
 }
 
-sub Dump {
-    print Dumper(\@_);
-}
+sub sig_complete_word {
+    my ($strings, $window, $word, $linestart, $want_space) = @_;
+    # only provide these completions if the input line is otherwise empty.
+    my $cmdchars = Irssi::settings_get_str('cmdchars');
+    my $quoted = quotemeta($cmdchars);
+    #print "Linestart: $linestart";
+    return unless ($linestart =~ /^${quoted}(?:se|sep)/);
+    
+    my $clean_word = $word;
+    $clean_word =~ s/^"//g;
+    $clean_word =~ s/"$//g;
+    $clean_word =~ s/->$//g;
 
-sub test() {
-    print "This is a test";
+
+
+    my @expansions = @Irssi::EXPORT_OK;
+    push @$strings,  grep { $_ =~ m/^\Q$clean_word\E/ } @expansions;
+    print "Sebug: " . join(", ", @$strings);
+    $$want_space = 0;
+
+
+    Irssi::signal_stop() if (@$strings);
 }

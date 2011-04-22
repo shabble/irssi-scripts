@@ -1,14 +1,26 @@
-CFLAGS = -Wall -O2 -Werror -g
-LDFLAGS = -avoid-version -module -bundle -flat_namespace -undefined suppress
-FIND = gfind # stupid non-gnu defaults.
 
-OBJECTS = test_core.o \
-		  test_impl.o
+### Edit these parameters ###
 
+# change this to 'find' if you're on a decent system.
+FIND = gfind # stupid OSX non-gnu defaults.
 
+# Where your irssi include files live. You might need to install an
+# 'irssi-dev' package or something like that.
 IRSSI_DIST = /opt/stow/repo/irssi/include/irssi
 
+# probably $(HOME)/.irssi for most people.
 IRSSI_USER_DIR = $(HOME)/projects/tmp/test/irssi
+MODULE_NAME = test
+
+### You shouldn't need to edit anything beyond this point ###
+
+LIB_NAME = lib$(MODULE_NAME).so
+CFLAGS = -Wall -O2 -Werror -g -DMODULE_NAME=\"$(MODULE_NAME)\"
+LDFLAGS = -avoid-version -module -bundle -flat_namespace -undefined suppress
+
+# When you start adding more components to your module, add them here.
+OBJECTS = test_core.o \
+          test_impl.o
 
 IRSSI_INCLUDE = -I$(IRSSI_DIST) \
 				-I$(IRSSI_DIST)/src \
@@ -23,15 +35,15 @@ IRSSI_INCLUDE = -I$(IRSSI_DIST) \
 
 GLIB_CFLAGS = $(shell pkg-config glib-2.0 --cflags)
 
-all: libtest.so
+all: $(LIB_NAME)
 
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) $(GLIB_CFLAGS) $(IRSSI_INCLUDE) -I. -fPIC -c $<
 
-libtest.so: $(OBJECTS)
+$(LIB_NAME): $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -o $@
 
-install: libtest.so
+install: $(LIB_NAME)
 	install $< $(IRSSI_USER_DIR)/modules
 
 clean:

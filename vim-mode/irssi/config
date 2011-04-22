@@ -1,0 +1,38 @@
+# Minimal default irssi configuration file - with vim-mode statusbars.
+
+
+servers = ( );
+
+chatnets = { };
+
+channels = ( );
+
+aliases = { };
+
+statusbar = {
+  default = {
+    window = {
+      items = {
+        barstart = { priority = "100"; };
+        time = { };
+        user = { };
+        window = { };
+        window_empty = { };
+        lag = { priority = "-1"; };
+        act = { priority = "10"; };
+        more = { priority = "-1"; alignment = "right"; };
+        barend = { priority = "100"; alignment = "right"; };
+        vim_mode = { };
+        vim_windows = { };
+      };
+    };
+
+    prompt = {
+      items = {
+        uberprompt = { priority = "-1"; };
+        input = { priority = "10"; };
+      };
+      position = "100";
+    };
+  };
+};

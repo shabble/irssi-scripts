@@ -1,0 +1,22 @@
+From f1f66db22e732ca3e5d920c64c8b904e2fb92762 Mon Sep 17 00:00:00 2001
+From: Tom Feist <shabble@metavore.org>
+Date: Fri, 8 Apr 2011 20:28:41 +0100
+Subject: [PATCH] bugfix: allow Irssi::signal_remove to work properly with coderefs
+
+
+diff --git a/src/perl/perl-signals.c b/src/perl/perl-signals.c
+index a455cfd..1652d09 100644
+--- a/src/perl/perl-signals.c
++++ b/src/perl/perl-signals.c
+@@ -434,8 +434,9 @@ static void perl_signal_remove_list_one(GSList **siglist, PERL_SIGNAL_REC *rec)
+ }
+ 
+ #define sv_func_cmp(f1, f2) \
+-	(f1 == f2 || (SvPOK(f1) && SvPOK(f2) && \
+-		strcmp((char *) SvPV_nolen(f1), (char *) SvPV_nolen(f2)) == 0))
++  ((SvROK(f1) && SvROK(f2) && SvRV(f1) == SvRV(f2)) || \
++   (SvPOK(f1) && SvPOK(f2) && \
++    strcmp((char *) SvPV_nolen(f1), (char *) SvPV_nolen(f2)) == 0))
+ 
+ static void perl_signal_remove_list(GSList **list, SV *func)
+ {

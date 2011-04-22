@@ -1,123 +1,282 @@
-# This script replaces the default prompt status-bar item with one capable
-# of displaying additional information, under either user control or via
-# scripts.
-#
-# INSTALL:
-#
-# Place script in ~/.irssi/scripts/ and potentially symlink into autorun/
-# to ensure it starts at irssi startup.
-#
-# If not using autorun, manually load the script via:
-#
-# /script load uberprompt.pl
-#
-# If you have a custom prompt format, you may need to copy it to the
-# uberprompt_format setting. See below for details.
-#
-# USAGE:
-#
-# Although the script is designed primarily for other scripts to set
-# status information into the prompt, the following commands are available:
-#
-# TODO: Document positional settings.
-#
-# /prompt set   - sets the prompt to the given argument. $p in the argument will
-#                 be replaced by the original prompt content.
-# /prompt clear - clears the additional data provided to the prompt.
-# /prompt on    - enables the uberprompt (things may get confused if this is used
-#                 whilst the prompt is already enabled)
-# /prompt off   - restore the original irssi prompt and prompt_empty statusbars.
-#                 unloading the script has the same effect.
-#
-# Additionally, the format for the prompt can be set via:
-#
-# UBERPROMPT FORMAT:
-#
-# /set uberprompt_format <format>
-#
-# The default is [$*], which is the same as the default provided in default.theme.
-# Changing this setting will update the prompt immediately, unlike editing your theme.
-#
-# An additional variable available within this format is '$uber', which expands to
-# the content of prompt data provided with the UP_INNER placement argument. For all
-# other placement arguments, it will expand to the empty string ''.
-#
-# NOTE: this setting completely overrides the prompt="..." line in your .theme
-#       file, and may cause unexpected behaviour if your theme wishes to set a
-#       different form of prompt. It can be simply copied from the theme file into
-#       the above setting.
-#
-# Usage from other Scripts: signal 'change prompt' => 'string' => position
-#
-# eg:
-#
-# signal_emit 'change prompt' 'some_string', UberPrompt::UP_INNER;
-#
-# will set the prompt to include that content, by default '[$* some_string]'
-#
-# The possible position arguments are the following strings:
-#
-# UP_PRE   - place the provided string before the prompt -- $string$prompt
-# UP_INNER - place the provided string inside the prompt -- {prompt $* $string}
-# UP_POST  - place the provided string after the prompt  -- $prompt$string
-# UP_ONLY  - replace the prompt with the provided string -- $string
-#
-# All strings may use the special variable '$prompt' to include the prompt
-# verbatim at that position in the string.  It is probably only useful for
-# the UP_ONLY mode however. '$prompt_nt' will include the prompt, minus any
-# trailing whitespace.
-#
-# NOTIFICATIONS:
-#
-# You can also be notified when the prompt changes in response to the previous
-# signal or manual commands via:
-#
-# signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
-#
-# Bugs:
-#
-# * Resizing the terminal rapidly whilst using this script in debug mode
-#    may cause irssi to crash. See bug report at
-#    http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
-#
-# TODO:
-#
-# * report failure (somehow) to clients if hte prompt is disabled.
-# * fix issue at autorun startup with sbar item doesn't exist.
-#
-#
-#
-#
-# LICENCE:
-#
-# Copyright (c) 2010 Tom Feist
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+=pod
+
+=head1 NAME
+
+uberprompt.pl
+
+=head1 DESCRIPTION
+
+This script replaces the default prompt status-bar item with one capable of
+displaying additional information, under either user control or via scripts.
+
+=head1 INSTALLATION
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD F<filename>>.
+
+It is recommended that you make it autoload in one of the
+L<usual ways|https://github.com/shabble/irssi-docs/wiki/Guide#Autorunning_Scripts>.
+
+=head1 SETUP
+
+If you have a custom prompt format, you may need to copy it to the
+uberprompt_format setting. See below for details.
+
+=head1 USAGE
+
+Although the script is designed primarily for other scripts to set
+status information into the prompt, the following commands are available:
+
+=over 4
+
+=item * C</prompt set [-inner|-pre|-post|only] E<lt>msgE<gt>>
+
+Sets the prompt to the given argument. Any use of C<$p> in the argument will
+be replaced by the original prompt content.
+
+A parameter corresponding to the C<UP_*> constants listed below is required, in
+the format C</prompt set -inner Hello!>
+
+=item * C</prompt clear>
+
+Clears the additional data provided to the prompt.
+
+=item * C</prompt on>
+
+Eenables the uberprompt (things may get confused if this is used
+whilst the prompt is already enabled)
+
+=item * C</prompt off>
+
+Restore the original irssi prompt and prompt_empty statusbars.  unloading the
+script has the same effect.
+
+=item * C</help prompt>
+
+show help for uberprompt commands
+
+=back
+
+=head1 SETTINGS
+
+=head2 UBERPROMPT FORMAT
+
+C</set uberprompt_format E<lt>formatE<gt>>
+
+The default is C<[$*$uber]>, which is the same as the default provided in
+F<default.theme>.
+
+Changing this setting will update the prompt immediately, unlike editing your theme.
+
+An additional variable available within this format is C<$uber>, which expands to
+the content of prompt data provided with the C<UP_INNER> or C</prompt set -inner>
+placement argument.
+
+For all other placement arguments, it will expand to the empty string.
+
+B<Note:> This setting completely overrides the C<prompt="...";> line in your
+.theme file, and may cause unexpected behaviour if your theme wishes to set a
+different form of prompt. It can be simply copied from the theme file into the
+above setting.
+
+=head2 OTHER SETTINGS
+
+=over 4
+
+=item * C<uberprompt_autostart>
+
+Boolean value, which determines if uberprompt should enable itself automatically
+upon loading.  If Off, it must be enabled manually with C</prompt on>.  Defaults to On.
+
+=item * C<uberprompt_debug>
+
+Boolean value, which determines if uberprompt should print debugging information.
+Defaults to Off, and should probably be left that way unless requested for bug-tracing
+purposes.
+
+=item * C<uberprompt_format>
+
+String value containing the format-string which uberprompt uses to display the
+prompt. Defaults to "C<[$*$uber] >", where C<$*> is the content the prompt would
+normally display, and C<$uber> is a placeholder variable for dynamic content, as
+described in the section above.
+
+=item * C<uberprompt_load_hook>
+
+String value which can contain one or more commands to be run whenever the uberprompt
+is enabled, either via autostart, or C</prompt on>. Defaults to the empty string, in
+which case no commands are run.  Some examples include:
+
+C</set uberprompt_load_hook /echo prompt enabled> or
+
+C</^sbar prompt add -after input vim_mode> for those using vim_mode.pl who want
+the command status indicator on the prompt line.
+
+=item * C<uberprompt_unload_hook>
+
+String value, defaulting to the empty string, which can contain commands which
+are executed when the uberprompt is disabled, either by unloading the script,
+or by the command C</prompt off>.
+
+=item * C<uberprompt_use_replaces>
+
+Boolean value, defaults to Off. If enabled, the format string for the prompt
+will be subject to the I<replaces> section of the theme.  The most obvious
+effect of this is that bracket characters C<[ ]> are displayed in a different
+colour, typically quite dark.
+
+=back
+
+B<Note:> For both C<uberprompt_*_hook> settings above, multiple commands can
+be chained together in the form C</eval /^cmd1 ; /^cmd2>. The C<^> prevents
+any output from the commands (such as error messages) being displayed.
+
+=head2 SCRIPTING USAGE
+
+The primary purpose of uberprompt is to be used by other scripts to
+display information in a way that is not possible by printing to the active
+window or using statusbar items.
+
+The content of the prompt can be set from other scripts via the C<"change prompt">
+signal.
+
+For Example:
+
+    signal_emit 'change prompt' 'some_string', UberPrompt::UP_INNER;
+
+will set the prompt to include that content, by default 'C<[$* some_string]>'
+
+The possible position arguments are the following strings:
+
+=over 4
+
+=item * C<UP_PRE>   - place the provided string before the prompt - C<$string$prompt>
+
+=item * C<UP_INNER> - place the provided string inside the prompt - C<{prompt $* $string}>
+
+=item * C<UP_POST>  - place the provided string after the prompt  - C<$prompt$string>
+
+=item * C<UP_ONLY>  - replace the prompt with the provided string - C<$string>
+
+=back
+
+All strings may use the special variable 'C<$prompt>' to include the prompt
+verbatim at that position in the string.  It is probably only useful for
+the C<UP_ONLY> mode however. '$C<prompt_nt>' will include the prompt, minus any
+trailing whitespace.
+
+=head2 CHANGE NOTIFICATIONS
+
+You can also be notified when the prompt changes in response to the previous
+signal or manual C</prompt> commands via:
+
+    signal_add 'prompt changed', sub { my ($text, $len) = @_; ... do something ... };
+
+This callback will occur whenever the contents of the prompt is changed.
+
+
+=head2 NOTES FOR SCRIPT WRITERS:
+
+The following code snippet can be used within your own script as a preamble
+to ensure that uberprompt is loaded before your script to avoid
+any issues with loading order.  It first checks if uberprompt is loaded, and
+if not, attempts to load it.  If the load fails, the script will die
+with an error message, otherwise it will call your app_init() function.
+
+I<---- start of snippet ---->
+
+    my $DEBUG_ENABLED = 0;
+    sub DEBUG () { $DEBUG_ENABLED }
+
+    # check we have uberprompt loaded.
+
+    sub script_is_loaded {
+       return exists($Irssi::Script::{$_[0] . '::'});
+    }
+
+    if (not script_is_loaded('uberprompt')) {
+
+        print "This script requires 'uberprompt.pl' in order to work. "
+          . "Attempting to load it now...";
+
+        Irssi::signal_add('script error', 'load_uberprompt_failed');
+        Irssi::command("script load uberprompt.pl");
+
+        unless(script_is_loaded('uberprompt')) {
+            load_uberprompt_failed("File does not exist");
+        }
+        app_init();
+    } else {
+        app_init();
+    }
+
+    sub load_uberprompt_failed {
+        Irssi::signal_remove('script error', 'load_prompt_failed');
+
+        print "Script could not be loaded. Script cannot continue. "
+          . "Check you have uberprompt.pl installed in your path and "
+            .  "try again.";
+
+        die "Script Load Failed: " . join(" ", @_);
+    }
+
+I<---- end of snippet ---->
+
+=head1 AUTHORS
+
+Copyright E<copy> 2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>>
+
+=head1 LICENCE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+=head1 BUGS
+
+=over 4
+
+=item * 
+
+Resizing the terminal rapidly whilst using this script in debug mode may cause
+irssi to crash. See bug report at http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item * report failure (somehow) to clients if hte prompt is disabled.
+
+=item * fix issue at autorun startup with sbar item doesn't exist.
+
+=back
+
+=cut
 
 use strict;
 use warnings;
 
 use Irssi;
-use Irssi::TextUI;              # for sbar_items_redraw
+use Irssi::TextUI;
 use Data::Dumper;
 
-{ package Irssi::Nick }
+{ package Irssi::Nick } # magic.
 
 our $VERSION = "0.2";
 our %IRSSI =
@@ -150,6 +309,8 @@ my $emit_request = 0;
 my $expando_refresh_timer;
 my $expando_vars = {};
 
+my $init_callbacks = {load => '', unload => ''};
+
 pre_init();
 
 sub pre_init {
@@ -159,8 +320,61 @@ sub pre_init {
 
 sub prompt_subcmd_handler {
     my ($data, $server, $item) = @_;
-    $data =~ s/\s+$//g;         # strip trailing whitespace.
+    #$data =~ s/\s+$//g;         # strip trailing whitespace.
     Irssi::command_runsub('prompt', $data, $server, $item);
+}
+
+sub _error($) {
+    my ($msg) = @_;
+    Irssi::active_win->print($msg, MSGLEVEL_CLIENTERROR);
+}
+
+sub _debug_print($) {
+    return unless DEBUG;
+    my ($msg) = @_;
+    Irssi::active_win->print($msg, MSGLEVEL_CLIENTCRAP);
+}
+
+sub _print_help {
+    my ($args) = @_;
+    if ($args =~ m/^\s*prompt/i) {
+        my @help_lines =
+          (
+           "",
+           "PROMPT ON",
+           "PROMPT OFF",
+           "PROMPT CLEAR",
+           "PROMPT SET { -pre | -post | -only | -inner } <content>",
+           "",
+           "Commands for manipulating the UberPrompt.",
+           "",
+           "/PROMPT ON    enables uberprompt, replacing the existing prompt ",
+           "              statusbar-item",
+           "/PROMPT OFF   disables it, and restores the original prompt item",
+           "/PROMPT CLEAR resets the value of any additional data set by /PROMPT SET",
+           "              or a script",
+           "/PROMPT SET   changes the contents of the prompt, according to the mode",
+           "              and content provided.",
+           "      { -inner sets the value of the \$uber psuedo-variable in the",
+           "             /set uberprompt_format setting.",
+           "      | -pre places the content before the current prompt string",
+           "      | -post places the content after the prompt string",
+           "      | -only replaces the entire prompt contents with the given string }",
+           "",
+           "See Also:",
+           '',
+           '/SET uberprompt_format    -- defaults to [$*$uber]',
+           "/SET uberprompt_autostart -- determines whether /PROMPT ON is run",
+           "                             automatically when the script loads",
+           "/set uberprompt_use_replaces -- toggles the use of the current theme",
+           "                                \"replaces\" setting. Especially",
+           "                                noticeable on brackets \"[ ]\" ",
+           "",
+          );
+
+        Irssi::print($_, MSGLEVEL_CLIENTCRAP) for @help_lines;
+        Irssi::signal_stop;
+    }
 }
 
 sub UNLOAD {
@@ -171,11 +385,14 @@ sub exp_lbrace() { '{' }
 sub exp_rbrace() { '}' }
 
 sub deinit {
-    Irssi::expando_destroy('brace');
+    Irssi::expando_destroy('lbrace');
+    Irssi::expando_destroy('rbrace');
+
     # remove uberprompt and return the original ones.
     print "Removing uberprompt and restoring original";
     restore_prompt_items();
 }
+
 sub init {
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
@@ -183,7 +400,11 @@ sub init {
     Irssi::expando_create('lbrace', \&exp_lbrace, {});
     Irssi::expando_create('rbrace', \&exp_rbrace, {});
 
-    Irssi::settings_add_str('uberprompt', 'uberprompt_format', '[$*$uber] ');
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_format', '[$*$uber] ');
+
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_load_hook',   '');
+    Irssi::settings_add_str ('uberprompt', 'uberprompt_unload_hook', '');
+
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
@@ -192,17 +413,16 @@ sub init {
     Irssi::command_bind("prompt",     \&prompt_subcmd_handler);
     Irssi::command_bind('prompt on',  \&replace_prompt_items);
     Irssi::command_bind('prompt off', \&restore_prompt_items);
-    Irssi::command_bind('prompt set',
-                        sub {
-                            my $args = shift;
-                            $args =~ s/^\s*(\w+)\s*(.*$)/$2/;
-                            my $mode = 'UP_' . uc($1);
-                            Irssi::signal_emit 'change prompt', $args, $mode;
-                        });
+    Irssi::command_bind('prompt set', \&cmd_prompt_set);
     Irssi::command_bind('prompt clear',
                         sub {
                             Irssi::signal_emit 'change prompt', '$p', 'UP_POST';
                         });
+
+    my $prompt_set_args_format = "inner pre post only";
+    Irssi::command_set_options('prompt set', $prompt_set_args_format);
+
+    Irssi::command_bind('help', \&_print_help);
 
     Irssi::signal_add('setup changed', \&reload_settings);
 
@@ -239,6 +459,27 @@ sub init {
     Irssi::signal_add('prompt length request', \&length_request_handler);
 }
 
+sub cmd_prompt_set {
+    my $args = shift;
+    my @options_list = Irssi::command_parse_options "prompt set", $args;
+    if (@options_list) {
+        my ($options, $rest) = @options_list;
+
+        my @opt_modes = keys %$options;
+        if (@opt_modes != 1) {
+            _error '%_/prompt set%_ must specify exactly one mode of'
+              . ' {-inner, -only, -pre, -post}';
+            return;
+        }
+
+        my $mode = 'UP_' . uc($opt_modes[0]);
+
+        Irssi::signal_emit 'change prompt', $rest, $mode;
+    } else {
+        _error ('%_/prompt set%_ must specify a mode {-inner, -only, -pre, -post}');
+    }
+}
+
 sub refresh_if_me {
     my ($channel, $nick) = @_;
 
@@ -254,9 +495,9 @@ sub refresh_if_me {
 
     return unless $my_chan and $my_nick;
 
-    print "Chan: $channel->{name}, "
+    _debug_print "Chan: $channel->{name}, "
      . "nick: $nick->{nick}, "
-     . "me: $my_nick, chan: $my_chan" if DEBUG;
+     . "me: $my_nick, chan: $my_chan";
 
     if ($my_chan eq $channel->{name} and $my_nick eq $nick->{nick}) {
         uberprompt_refresh();
@@ -271,9 +512,13 @@ sub length_request_handler {
 
 sub reload_settings {
 
-    $use_replaces = Irssi::settings_get_bool('uberprompt_use_replaces');
-
+    $use_replaces  = Irssi::settings_get_bool('uberprompt_use_replaces');
     $DEBUG_ENABLED = Irssi::settings_get_bool('uberprompt_debug');
+
+    $init_callbacks = {
+                       load   => Irssi::settings_get_str('uberprompt_load_hook'),
+                       unload => Irssi::settings_get_str('uberprompt_unload_hook'),
+                      };
 
     if (DEBUG) {
         Irssi::signal_add 'prompt changed', 'debug_prompt_changed';
@@ -281,11 +526,10 @@ sub reload_settings {
         Irssi::signal_remove 'prompt changed', 'debug_prompt_changed';
     }
 
-
     my $new = Irssi::settings_get_str('uberprompt_format');
 
     if ($prompt_format ne $new) {
-        print "Updated prompt format" if DEBUG;
+        _debug_print("Updated prompt format");
         $prompt_format = $new;
         $prompt_format =~ s/\$uber/\$\$uber/;
         Irssi::abstracts_register(['uberprompt', $prompt_format]);
@@ -296,7 +540,7 @@ sub reload_settings {
         # an update timer or something, rather than just refreshing on
         # every possible activity in init()
         while ($prompt_format =~ m/(?<!\$)(\$[A-Za-z,.:;][a-z_]*)/g) {
-            print "Detected Irssi expando variable $1" if DEBUG;
+            _debug_print("Detected Irssi expando variable $1");
             my $var_name = substr $1, 1; # strip the $
             $expando_vars->{$var_name} = Irssi::parse_special($1);
         }
@@ -308,7 +552,7 @@ sub debug_prompt_changed {
 
     $text =~ s/%/%%/g;
 
-    print "DEBUG: Got $text, length: $len";
+    print "DEBUG_HANDLER: Prompt Changed to: \"$text\", length: $len";
 }
 
 sub change_prompt_handler {
@@ -317,7 +561,7 @@ sub change_prompt_handler {
     # fix for people who used prompt_info and hence the signal won't
     # pass the second argument.
     $pos = 'UP_INNER' unless defined $pos;
-    print "Got prompt change signal with: $text, $pos" if DEBUG;
+    _debug_print("Got prompt change signal with: $text, $pos");
 
     my ($changed_text, $changed_pos);
     $changed_text = defined $prompt_data     ? $prompt_data     ne $text : 1;
@@ -327,7 +571,7 @@ sub change_prompt_handler {
     $prompt_data_pos = $pos;
 
     if ($changed_text || $changed_pos) {
-        print "Redrawing prompt" if DEBUG;
+        _debug_print("Redrawing prompt");
         uberprompt_refresh();
     }
 }
@@ -337,8 +581,8 @@ sub _escape_prompt_special {
     $str =~ s/\$/\$\$/g;
     $str =~ s/\\/\\\\/g;
     #$str =~ s/%/%%/g;
-    $str =~ s/{/\$lbrace/g;
-    $str =~ s/}/\$rbrace/g;
+    $str =~ s/{/\${lbrace}/g;
+    $str =~ s/}/\${rbrace}/g;
 
     return $str;
 }
@@ -356,7 +600,7 @@ sub uberprompt_render_prompt {
     }
 
     my $prompt = '';            # rendered content of the prompt.
-    my $theme = Irssi::current_theme;
+    my $theme  = Irssi::current_theme;
 
     my $arg = $use_replaces ? 0 : Irssi::EXPAND_FLAG_IGNORE_REPLACES;
     $prompt = $theme->format_expand("{uberprompt $prompt_arg}", $arg);
@@ -392,12 +636,12 @@ sub uberprompt_render_prompt {
         }
     }
 
-    #print "Redrawing with: $prompt, size-only: $get_size_only" if DEBUG;
+    _debug_print("rendering with: $prompt");
 
 
     if (($prompt ne $prompt_last) or $emit_request) {
 
-        # print "Emitting prompt changed signal" if DEBUG;
+        # _debug_print("Emitting prompt changed signal");
         # my $exp = Irssi::current_theme()->format_expand($text, 0);
         my $ps = Irssi::parse_special($prompt);
 
@@ -413,7 +657,7 @@ sub uberprompt_draw {
     my $prompt = uberprompt_render_prompt();
 
     my $ret = $sb_item->default_handler($get_size_only, $prompt, '', 0);
-
+    _debug_print("redrawing with: $prompt");
     return $ret;
 }
 
@@ -423,7 +667,7 @@ sub uberprompt_refresh {
 
 sub replace_prompt_items {
     # remove existing ones.
-    print "Removing original prompt" if DEBUG;
+    _debug_print("Removing original prompt");
 
     _sbar_command('prompt', 'remove', 'prompt');
     _sbar_command('prompt', 'remove', 'prompt_empty');
@@ -434,15 +678,37 @@ sub replace_prompt_items {
                   qw/-alignment left -before input -priority '-1'/);
 
     _sbar_command('prompt', 'position', '100');
+
+    my $load_hook = $init_callbacks->{load};
+    if (defined $load_hook and length $load_hook) {
+        eval {
+            Irssi::command($load_hook);
+        };
+        if ($@) {
+            _error("Uberprompt user load-hook command ($load_hook) failed: $@");
+        }
+    }
+
 }
 
 sub restore_prompt_items {
 
     _sbar_command('prompt', 'remove', 'uberprompt');
 
-    print "Restoring original prompt" if DEBUG;
+    _debug_print("Restoring original prompt");
 
     _sbar_command('prompt', 'reset');
+
+    my $unload_hook = $init_callbacks->{unload};
+
+    if (defined $unload_hook and length $unload_hook) {
+        eval {
+            Irssi::command($unload_hook);
+        };
+        if ($@) {
+            _error("Uberprompt user unload-hook command ($unload_hook) failed: $@");
+        }
+    }
 }
 
 sub _sbar_command {
@@ -455,7 +721,7 @@ sub _sbar_command {
     my $command = sprintf 'STATUSBAR %s %s %s%s',
      $bar, $cmd, $args_str, defined $item ? $item : '';
 
-    print "Running command: $command" if DEBUG;
+    _debug_print("Running command: $command");
     Irssi::command($command);
 }
 

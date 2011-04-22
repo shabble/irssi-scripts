@@ -30,4 +30,5 @@ void test_init() {
 }
 
 void test_deinit() {
+    print_unload_message();
 }
