@@ -49,6 +49,15 @@ to a script of this size and complexity.
 
 =head2 SETUP
 
+Vim Mode provides certain feedback to the user, such as the currently active
+mode (command, insert, ex), and if switching buffers, which buffer(s) currently
+match the search terms.
+
+There are two ways to go about displaying this information, as described in
+the following sections:
+
+=head3 Statusbar Items
+
 Run the following command to add a statusbar item that shows which mode
 you're in.
 
@@ -61,6 +70,64 @@ C</statusbar window add vim_windows>
 
 B<Note:> Remember to C</save> after adding these statusbar items to make them
 permanent.
+
+B<Note:> If you would rather have these statusbar items on your prompt
+line rather than thte window statusbar, please follow these steps.
+
+For I<Right-aligned> items (that is, after the input field:
+
+=over 4
+
+=item 1 C</alias vm_add /^statusbar prompt add -after input -alignment right vim_mode>
+
+=item 2 C</alias vm_del /^statusbar prompt remove vim_mode>
+
+=item 3 C</set uberprompt_load_hook /^vm_add>
+
+=item 4 C</set uberprompt_unload_hook /^vm_del>
+
+=back
+
+For I<Left-aligned> items (before the prompt):
+
+=over 4
+
+=item 1 C</alias vm_add /^statusbar prompt add -before prompt -alignment left vim_mode>
+
+=item 2 C</alias vm_del /^statusbar prompt remove vim_mode>
+
+=item 3 C</set uberprompt_load_hook /^vm_add>
+
+=item 4 C</set uberprompt_unload_hook /^vm_del>
+
+=back
+
+If you wish to add both C<vim_mode> and C<vim_windows> items, replace steps 1 and 2
+with the following:
+
+=over 4
+
+=item 1 C</alias vm_add /^eval /^statusbar prompt add -after input -alightment right vim_mode ; /^statusbar prompt add -after input -alignment right vim_windows>
+
+=item 2 C</alias vm_del /^eval /^statusbar prompt remove vim_mode ; /^statusbar prompt remove vim_windows>
+
+=back
+
+and then complete stages 3 and 4 as above.  Replace the C<-after> and C<-alignment>
+to suit your location preferences.
+
+=head3 Expando Variables
+
+Vim mode augments the existing Irssi expando (automatic variables) with two
+additional ones: C<$vim_cmd_mode> and C<$vim_wins>.
+
+C<$vim_cmd_mode> is the equivalent of the C<vim_mode> statusbar item, and
+C<$vim_wins> is the counterpart of C<vim_windows>.
+
+They can be added to your theme, or inserted into your uberprompt using
+the
+
+"C</set uberprompt_format [$vim_cmd_mode] $*$uber] >" command.
 
 
 =head3 FILE-BASED CONFIGURATION
@@ -334,7 +401,7 @@ Examples:
 
 =item * C<:map E<lt>C-GE<gt> /window goto 1>
 
-=item * C<:map E<lt>C-EE<gt> <Nop>> - disable <C-E>, it does nothing now
+=item * C<:map E<lt>C-EE<gt> <Nop>> - disable E<lt>C-EE<gt>, it does nothing now
 
 =item * C<:unmap E<lt>C-EE<gt>> - restore default behavior of C<E<lt>C-EE<gt>>
 after disabling it
