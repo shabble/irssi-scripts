@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Irssi 20020324;
+use Irssi;
 
 use Data::Dumper;
 use LWP::UserAgent;
@@ -24,7 +24,6 @@ our %IRSSI   = (
                 commands	=> "scriptassist"
                );
 
-#use vars qw($forked %remote_db $have_gpg);
 our ($forked, %remote_db, @complist);
 
 
@@ -36,40 +35,45 @@ eval { require GnuPG;
 $have_gpg = 1 unless $@;
 
 sub show_help {
-    my $help = "scriptassist $VERSION
-/scriptassist check
-    Check all loaded scripts for new available versions
-/scriptassist update <script|all>
-    Update the selected or all script to the newest version
-/scriptassist search <query>
-    Search the script database
-/scriptassist info <scripts>
-    Display information about <scripts>
-/scriptassist ratings <scripts>
-    Retrieve the average ratings of the the scripts
-/scriptassist top <num>
-    Retrieve the first <num> top rated scripts
-/scriptassist new <num>
-    Display the newest <num> scripts
-/scriptassist rate <script> <stars>
-    Rate the script with a number of stars ranging from 0-5
-/scriptassist contact <script>
-    Write an email to the author of the script
-    (Requires OpenURL)
-/scriptassist cpan <module>
-    Visit CPAN to look for missing Perl modules
-    (Requires OpenURL)
-/scriptassist install <script>
-    Retrieve and load the script
-/scriptassist autorun <script>
-    Toggles automatic loading of <script>
-";  
-    my $text='';
-    foreach (split(/\n/, $help)) {
-        $_ =~ s/^\/(.*)$/%9\/$1%9/;
-        $text .= $_."\n";
+
+    my @help
+      = (
+         "scriptassist $VERSION ",
+         "/scriptassist check",
+         "    Check all loaded scripts for new available versions",
+         "/scriptassist update <script|all>",
+         "    Update the selected or all script to the newest version",
+         "/scriptassist search <query>",
+         "    Search the script database",
+         "/scriptassist info <scripts>",
+         "    Display information about <scripts>",
+         "/scriptassist ratings <scripts>",
+         "    Retrieve the average ratings of the the scripts",
+         "/scriptassist top <num>",
+         "    Retrieve the first <num> top rated scripts",
+         "/scriptassist new <num>",
+         "    Display the newest <num> scripts",
+         "/scriptassist rate <script> <stars>",
+         "    Rate the script with a number of stars ranging from 0-5",
+         "/scriptassist contact <script>",
+         "    Write an email to the author of the script",
+         "    (Requires OpenURL)",
+         "/scriptassist cpan <module>",
+         "    Visit CPAN to look for missing Perl modules",
+         "    (Requires OpenURL)",
+         "/scriptassist install <script>",
+         "    Retrieve and load the script",
+         "/scriptassist autorun <script>",
+         "    Toggles automatic loading of <script>",
+        );
+
+    foreach my $line (@help) {
+        $line =~ s/^\/(.*)$/%9\/$1%9/;
     }
-    print CLIENTCRAP &draw_box("ScriptAssist", $text, "scriptassist help", 1);
+
+    print CLIENTCRAP
+      draw_box("ScriptAssist", join("\n", @help), "scriptassist help", 1);
+
     #theme_box("ScriptAssist", $text, "scriptassist help", 1);
 }
 
@@ -82,7 +86,7 @@ sub theme_box ($$$$) {
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'box_footer', $footer);
 }
 
-sub draw_box ($$$$) {
+sub draw_box {
     my ($title, $text, $footer, $colour) = @_;
     my $box = '';
     $box .= '%R,--[%n%9%U'.$title.'%U%9%R]%n'."\n";
@@ -106,7 +110,7 @@ sub call_openurl ($) {
 }
 
 sub bg_do ($) {
-    my ($func) = @_; 
+    my ($func) = @_;
     my ($rh, $wh);
     pipe($rh, $wh);
     if ($forked) {
@@ -240,7 +244,7 @@ sub script_info ($) {
 	if (defined $xml->{$_.".pl"}{depends}) {
 	    my $depends = $xml->{$_.".pl"}{depends};
 	    foreach my $dep (split(/ /, $depends)) {
-		$result{$_}{depends}{$dep}{installed} = 1; #(defined ${ 'Irssi::Script::'.$dep }); 
+		$result{$_}{depends}{$dep}{installed} = 1; #(defined ${ 'Irssi::Script::'.$dep });
 	    }
 	}
     }
@@ -490,7 +494,7 @@ sub array2table {
             $l =~ s/%%/%/g;
             $width[$_] = length($l) if $width[$_]<length($l);
         }
-    }   
+    }
     my $text;
     foreach my $line (@array) {
         for (0..scalar(@$line)-1) {
@@ -741,7 +745,7 @@ sub print_search ($%) {
     print CLIENTCRAP draw_box('ScriptAssist', $text, 'search: '.$query, 1) ;
 }
 
-sub print_update (%) { 
+sub print_update (%) {
     my (%data) = @_;
     my $text;
     my @table;
@@ -764,7 +768,7 @@ sub print_update (%) {
 	    push @table, ['%yo%n', '%9'.$_.'%9', 'not upgraded'];
             foreach (split /\n/, check_sig($data{$_})) {
 		push @table, ['', '', $_];
-            } 
+            }
 	} elsif ($data{$_}{installed} == -2 && $verbose) {
 	    my $local = $data{$_}{local};
 	    push @table, ['%go%n', '%9'.$_.'%9', 'already at the latest version ('.$local.')'];
@@ -831,7 +835,7 @@ sub get_scripts {
 	} else {
 	    ## FIXME Panic?!
 	}
-	
+
     }
     if ($fetched) {
 	# Clean database
@@ -868,7 +872,7 @@ sub compare_versions ($$) {
     my @ver2 = split /\./, $ver2;
     #if (scalar(@ver2) != scalar(@ver1)) {
     #    return 0;
-    #}       
+    #}
     my $cmp = 0;
     ### Special thanks to Clemens Heidinger
     $cmp ||= $ver1[$_] <=> $ver2[$_] || $ver1[$_] cmp $ver2[$_] for 0..scalar(@ver2);
