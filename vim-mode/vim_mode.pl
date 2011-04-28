@@ -906,6 +906,7 @@ my $should_ignore = 0;
 
 # ex mode buffer
 my @ex_buf;
+my $ex_cursor;
 
 # ex mode history storage.
 my @ex_history;
@@ -2381,8 +2382,8 @@ sub _parse_mapping {
     my ($string) = @_;
 
     $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
-    _warn("Parse mapping: $string");
     if (index($string, '<invalid>') != -1) {
+        _warn("Parse mapping failed: $string");
         return undef;
     }
     return $string;
@@ -2607,9 +2608,11 @@ sub vim_mode_cmd {
     if ($mode == M_INS) {
         $mode_str = 'Insert';
     } elsif ($mode == M_EX) {
-        $mode_str = '%_Ex%_';
+        #$mode_str = '%_Ex%_';
+        $mode_str = 'Ex';
     } else {
-        $mode_str = '%_Command%_';
+        #$mode_str = '%_Command%_';
+        $mode_str = 'Command';
         if ($register ne '"' or $numeric_prefix or $operator or $movement or
             $pending_map) {
             my $partial = '';
@@ -2810,10 +2813,12 @@ sub handle_input_buffer {
                     ex_history_back();
                 } elsif ($arrow eq 'B') { # down
                     ex_history_fwd();
+                } elsif ($arrow eq 'C') { # right
+                    ex_move_right();
+                } elsif ($arrow eq 'D') { # left
+                    ex_move_left();
                 } else {
-                    $arrow =~ s/C/right/;
-                    $arrow =~ s/D/left/;
-                    _debug("Arrow key $arrow not supported");
+                    _debug("somethign really weird happened: \"$key_str\"");
                 }
             }
         } else {
@@ -3157,11 +3162,14 @@ sub handle_command_ex {
     # BS key (8) or DEL key (127) - remove last character.
     if ($key == 8 || $key == 127) {
         print "Delete" if DEBUG;
-        if (@ex_buf > 0) {
-            pop @ex_buf;
+        if (@ex_buf > 0 && $ex_cursor > 0) {
+            # pop @ex_buf;
+            # $ex_cursor--;
+            splice @ex_buf, $ex_cursor--, 1, ('');
             _set_prompt(':' . join '', @ex_buf);
         # Backspacing over : exits ex-mode.
         } else {
+            $ex_cursor = 0;
             _update_mode(M_CMD);
         }
 
@@ -3188,7 +3196,7 @@ sub handle_command_ex {
     } else {
         if ($key != -1) {
             # check we're not called from an ex_history_* function
-            push @ex_buf, chr $key;
+            splice @ex_buf, $ex_cursor++, 1, (chr $key);
         }
         _set_prompt(':' . join '', @ex_buf);
     }
@@ -3563,6 +3571,7 @@ sub _update_mode {
 
         # Also clear ex-mode buffer.
         @ex_buf = ();
+        $ex_cursor = 0;
     }
 
     Irssi::statusbar_items_redraw("vim_mode");
@@ -3715,6 +3724,7 @@ sub ex_history_fwd {
     _debug("Ex history line: $line");
 
     @ex_buf = split '', $line;
+    $ex_cursor = scalar @ex_buf;
     handle_command_ex(-1);
 }
 
@@ -3732,8 +3742,21 @@ sub ex_history_back {
 
     _debug("Ex history line: $line");
     @ex_buf = split '', $line;
+    $ex_cursor = scalar @ex_buf;
     handle_command_ex(-1);
 
+}
+
+
+# move the ex buffer cursor.
+sub ex_move_left {
+    $ex_cursor--;
+    _debug("E_M_L: Moving ex cursor to $ex_cursor");
+}
+
+sub ex_move_right {
+    $ex_cursor++;
+    _debug("E_M_R: Moving ex cursor to $ex_cursor");
 }
 
 sub ex_history_show {
