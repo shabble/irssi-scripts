@@ -888,6 +888,9 @@ my $settings
      prompt_leading_space => { type => S_BOOL, value => 1 },
      # <Leader> value for prepending to commands.
      map_leader     => { type => S_STR,  value => '\\' },
+     # timeout for keys following esc. In milliseconds.
+     esc_buf_timeout => { type => S_INT, value =>  10 },
+
     };
 
 sub DEBUG { $settings->{debug}->{value} }
@@ -2701,8 +2704,12 @@ sub got_key {
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
-        $input_buf_timer
-          = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
+        my $esc_buf_timeout = $settings->{input_buf_timeout};
+
+        $esc_buf_timer
+          = Irssi::timeout_add_once($esc_buf_timeout,
+                                    \&handle_input_buffer, undef);
+
         print "Buffer Timer tag: $input_buf_timer" if DEBUG;
 
     } elsif ($mode == M_INS) {
