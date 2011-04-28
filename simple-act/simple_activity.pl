@@ -68,38 +68,81 @@ our %IRSSI = (
               updated     => '$DATE'
              );
 
+sub DATA_LEVEL_NONE    () { 0 }
+sub DATA_LEVEL_TEXT    () { 1 }
+sub DATA_LEVEL_MSG     () { 2 }
+sub DATA_LEVEL_HILIGHT () { 3 }
+
+sub SB_START () { '%c[%n' }
+sub SB_END   () { '%c]%n' }
 
 my $activity = {};
 
 
 Irssi::statusbar_item_register('act_simple', 0, 'act_simple_cb');
-Irssi::signal_add('window hilight', \&update_hilight);
-Irssi::signal_add('window dehilight', \&update_hilight);
-Irssi::signal_add('window activity', \&update_activity);
+# Irssi::signal_add('window hilight', \&update_hilight);
+# Irssi::signal_add('window dehilight', \&update_hilight);
+Irssi::signal_add_first('window activity', \&update_activity);
 
 # wtf to do about these?
-Irssi::signal_add('window item hilight', \&update_hilight);
-Irssi::signal_add('window item activity', \&update_activity);
+# Irssi::signal_add('window item hilight', \&update_hilight);
+# Irssi::signal_add('window item activity', \&update_activity);
 
-sub update_hilight {
-    my ($win) = @_;
-    if ($win->{data_level} >= Irssi::MESSAGELEVEL_HILIGHT) {
-        $activity->{$win->{refnum}} = 'h';
-    } elsif ($win->{data_level} >= Irssi::MESSAGELEVEL_PUBLIC {
-        $activity->{$win->{$refnum}} = 'p';
-    } else {
-        delete $activity->{$win->{$refnum}};
-    }
-}
+Irssi::statusbar_items_redraw('act_simple');
+Irssi::command_bind('at',
+                    sub { my $args = shift;
+                          my @stuff = split /\s+/, $args;
+                          my $win = Irssi::window_find_refnum($stuff[0]);
+                          my $lvl = Irssi::level2bits($stuff[1]);
+                          print "Seinding level: $stuff[1]: $lvl to $stuff[0]";
+                          $win->print("Blah Blah", $lvl);
+                      });
 
 sub update_activity {
     my ($win, $old_level) = @_;
+    Irssi::window_find_refnum(1)->print(Dumper(\@_), MSGLEVEL_NEVER | MSGLEVEL_CRAP);
+    my $refnum = $win->{refnum};
+    my $level  = $win->{data_level};
+
+    my $prev_level = exists $activity->{$refnum}->{old_level}
+      ? $activity->{$refnum}->{old_level} : -1;
+
+    $activity->{$refnum}->{old_level} = $old_level;
+
+    print "$refnum: prev: $prev_level, Old: $old_level, new: $level";
+
+    #if ($level = DATA_LEVEL_NONE) {
+    $activity->{$refnum}->{level} = $level;
+
+    if ($old_level != $prev_level) {
+        Irssi::statusbar_items_redraw('act_simple');
+    }
+    Irssi::signal_stop();
 }
 
+sub render_activity {
+    my @act_keys = sort { $a <=> $b } keys %$activity;
+
+    my @out;
+
+    foreach my $refnum (@act_keys) {
+        my $act = $activity->{$refnum}->{level};
+        if ($act == DATA_LEVEL_TEXT) {
+            push @out, ('%_%G' . $refnum . '%n');
+        } elsif ($act == DATA_LEVEL_MSG) {
+            push @out, ('%_%B' . $refnum . '%n');
+        } elsif ($act == DATA_LEVEL_HILIGHT) {
+            push @out, ('%_%G' . $refnum . '%n');
+        }
+    }
+    return sprintf('%s %%_Simple:%%_ %s %s', SB_START, join(", ", @out), SB_END);
+}
 
 sub act_simple_cb {
     my ($sb_item, $get_size_only) = @_;
 
-    return $sb_item->default_handler($get_size_only, $value, '', 0);
+    my $sb = render_activity();
 
+    #print "redrawing sbar: $sb";
+    return $sb_item->default_handler($get_size_only, $sb, '', 0);
 }
