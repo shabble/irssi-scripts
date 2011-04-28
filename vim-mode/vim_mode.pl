@@ -2704,9 +2704,9 @@ sub got_key {
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
-        my $esc_buf_timeout = $settings->{input_buf_timeout};
+        my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
 
-        $esc_buf_timer
+        $input_buf_timer
           = Irssi::timeout_add_once($esc_buf_timeout,
                                     \&handle_input_buffer, undef);
 
