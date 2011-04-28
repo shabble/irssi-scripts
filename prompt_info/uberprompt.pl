@@ -255,6 +255,11 @@ THE SOFTWARE.
 Resizing the terminal rapidly whilst using this script in debug mode may cause
 irssi to crash. See bug report at http://bugs.irssi.org/index.php?do=details&task_id=772 for details.
 
+=item * 
+
+Using any special variable syntax (eg, C<$[3]$foo> expando truncations in
+uberprompt format breaks things. Perhaps we need an additional expansion phase?
+
 =back
 
 =head1 TODO
