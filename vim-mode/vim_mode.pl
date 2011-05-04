@@ -536,6 +536,11 @@ displaying C<:bE<lt>cursorE<gt>>)
 
 =item *
 
+Make sure the input line is empty when entering ex mode. Stuff hanging around
+just looks silly.
+
+=item *
+
 History:
 
 =over 4
