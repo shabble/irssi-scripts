@@ -2694,521 +2694,6 @@ sub b_windows_cb {
 }
 
 
-# INPUT HANDLING
-
-sub got_key {
-    my ($key) = @_;
-
-    return if ($should_ignore);
-
-    # Esc key
-    if ($key == 27) {
-        print "Esc seen, starting buffer" if DEBUG;
-        $input_buf_enabled = 1;
-
-        # NOTE: this timeout might be too low on laggy systems, but
-        # it comes at the cost of keystroke latency for things that
-        # contain escape sequences (arrow keys, etc)
-        my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
-
-        $input_buf_timer
-          = Irssi::timeout_add_once($esc_buf_timeout,
-                                    \&handle_input_buffer, undef);
-
-        print "Buffer Timer tag: $input_buf_timer" if DEBUG;
-
-    } elsif ($mode == M_INS) {
-
-        if ($key == 3) { # Ctrl-C enters command mode
-            _update_mode(M_CMD);
-            _stop();
-            return;
-
-        } elsif ($key == 10) { # enter.
-            _commit_line();
-
-        } elsif ($input_buf_enabled and $imap) {
-            print "Imap $imap active" if DEBUG;
-            my $map = $imaps->{$imap};
-            if (not defined $map->{map} or chr($key) eq $map->{map}) {
-                $map->{func}($key);
-                # Clear the buffer so the imap is not printed.
-                @input_buf = ();
-            } else {
-                push @input_buf, $key;
-            }
-            flush_input_buffer();
-            _stop();
-            $imap = undef;
-            return;
-
-        } elsif (exists $imaps->{chr($key)}) {
-            print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
-
-            # start imap pending mode
-            $imap = chr($key);
-
-            $input_buf_enabled = 1;
-            push @input_buf, $key;
-            $input_buf_timer
-              = Irssi::timeout_add_once(1000, \&flush_input_buffer, undef);
-
-            _stop();
-            return;
-
-        # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
-        # TODO: maybe allow it
-        } elsif ($key == 8 || $key == 127) {
-            @insert_buf = ();
-        # All other entered characters need to be stored to allow repeat of
-        # insert mode. Ignore delete and control characters.
-        } elsif ($key > 31) {
-            push @insert_buf, chr($key);
-        }
-    }
-
-    if ($input_buf_enabled) {
-        push @input_buf, $key;
-        _stop();
-        return;
-    }
-
-    if ($mode == M_CMD) {
-        my $should_stop = handle_command_cmd($key);
-        _stop() if $should_stop;
-        Irssi::statusbar_items_redraw("vim_mode");
-
-    } elsif ($mode == M_EX) {
-
-        if ($key == 3) { # C-c cancels Ex mdoe as well.
-            _update_mode(M_CMD);
-            _stop();
-            return;
-        }
-
-        handle_command_ex($key);
-    }
-}
-
-# TODO: merge this with 'flush_input_buffer' below.
-
-sub handle_input_buffer {
-
-    #Irssi::timeout_remove($input_buf_timer);
-    $input_buf_timer = undef;
-    # see what we've collected.
-    print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
-
-    if (@input_buf == 1 && $input_buf[0] == 27) {
-
-        print "Enter Command Mode" if DEBUG;
-        _update_mode(M_CMD);
-
-    } else {
-        # we have more than a single esc, implying an escape sequence
-        # (meta-* or esc-*)
-
-        # currently, we only extract escape sequences if:
-        # a) we're in ex mode
-        # b) they're arrow keys (for history control)
-
-        if ($mode == M_EX) {
-            # ex mode
-            my $key_str = join '', map { chr } @input_buf;
-            if ($key_str =~ m/^\e\[([ABCD])/) {
-                my $arrow = $1;
-                _debug( "Arrow key: $arrow");
-                if ($arrow eq 'A') { # up
-                    ex_history_back();
-                } elsif ($arrow eq 'B') { # down
-                    ex_history_fwd();
-                } else {
-                    $arrow =~ s/C/right/;
-                    $arrow =~ s/D/left/;
-                    _debug("Arrow key $arrow not supported");
-                }
-            }
-        } else {
-            # otherwise, we just forward them to irssi.
-            _emulate_keystrokes(@input_buf);
-        }
-
-        # Clear insert buffer, pressing "special" keys (like arrow keys)
-        # resets it.
-        @insert_buf = ();
-    }
-
-    @input_buf = ();
-    $input_buf_enabled = 0;
-}
-
-sub flush_input_buffer {
-    Irssi::timeout_remove($input_buf_timer) if defined $input_buf_timer;
-    $input_buf_timer = undef;
-    # see what we've collected.
-    print "Input buffer flushed" if DEBUG;
-
-    # Add the characters to @insert_buf so they can be repeated.
-    push @insert_buf, map chr, @input_buf;
-
-    _emulate_keystrokes(@input_buf);
-
-    @input_buf = ();
-    $input_buf_enabled = 0;
-
-    $imap = undef;
-}
-
-sub flush_pending_map {
-    my ($old_pending_map) = @_;
-
-    print "flush_pending_map(): ", $pending_map, ' ', $old_pending_map
-        if DEBUG;
-
-    return if not defined $pending_map or
-              $pending_map ne $old_pending_map;
-
-    handle_command_cmd(undef);
-    Irssi::statusbar_items_redraw("vim_mode");
-}
-
-sub handle_numeric_prefix {
-    my ($char) = @_;
-    my $num = 0+$char;
-
-    if (defined $numeric_prefix) {
-        $numeric_prefix *= 10;
-        $numeric_prefix += $num;
-    } else {
-        $numeric_prefix = $num;
-    }
-}
-
-sub handle_command_cmd {
-    my ($key) = @_;
-
-    my $pending_map_flushed = 0;
-
-    my $char;
-    if (defined $key) {
-        $char = chr($key);
-    # We were called from flush_pending_map().
-    } else {
-        $char = $pending_map;
-        $key = 0;
-        $pending_map_flushed = 1;
-    }
-
-    # Counts
-    if (!$movement and !$pending_map and
-        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
-        print "Processing numeric prefix: $char" if DEBUG;
-        handle_numeric_prefix($char);
-        return 1; # call _stop()
-    }
-
-    if (defined $pending_map and not $pending_map_flushed) {
-        $pending_map = $pending_map . $char;
-        $char = $pending_map;
-    }
-
-    my $map;
-    if ($movement) {
-        $map = { char => $movement->{char},
-                 cmd => $movement,
-                 maps => {},
-               };
-
-    } elsif (exists $maps->{$char}) {
-        $map = $maps->{$char};
-
-        # We have multiple mappings starting with this key sequence.
-        if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
-            if (not defined $pending_map) {
-                $pending_map = $char;
-            }
-
-            # The current key sequence has a command mapped to it, run if
-            # after a timeout.
-            if (defined $map->{cmd}) {
-                Irssi::timeout_add_once(1000, \&flush_pending_map,
-                                              $pending_map);
-            }
-            return 1; # call _stop()
-        }
-
-    } else {
-        print "No mapping found for $char" if DEBUG;
-        $pending_map = undef;
-        $numeric_prefix = undef;
-        return 1; # call _stop()
-    }
-
-    $pending_map = undef;
-
-    my $cmd = $map->{cmd};
-
-    # Make sure we have a valid $cmd.
-    if (not defined $cmd) {
-        print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
-        return 1; # call _stop()
-    }
-
-    # Ex-mode commands can also be bound in command mode.
-    if ($cmd->{type} == C_EX) {
-        print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
-
-        $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
-        $numeric_prefix = undef;
-
-        return 1; # call _stop()
-    # As can irssi commands.
-    } elsif ($cmd->{type} == C_IRSSI) {
-        print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
-
-        _command_with_context($cmd->{func});
-
-        $numeric_prefix = undef;
-        return 1; # call _stop();
-    # <Nop> does nothing.
-    } elsif ($cmd->{type} == C_NOP) {
-        print "Processing <Nop>: $map->{char}" if DEBUG;
-
-        $numeric_prefix = undef;
-        return 1; # call _stop();
-    }
-
-    # text-objects (i a) are simulated with $movement
-    if (!$movement and ($cmd->{type} == C_NEEDSKEY or
-                        ($operator and ($char eq 'i' or $char eq 'a')))) {
-        print "Processing movement: $map->{char} ($cmd->{char})" if DEBUG;
-        if ($char eq 'i') {
-            $movement = $commands->{_i};
-        } elsif ($char eq 'a') {
-            $movement = $commands->{_a};
-        } else {
-            $movement = $cmd;
-        }
-
-    } elsif (!$movement and $cmd->{type} == C_OPERATOR) {
-        print "Processing operator: $map->{char} ($cmd->{char})" if DEBUG;
-        # Abort operator if we already have one pending.
-        if ($operator) {
-            # But allow cc/dd/yy.
-            if ($operator == $cmd) {
-                print "Processing line operator: ",
-                  $map->{char}, " (",
-                  $cmd->{char} ,")"
-                    if DEBUG;
-
-                my $pos = _input_pos();
-                $cmd->{func}->(0, _input_len(), undef, 0);
-                # Restore position for yy.
-                if ($cmd == $commands->{y}) {
-                    _input_pos($pos);
-                # And save undo for other operators.
-                } else {
-                    _add_undo_entry(_input(), _input_pos());
-                }
-                if ($register ne '"') {
-                    print 'Changing register to "' if DEBUG;
-                    $register = '"';
-                }
-            }
-            $numeric_prefix = undef;
-            $operator = undef;
-            $movement = undef;
-        # Set new operator.
-        } else {
-            $operator = $cmd;
-        }
-
-    # Start Ex mode.
-    } elsif ($cmd == $commands->{':'}) {
-
-        if (not script_is_loaded('uberprompt')) {
-            _warn("Warning: Ex mode requires the 'uberprompt' script. " .
-                    "Please load it and try again.");
-        } else {
-            _update_mode(M_EX);
-            _set_prompt(':');
-        }
-
-    # Enter key sends the current input line in command mode as well.
-    } elsif ($key == 10) {
-        _commit_line();
-        return 0; # don't call _stop()
-
-    } else {
-        print "Processing command: $map->{char} ($cmd->{char})" if DEBUG;
-
-        my $skip = 0;
-        my $repeat = 0;
-
-        if (!$movement) {
-            # . repeats the last command.
-            if ($cmd == $commands->{'.'} and defined $last->{cmd}) {
-                $cmd = $last->{cmd};
-                $char = $last->{char};
-                # If . is given a count then it replaces original count.
-                if (not defined $numeric_prefix) {
-                    $numeric_prefix = $last->{numeric_prefix};
-                }
-                $operator = $last->{operator};
-                $movement = $last->{movement};
-                $register = $last->{register};
-                $repeat = 1;
-            } elsif ($cmd == $commands->{'.'}) {
-                print '. pressed but $last->{char} not set' if DEBUG;
-                $skip = 1;
-            }
-        }
-
-        # Ignore invalid operator/command combinations.
-        if ($operator and $cmd->{no_operator}) {
-            print "Invalid operator/command: $operator->{char} $cmd->{char}"
-                if DEBUG;
-            $skip = 1;
-        }
-
-        if ($skip) {
-            print "Skipping movement and operator." if DEBUG;
-        } else {
-            # Make sure count is at least 1 except for functions which need to
-            # know if no count was used.
-            if (not $numeric_prefix and not $cmd->{needs_count}) {
-                $numeric_prefix = 1;
-            }
-
-            my $cur_pos = _input_pos();
-
-            # If defined $cur_pos will be changed to this.
-            my $old_pos;
-            # Position after the move.
-            my $new_pos;
-            # Execute the movement (multiple times).
-            if (not $movement) {
-                ($old_pos, $new_pos)
-                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat);
-            } else {
-                ($old_pos, $new_pos)
-                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat,
-                                     $char);
-            }
-            if (defined $old_pos) {
-                print "Changing \$cur_pos from $cur_pos to $old_pos" if DEBUG;
-                $cur_pos = $old_pos;
-            }
-            if (defined $new_pos) {
-                _input_pos($new_pos);
-            } else {
-                $new_pos = _input_pos();
-            }
-
-            # Update input position of last undo entry so that undo/redo
-            # restores correct position.
-            if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
-                ((defined $operator and $operator == $commands->{d}) or
-                 $cmd->{repeatable})) {
-                print "Updating history position: $undo_buffer[0]->[0]"
-                    if DEBUG;
-                $undo_buffer[0]->[1] = $cur_pos;
-            }
-
-            # If we have an operator pending then run it on the handled text.
-            # But only if the movement changed the position (this prevents
-            # problems with e.g. f when the search string doesn't exist).
-            if ($operator and $cur_pos != $new_pos) {
-                print "Processing operator: ", $operator->{char} if DEBUG;
-                $operator->{func}->($cur_pos, $new_pos, $cmd, $repeat);
-            }
-
-            # Save an undo checkpoint here for operators, all repeatable
-            # movements, operators and repetition.
-            if ((defined $operator and $operator == $commands->{d}) or
-                $cmd->{repeatable}) {
-                # TODO: why do history entries still show up in undo
-                # buffer? Is avoiding the commands here insufficient?
-
-                _add_undo_entry(_input(), _input_pos());
-            }
-
-            # Store command, necessary for .
-            if ($operator or $cmd->{repeatable}) {
-                $last->{cmd} = $cmd;
-                $last->{char} = $char;
-                $last->{numeric_prefix} = $numeric_prefix;
-                $last->{operator} = $operator;
-                $last->{movement} = $movement;
-                $last->{register} = $register;
-            }
-        }
-
-        # Reset the count unless we go into insert mode, _update_mode() needs
-        # to know it when leaving insert mode to support insert with counts
-        # (like 3i).
-        if ($repeat or $cmd->{type} != C_INSERT) {
-            $numeric_prefix = undef;
-        }
-        $operator = undef;
-        $movement = undef;
-
-        if ($cmd != $commands->{'"'} and $register ne '"') {
-            print 'Changing register to "' if DEBUG;
-            $register = '"';
-        }
-
-    }
-
-    return 1; # call _stop()
-}
-
-sub handle_command_ex {
-    my ($key) = @_;
-
-    # BS key (8) or DEL key (127) - remove last character.
-    if ($key == 8 || $key == 127) {
-        print "Delete" if DEBUG;
-        if (@ex_buf > 0) {
-            pop @ex_buf;
-            _set_prompt(':' . join '', @ex_buf);
-        # Backspacing over : exits ex-mode.
-        } else {
-            _update_mode(M_CMD);
-        }
-
-    # Return key - execute command
-    } elsif ($key == 10) {
-        print "Run ex-mode command" if DEBUG;
-        cmd_ex_command();
-        _update_mode(M_CMD);
-
-    } elsif ($key == 9) { # TAB
-        print "Tab pressed" if DEBUG;
-        print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
-        @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
-        _debug("Candidates: " . join(", ", @tab_candidates));
-        if (@tab_candidates == 1) {
-            @ex_buf = ( split('', $tab_candidates[0]), ' ');
-            _set_prompt(':' . join '', @ex_buf);
-        }
-    # Ignore control characters for now.
-    } elsif ($key > 0 && $key < 32) {
-        # TODO: use them later, e.g. completion
-
-    # Append entered key
-    } else {
-        if ($key != -1) {
-            # check we're not called from an ex_history_* function
-            push @ex_buf, chr $key;
-        }
-        _set_prompt(':' . join '', @ex_buf);
-    }
-
-    Irssi::statusbar_items_redraw("vim_windows");
-
-    _stop();
-}
 
 sub _tab_complete {
     my ($input, $source) = @_;
@@ -3223,7 +2708,7 @@ sub _tab_complete {
 }
 
 sub vim_mode_init {
-    Irssi::signal_add_first 'gui key pressed' => \&got_key;
+    Irssi::signal_add_first 'gui key pressed' => \&sig_gui_keypress;
     Irssi::statusbar_item_register ('vim_mode',    0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
@@ -3758,4 +3243,527 @@ sub ex_history_show {
         $win->print("$i " . $ex_history[$i] . $flag);
     }
 }
+
+
+################################################################
+#                    INPUT HANDLING                            #
+################################################################
+
+
+sub sig_gui_keypress {
+    my ($key) = @_;
+
+    return if ($should_ignore);
+
+    # Esc key
+    if ($key == 27) {
+        print "Esc seen, starting buffer" if DEBUG;
+        $input_buf_enabled = 1;
+
+        # NOTE: this timeout might be too low on laggy systems, but
+        # it comes at the cost of keystroke latency for things that
+        # contain escape sequences (arrow keys, etc)
+        my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
+
+        $input_buf_timer
+          = Irssi::timeout_add_once($esc_buf_timeout,
+                                    \&handle_input_buffer, undef);
+
+        print "Buffer Timer tag: $input_buf_timer" if DEBUG;
+
+    } elsif ($mode == M_INS) {
+
+        if ($key == 3) { # Ctrl-C enters command mode
+            _update_mode(M_CMD);
+            _stop();
+            return;
+
+        } elsif ($key == 10) { # enter.
+            _commit_line();
+
+        } elsif ($input_buf_enabled and $imap) {
+            print "Imap $imap active" if DEBUG;
+            my $map = $imaps->{$imap};
+            if (not defined $map->{map} or chr($key) eq $map->{map}) {
+                $map->{func}($key);
+                # Clear the buffer so the imap is not printed.
+                @input_buf = ();
+            } else {
+                push @input_buf, $key;
+            }
+            flush_input_buffer();
+            _stop();
+            $imap = undef;
+            return;
+
+        } elsif (exists $imaps->{chr($key)}) {
+            print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
+
+            # start imap pending mode
+            $imap = chr($key);
+
+            $input_buf_enabled = 1;
+            push @input_buf, $key;
+            $input_buf_timer
+              = Irssi::timeout_add_once(1000, \&flush_input_buffer, undef);
+
+            _stop();
+            return;
+
+        # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
+        # TODO: maybe allow it
+        } elsif ($key == 8 || $key == 127) {
+            @insert_buf = ();
+        # All other entered characters need to be stored to allow repeat of
+        # insert mode. Ignore delete and control characters.
+        } elsif ($key > 31) {
+            push @insert_buf, chr($key);
+        }
+    }
+
+    if ($input_buf_enabled) {
+        push @input_buf, $key;
+        _stop();
+        return;
+    }
+
+    if ($mode == M_CMD) {
+        my $should_stop = handle_command_cmd($key);
+        _stop() if $should_stop;
+        Irssi::statusbar_items_redraw("vim_mode");
+
+    } elsif ($mode == M_EX) {
+
+        if ($key == 3) { # C-c cancels Ex mdoe as well.
+            _update_mode(M_CMD);
+            _stop();
+            return;
+        }
+
+        handle_command_ex($key);
+    }
+}
+
+# TODO: merge this with 'flush_input_buffer' below.
+
+sub handle_input_buffer {
+
+    #Irssi::timeout_remove($input_buf_timer);
+    $input_buf_timer = undef;
+    # see what we've collected.
+    print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
+
+    if (@input_buf == 1 && $input_buf[0] == 27) {
+
+        print "Enter Command Mode" if DEBUG;
+        _update_mode(M_CMD);
+
+    } else {
+        # we have more than a single esc, implying an escape sequence
+        # (meta-* or esc-*)
+
+        # currently, we only extract escape sequences if:
+        # a) we're in ex mode
+        # b) they're arrow keys (for history control)
+
+        if ($mode == M_EX) {
+            # ex mode
+            my $key_str = join '', map { chr } @input_buf;
+            if ($key_str =~ m/^\e\[([ABCD])/) {
+                my $arrow = $1;
+                _debug( "Arrow key: $arrow");
+                if ($arrow eq 'A') { # up
+                    ex_history_back();
+                } elsif ($arrow eq 'B') { # down
+                    ex_history_fwd();
+                } else {
+                    $arrow =~ s/C/right/;
+                    $arrow =~ s/D/left/;
+                    _debug("Arrow key $arrow not supported");
+                }
+            }
+        } else {
+            # otherwise, we just forward them to irssi.
+            _emulate_keystrokes(@input_buf);
+        }
+
+        # Clear insert buffer, pressing "special" keys (like arrow keys)
+        # resets it.
+        @insert_buf = ();
+    }
+
+    @input_buf = ();
+    $input_buf_enabled = 0;
+}
+
+sub flush_input_buffer {
+    Irssi::timeout_remove($input_buf_timer) if defined $input_buf_timer;
+    $input_buf_timer = undef;
+    # see what we've collected.
+    print "Input buffer flushed" if DEBUG;
+
+    # Add the characters to @insert_buf so they can be repeated.
+    push @insert_buf, map chr, @input_buf;
+
+    _emulate_keystrokes(@input_buf);
+
+    @input_buf = ();
+    $input_buf_enabled = 0;
+
+    $imap = undef;
+}
+
+sub flush_pending_map {
+    my ($old_pending_map) = @_;
+
+    print "flush_pending_map(): ", $pending_map, ' ', $old_pending_map
+        if DEBUG;
+
+    return if not defined $pending_map or
+              $pending_map ne $old_pending_map;
+
+    handle_command_cmd(undef);
+    Irssi::statusbar_items_redraw("vim_mode");
+}
+
+sub handle_numeric_prefix {
+    my ($char) = @_;
+    my $num = 0+$char;
+
+    if (defined $numeric_prefix) {
+        $numeric_prefix *= 10;
+        $numeric_prefix += $num;
+    } else {
+        $numeric_prefix = $num;
+    }
+}
+
+sub handle_command_cmd {
+    my ($key) = @_;
+
+    my $pending_map_flushed = 0;
+
+    my $char;
+    if (defined $key) {
+        $char = chr($key);
+    # We were called from flush_pending_map().
+    } else {
+        $char = $pending_map;
+        $key = 0;
+        $pending_map_flushed = 1;
+    }
+
+    # Counts
+    if (!$movement and !$pending_map and
+        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
+        print "Processing numeric prefix: $char" if DEBUG;
+        handle_numeric_prefix($char);
+        return 1; # call _stop()
+    }
+
+    if (defined $pending_map and not $pending_map_flushed) {
+        $pending_map = $pending_map . $char;
+        $char = $pending_map;
+    }
+
+    my $map;
+    if ($movement) {
+        $map = { char => $movement->{char},
+                 cmd => $movement,
+                 maps => {},
+               };
+
+    } elsif (exists $maps->{$char}) {
+        $map = $maps->{$char};
+
+        # We have multiple mappings starting with this key sequence.
+        if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
+            if (not defined $pending_map) {
+                $pending_map = $char;
+            }
+
+            # The current key sequence has a command mapped to it, run if
+            # after a timeout.
+            if (defined $map->{cmd}) {
+                Irssi::timeout_add_once(1000, \&flush_pending_map,
+                                              $pending_map);
+            }
+            return 1; # call _stop()
+        }
+
+    } else {
+        print "No mapping found for $char" if DEBUG;
+        $pending_map = undef;
+        $numeric_prefix = undef;
+        return 1; # call _stop()
+    }
+
+    $pending_map = undef;
+
+    my $cmd = $map->{cmd};
+
+    # Make sure we have a valid $cmd.
+    if (not defined $cmd) {
+        print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
+        return 1; # call _stop()
+    }
+
+    # Ex-mode commands can also be bound in command mode.
+    if ($cmd->{type} == C_EX) {
+        print "Processing ex-command: $map->{char} ($cmd->{char})" if DEBUG;
+
+        $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
+        $numeric_prefix = undef;
+
+        return 1; # call _stop()
+    # As can irssi commands.
+    } elsif ($cmd->{type} == C_IRSSI) {
+        print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
+
+        _command_with_context($cmd->{func});
+
+        $numeric_prefix = undef;
+        return 1; # call _stop();
+    # <Nop> does nothing.
+    } elsif ($cmd->{type} == C_NOP) {
+        print "Processing <Nop>: $map->{char}" if DEBUG;
+
+        $numeric_prefix = undef;
+        return 1; # call _stop();
+    }
+
+    # text-objects (i a) are simulated with $movement
+    if (!$movement and ($cmd->{type} == C_NEEDSKEY or
+                        ($operator and ($char eq 'i' or $char eq 'a')))) {
+        print "Processing movement: $map->{char} ($cmd->{char})" if DEBUG;
+        if ($char eq 'i') {
+            $movement = $commands->{_i};
+        } elsif ($char eq 'a') {
+            $movement = $commands->{_a};
+        } else {
+            $movement = $cmd;
+        }
+
+    } elsif (!$movement and $cmd->{type} == C_OPERATOR) {
+        print "Processing operator: $map->{char} ($cmd->{char})" if DEBUG;
+        # Abort operator if we already have one pending.
+        if ($operator) {
+            # But allow cc/dd/yy.
+            if ($operator == $cmd) {
+                print "Processing line operator: ",
+                  $map->{char}, " (",
+                  $cmd->{char} ,")"
+                    if DEBUG;
+
+                my $pos = _input_pos();
+                $cmd->{func}->(0, _input_len(), undef, 0);
+                # Restore position for yy.
+                if ($cmd == $commands->{y}) {
+                    _input_pos($pos);
+                # And save undo for other operators.
+                } else {
+                    _add_undo_entry(_input(), _input_pos());
+                }
+                if ($register ne '"') {
+                    print 'Changing register to "' if DEBUG;
+                    $register = '"';
+                }
+            }
+            $numeric_prefix = undef;
+            $operator = undef;
+            $movement = undef;
+        # Set new operator.
+        } else {
+            $operator = $cmd;
+        }
+
+    # Start Ex mode.
+    } elsif ($cmd == $commands->{':'}) {
+
+        if (not script_is_loaded('uberprompt')) {
+            _warn("Warning: Ex mode requires the 'uberprompt' script. " .
+                    "Please load it and try again.");
+        } else {
+            _update_mode(M_EX);
+            _set_prompt(':');
+        }
+
+    # Enter key sends the current input line in command mode as well.
+    } elsif ($key == 10) {
+        _commit_line();
+        return 0; # don't call _stop()
+
+    } else {
+        print "Processing command: $map->{char} ($cmd->{char})" if DEBUG;
+
+        my $skip = 0;
+        my $repeat = 0;
+
+        if (!$movement) {
+            # . repeats the last command.
+            if ($cmd == $commands->{'.'} and defined $last->{cmd}) {
+                $cmd = $last->{cmd};
+                $char = $last->{char};
+                # If . is given a count then it replaces original count.
+                if (not defined $numeric_prefix) {
+                    $numeric_prefix = $last->{numeric_prefix};
+                }
+                $operator = $last->{operator};
+                $movement = $last->{movement};
+                $register = $last->{register};
+                $repeat = 1;
+            } elsif ($cmd == $commands->{'.'}) {
+                print '. pressed but $last->{char} not set' if DEBUG;
+                $skip = 1;
+            }
+        }
+
+        # Ignore invalid operator/command combinations.
+        if ($operator and $cmd->{no_operator}) {
+            print "Invalid operator/command: $operator->{char} $cmd->{char}"
+                if DEBUG;
+            $skip = 1;
+        }
+
+        if ($skip) {
+            print "Skipping movement and operator." if DEBUG;
+        } else {
+            # Make sure count is at least 1 except for functions which need to
+            # know if no count was used.
+            if (not $numeric_prefix and not $cmd->{needs_count}) {
+                $numeric_prefix = 1;
+            }
+
+            my $cur_pos = _input_pos();
+
+            # If defined $cur_pos will be changed to this.
+            my $old_pos;
+            # Position after the move.
+            my $new_pos;
+            # Execute the movement (multiple times).
+            if (not $movement) {
+                ($old_pos, $new_pos)
+                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat);
+            } else {
+                ($old_pos, $new_pos)
+                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat,
+                                     $char);
+            }
+            if (defined $old_pos) {
+                print "Changing \$cur_pos from $cur_pos to $old_pos" if DEBUG;
+                $cur_pos = $old_pos;
+            }
+            if (defined $new_pos) {
+                _input_pos($new_pos);
+            } else {
+                $new_pos = _input_pos();
+            }
+
+            # Update input position of last undo entry so that undo/redo
+            # restores correct position.
+            if (@undo_buffer and _input() eq $undo_buffer[0]->[0] and
+                ((defined $operator and $operator == $commands->{d}) or
+                 $cmd->{repeatable})) {
+                print "Updating history position: $undo_buffer[0]->[0]"
+                    if DEBUG;
+                $undo_buffer[0]->[1] = $cur_pos;
+            }
+
+            # If we have an operator pending then run it on the handled text.
+            # But only if the movement changed the position (this prevents
+            # problems with e.g. f when the search string doesn't exist).
+            if ($operator and $cur_pos != $new_pos) {
+                print "Processing operator: ", $operator->{char} if DEBUG;
+                $operator->{func}->($cur_pos, $new_pos, $cmd, $repeat);
+            }
+
+            # Save an undo checkpoint here for operators, all repeatable
+            # movements, operators and repetition.
+            if ((defined $operator and $operator == $commands->{d}) or
+                $cmd->{repeatable}) {
+                # TODO: why do history entries still show up in undo
+                # buffer? Is avoiding the commands here insufficient?
+
+                _add_undo_entry(_input(), _input_pos());
+            }
+
+            # Store command, necessary for .
+            if ($operator or $cmd->{repeatable}) {
+                $last->{cmd} = $cmd;
+                $last->{char} = $char;
+                $last->{numeric_prefix} = $numeric_prefix;
+                $last->{operator} = $operator;
+                $last->{movement} = $movement;
+                $last->{register} = $register;
+            }
+        }
+
+        # Reset the count unless we go into insert mode, _update_mode() needs
+        # to know it when leaving insert mode to support insert with counts
+        # (like 3i).
+        if ($repeat or $cmd->{type} != C_INSERT) {
+            $numeric_prefix = undef;
+        }
+        $operator = undef;
+        $movement = undef;
+
+        if ($cmd != $commands->{'"'} and $register ne '"') {
+            print 'Changing register to "' if DEBUG;
+            $register = '"';
+        }
+
+    }
+
+    return 1; # call _stop()
+}
+
+sub handle_command_ex {
+    my ($key) = @_;
+
+    # BS key (8) or DEL key (127) - remove last character.
+    if ($key == 8 || $key == 127) {
+        print "Delete" if DEBUG;
+        if (@ex_buf > 0) {
+            pop @ex_buf;
+            _set_prompt(':' . join '', @ex_buf);
+        # Backspacing over : exits ex-mode.
+        } else {
+            _update_mode(M_CMD);
+        }
+
+    # Return key - execute command
+    } elsif ($key == 10) {
+        print "Run ex-mode command" if DEBUG;
+        cmd_ex_command();
+        _update_mode(M_CMD);
+
+    } elsif ($key == 9) { # TAB
+        print "Tab pressed" if DEBUG;
+        print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
+        @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
+        _debug("Candidates: " . join(", ", @tab_candidates));
+        if (@tab_candidates == 1) {
+            @ex_buf = ( split('', $tab_candidates[0]), ' ');
+            _set_prompt(':' . join '', @ex_buf);
+        }
+    # Ignore control characters for now.
+    } elsif ($key > 0 && $key < 32) {
+        # TODO: use them later, e.g. completion
+
+    # Append entered key
+    } else {
+        if ($key != -1) {
+            # check we're not called from an ex_history_* function
+            push @ex_buf, chr $key;
+        }
+        _set_prompt(':' . join '', @ex_buf);
+    }
+
+    Irssi::statusbar_items_redraw("vim_windows");
+
+    _stop();
+}
+
+
+
 vim_mode_init();
