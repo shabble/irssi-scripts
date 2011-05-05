@@ -2609,7 +2609,7 @@ sub _matching_windows {
 # STATUS ITEMS
 
 #TODO: give these things better names.
-sub vim_mode_cmd {
+sub vim_mode_status_string {
 
     my $mode_str = '';
     if ($mode == M_INS) {
@@ -2644,7 +2644,7 @@ sub vim_mode_cmd {
     return $mode_str;
 }
 
-sub vim_wins_data {
+sub vim_buffer_windows_string {
     my $windows = '';
 
     # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
@@ -2667,33 +2667,33 @@ sub vim_wins_data {
     return $windows;
 }
 
-sub vim_exp_mode {
+# vim mode string expando.
+sub vim_mode_expando_callback {
     my ($server, $witem, $arg) = @_;
-    return vim_mode_cmd();
+    return vim_mode_status_string();
 }
 
-sub vim_exp_wins {
+# vim :b window list expando
+sub buffer_windows_expando_callback {
     my ($server, $witem, $arg) = @_;
-    return vim_wins_data();
+    return vim_buffer_windows_string();
 }
 
-# vi mode status item.
-sub vim_mode_cb {
+# vi mode string status-item.
+sub vim_mode_statusbar_item_callback {
     my ($sb_item, $get_size_only) = @_;
-    my $mode_str = vim_mode_cmd();
+    my $mode_str = vim_mode_status_string();
+
     $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
 }
 
-# :b window list item.
-sub b_windows_cb {
+# :b window list status-item.
+sub buffer_windows_statusbar_item_callback {
     my ($sb_item, $get_size_only) = @_;
-
-    my $windows = vim_wins_data();
+    my $windows = vim_buffer_windows_string();
 
     $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
-
-
 
 sub _tab_complete {
     my ($input, $source) = @_;
@@ -2709,11 +2709,17 @@ sub _tab_complete {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&sig_gui_keypress;
-    Irssi::statusbar_item_register ('vim_mode',    0, 'vim_mode_cb');
-    Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
 
-    Irssi::expando_create('vim_cmd_mode' => \&vim_exp_mode, {});
-    Irssi::expando_create('vim_wins'     => \&vim_exp_wins, {});
+    Irssi::statusbar_item_register
+        ('vim_mode',    0, 'vim_mode_statusbar_item_callback');
+    Irssi::statusbar_item_register
+        ('vim_windows', 0, 'buffer_windows_statusbar_item_callback');
+
+    Irssi::expando_create
+        ('vim_cmd_mode' => \&vim_mode_expando_callback,       {});
+
+    Irssi::expando_create
+        ('vim_wins'     => \&buffer_windows_expando_callback, {});
 
 
     # Register all available settings.
