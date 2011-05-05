@@ -110,3 +110,21 @@ Many of my scripts require [uberprompt](https://github.com/shabble/irssi-scripts
 dependency.  Those that do will say so in the comments at the top of the file,
 and will probably refuse to load without it.
 
+## Reminders for myself
+
+### Deployment Process
+
+* Commit messages should be prefixed with something approximating the name of
+  the script or directory to make it obvious what thing is being worked on.
+  
+* `./readme_generator.pl <dir> [<dirs]` to generate README files for each script
+  that has POD in it. Use `--overwrite` from time to time to clean things out.
+  
+* `./changed_update.pl <script_name>` changes the %IRSSI{changed} timestamp
+  to the current time, which is something I always forget to do.
+  
+* Think about bumping the internal version number if it's a big change.
+
+* Commit!
+
+   

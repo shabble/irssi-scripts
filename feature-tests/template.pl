@@ -65,6 +65,6 @@ our %IRSSI = (
               name        => '',
               description => '',
               license     => 'MIT',
-              updated     => 2011-05-05T04:12:41
+              updated     => 2011-05-05T04:13:21-05-05T04:12:41
              );
 
