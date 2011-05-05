@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+
+# -*- mode: cperl -*-
+
+
+use strict;
+use warnings;
+use File::Spec;
+use feature qw/say/;
+
+my $file_cmd = "/usr/bin/file";
+my $git_cmd = "/opt/local/bin/git";
+
+my $root_dir = qx/$git_cmd rev-parse --show-toplevel/;
+chomp ($root_dir);
+
+my @changed_files = qx/git status --porcelain -u no/;
+
+foreach my $file (@changed_files) {
+    chomp $file;
+    if (is_irssi_script($file)) {
+        system(File::Spec->catfile($root_dir, 'changed_update.pl'), $file);
+    }
+}
+
+
+sub is_irssi_script {
+    my ($file) = @_;
+    my $full_path = File::Spec->catfile($root_dir, $file);
+    return 0 unless -f $full_path;
+    my $file_result = system("/usr/bin/grep -s -q '\%IRSSI' 1>/dev/null 2>&1");
+    if ($file_result != 0) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+

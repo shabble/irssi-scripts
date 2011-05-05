@@ -6,8 +6,7 @@ use warnings;
 use feature qw/say/;
 use DateTime;
 
-my $infile = $ARGV[0] // 'feature-tests/template.pl.copy';
-
+my $infile = $ARGV[0] // die "No File provided"; #'feature-tests/template.pl.copy';
 my $transform = PPI::Transform::UpdateTimestamp->new
   (
    updated => DateTime->now,
@@ -17,7 +16,10 @@ my $transform = PPI::Transform::UpdateTimestamp->new
 
 my $ret = $transform->file($infile);
 
-say "Return value: " . defined $ret && $ret ? 'success' : 'failure';
+#say "Return value: " . 
+
+exit (defined $ret && $ret ? 0 : 1);
+
 
 
 package PPI::Transform::UpdateTimestamp;
@@ -28,6 +30,7 @@ use warnings;
 use PPI;
 use PPI::Dumper;
 use DateTime;
+use Carp qw/carp/;
 
 use base 'PPI::Transform';
 
@@ -43,7 +46,7 @@ sub new {
 	unless ( exists ($self->{updated}) ) {
 		#PPI::Exception->throw("Did not provide a valid updated timestamp.");
         my $now = DateTime->now();
-        carp "No updated value provided, using $now";
+        carp("No updated value provided, using $now");
         $self->set_updated($now);
 	}
 
@@ -105,7 +108,7 @@ sub examine_struct {
                     if ($val->content eq $self->updated) {
                         $ret = 1;
                     }
-                    
+
                     say "Thingie: " . $t->content unless $self->quiet;
                     say "value set to: " . $val->content unless $self->quiet;
                 }
