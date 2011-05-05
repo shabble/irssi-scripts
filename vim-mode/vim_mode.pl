@@ -598,7 +598,7 @@ use Irssi;
 use Irssi::TextUI;              # statusbar handling.
 use Irssi::Irc;                 # necessary for 0.8.14
 
-
+use Data::Dumper;
 
 our $VERSION = "1.0.2";
 our %IRSSI   =
@@ -904,20 +904,20 @@ my $commands_ex
 ################################################################
 
 # command mode mappings
-my $cmap = undef;        # cmap still pending (contains first character entered)
+my $cmap = undef;        # cmap still pending (contains prefix entered)
 my $cmaps = {};
 
 
 # insert-mode mappings
 
-my $imap = undef;        # imap still pending (contains first character entered)
+my $imap = undef;        # imap still pending (contains prefix entered)
 my $imaps
   = {
      # CTRL-R, insert register
      "\x12" => { map  => undef, func => \&insert_ctrl_r },
     };
 
-
+# TODO: Do ex-maps exist?
 
 ################################################################
 #                    CONFIGURABLE SETTINGS                     #
@@ -927,17 +927,17 @@ my $imaps
 my $settings
   = {
      # print debug output
-     debug          => { type => S_BOOL, value => 0      },
+     debug          => { type => S_BOOL, value => 0       },
      # use UTF-8 internally for string calculations/manipulations
-     utf8           => { type => S_BOOL, value => 1      },
+     utf8           => { type => S_BOOL, value => 1       },
      # esc-shortcut in insert mode
-     cmd_seq        => { type => S_STR,  value => ''     },
+     cmd_seq        => { type => S_STR,  value => ''      },
      # start every line in command mode
-     start_cmd      => { type => S_BOOL, value => 0      },
+     start_cmd      => { type => S_BOOL, value => 0       },
      # not used yet
-     max_undo_lines => { type => S_INT,  value => 50     },
+     max_undo_lines => { type => S_INT,  value => 50      },
      # size of history buffer for Ex mode.
-     ex_history_size => { type => S_INT, value => 100    },
+     ex_history_size => { type => S_INT, value => 100     },
      # prompt_leading_space
      prompt_leading_space => { type => S_BOOL, value => 1 },
      # <Leader> value for prepending to commands.
@@ -956,6 +956,7 @@ my $variables
      Leader => "\\",
     };
 
+# for complex things where _debug() isn't enough.
 sub DEBUG { $settings->{debug}->{value} }
 
 
@@ -973,7 +974,7 @@ my $mode = M_INS;
 # ----------------------------
 
 # flag to allow us to emulate keystrokes without re-intercepting them
-my $should_ignore = 0;
+my $ignore_keystroke = 0;
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
@@ -2451,7 +2452,7 @@ sub ex_map {
                 $command = $commands->{$rhs};
             }
         }
-        add_map($lhs, $command);
+        add_to_map($cmap, $lhs, $command);
 
         # :map [lhs]
     } elsif ($arg_str =~ m/^map\s*$/ or $arg_str =~ m/^map (\S+)$/) {
@@ -2494,7 +2495,7 @@ sub ex_unmap {
         return _warn_ex('unmap', "$1 not found");
     }
 
-    delete_map($lhs);
+    delete_from_map($cmap, $lhs);
 }
 sub _parse_mapping {
     my ($string) = @_;
@@ -2748,6 +2749,7 @@ sub _debug {
 
     my ($format, @args) = @_;
     my $str = sprintf($format, @args);
+    $str =~ s/\e/<Esc>/g;
     print $str;
 }
 
@@ -2783,11 +2785,11 @@ sub _stop() {
 
 sub _emulate_keystrokes {
     my @keys = @_;
-    $should_ignore = 1;
+    $ignore_keystroke = 1;
     for my $key (@keys) {
         Irssi::signal_emit('gui key pressed', $key);
     }
-    $should_ignore = 0;
+    $ignore_keystroke = 0;
 }
 
 sub _command_with_context {
@@ -3005,7 +3007,7 @@ sub vim_mode_init {
     # Add all default mappings.
     foreach my $char (keys %$commands) {
         next if $char =~ /^_/;  # skip private commands (text-objects for now)
-        add_map($char, $commands->{$char});
+        add_to_map($cmap, $char, $commands->{$char});
     }
 
     # Load the vim_moderc file if it exists.
@@ -3148,8 +3150,8 @@ sub _reset_undo_buffer {
 #                    MAPPING MODEL                             #
 ################################################################
 
-sub add_map {
-    my ($keys, $command) = @_;
+sub add_to_map {
+    my ($map, $keys, $command) = @_;
 
     # To allow multiple mappings starting with the same key (like gg, ge, gE)
     # also create maps for the keys "leading" to this key (g in this case, but
@@ -3179,8 +3181,8 @@ sub add_map {
     $cmaps->{$keys}->{cmd} = $command;
 }
 
-sub delete_map {
-    my ($keys) = @_;
+sub delete_from_map {
+    my ($map, $keys) = @_;
 
     # Abort for non-existent mappings or placeholder mappings.
     return if not exists $cmaps->{$keys} or not defined $cmaps->{$keys}->{cmd};
@@ -3214,7 +3216,7 @@ sub delete_map {
     # key.
     foreach my $key (@add) {
         if (exists $commands->{$key}) {
-            add_map($key, $commands->{$key});
+            add_to_map($cmap, $key, $commands->{$key});
         }
     }
 }
@@ -3285,6 +3287,11 @@ sub _update_mode {
 ################################################################
 #                    SETTINGS MODEL                            #
 ################################################################
+
+sub _setting_get_cached {
+    my ($name) = @_;
+    return $settings->{$name}->{value};
+}
 
 sub _setting_get {
     my ($name) = @_;
@@ -3438,7 +3445,7 @@ sub ex_history_show {
 sub sig_gui_keypress {
     my ($key) = @_;
 
-    return if ($should_ignore);
+    return if ($ignore_keystroke);
 
     my $char = chr($key);
 
@@ -3489,34 +3496,12 @@ sub process_input_key {
         _debug("What the buggery, shouldn't happen: T: $timeout, TT: $ttimeout");
     }
 
+    # TODO: may need to stop regardless and reemit keystrokes due to
+    # timeouts meaning we don't know at this point whether to stop or not.
+    return SIG_STOP; #  $mode == M_INS ? SIG_CONT : SIG_STOP;
 }
-#     if ($key == KEY_ESC) {
-#         _debug("Escape seen, beginning escape_buf collection");
-#         $escape_buf_enabled = 1;
 
-#         push @escape_buf, $key;
-
-#         # NOTE: this timeout might be too low on laggy systems, but
-#         # it comes at the cost of keystroke latency for things that
-#         # contain escape sequences (arrow keys, etc)
-#         my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
-
-#         $escape_buf_timer =
-#           Irssi::timeout_add_once($esc_buf_timeout,
-#                                   \&escape_buffer_timeout, undef);
-
-#         _debug("Buffer Timer tag: $escape_buf_timer");
-
-#     } elsif ($escape_buf_enabled) {
-#         attempt_escape_buffer_parse($key, $char);
-#         # we can check at this point if we recognise the sequence, and cancel
-#         # the timeout if we do.
-#     }
-# }
-
-
-sub process_keys_timeout 
-{
+sub process_keys_timeout {
     my ($timeout_mode, $timeout_len, $ttimeout_len) = @_;
 
     if ($timeout_mode eq TIMEOUT_MODE_NONE) {
@@ -3579,7 +3564,19 @@ sub _try_process_mapping {
     my ($from_timer) = @_;
 
     my @buf = _get_mode_buffer();
-    _debug("process mapping: '%s'", _buf_to_str(@buf));
+    my $str = _buf_to_str(@buf);
+
+    _debug("process mapping: '%s'", $str);
+
+    if ($mode == M_CMD) {
+        _debug('checking existence of $commands->{%s}', $str);
+
+        if (exists $commands->{$str}) {
+            _debug('exists!');
+            my $cmd = $commands->{$str};
+            _debug(Dumper($cmd));
+        }
+    }
 
     $mapping_timeouts_active = 0 if $from_timer;
 }
@@ -3589,21 +3586,33 @@ sub _try_process_keycode {
 
     my @buf = _get_mode_buffer();
     _debug("keycode mapping: '%s'", _buf_to_str(@buf));
-    if (@buf == 1 and $buf[0] == KEY_ESC) {
+    if (_is_cmd_entry_sequence(@buf)) {
         _debug ("Buf contains ESC!");
         _update_mode(M_CMD);
-    } elsif (@buf == 1 and $buf[0] == ord('i')) {
-        _debug ("Buf contains i!");
-        _update_mode(M_INS);
+    # } elsif (@buf == 1 and $buf[0] == ord('i')) {
+    #     _debug ("Buf contains i!");
+    #     _update_mode(M_INS);
     } else {
         _debug("buf contains: '%s'", _buf_to_hex_str(@buf));
+        _emulate_keystrokes(@buf);
     }
 
     _reset_mode_buffer($_) for (M_CMD, M_INS, M_EX);
     $keycode_timeouts_active = 0 if $from_timer;
 }
 
+sub _is_cmd_entry_sequence {
+    my (@data) = @_;
+    return 1 if (@data == 1 && $data[0] == KEY_ESC);
+    return 1 if (@data == 1 && $data[0] == KEY_C_C);
 
+    my $str = _buf_to_str(@data);
+    my $cmd_seq = _setting_get_cached('cmd_seq');
+
+    return 1 if (@data == 2 && $str eq ($cmd_seq x 2));
+
+    return 0;
+}
 ################################################################
 #                    INPUT BUFFER MODEL                        #
 ################################################################
