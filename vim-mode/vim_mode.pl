@@ -939,6 +939,13 @@ my $settings
 
     };
 
+# internal variables, such as <Leader> for use in :map, as wel as probably
+# others later on.
+my $variables
+  = {
+     Leader => "\\",
+    };
+
 sub DEBUG { $settings->{debug}->{value} }
 
 
@@ -2720,7 +2727,7 @@ sub _warn_ex {
 }
 
 sub _debug {
-    return unless DEBUG;
+    return unless $settings->{debug}->{value};
 
     my ($format, @args) = @_;
     my $str = sprintf($format, @args);
@@ -3403,7 +3410,7 @@ sub sig_gui_keypress {
 
     my $char = chr($key);
 
-    my $should_stop = process_input($key, $char);
+    my $should_stop = process_input_key($key, $char);
 
     _stop() if ($should_stop == SIG_STOP);
 
@@ -3414,7 +3421,7 @@ sub sig_gui_keypress {
 #                    INPUT MODEL                               #
 ################################################################
 
-sub process_input {
+sub process_input_key {
     my ($key, $char) = @_;
 
     if ($key == KEY_ESC) {
@@ -3435,14 +3442,18 @@ sub process_input {
     } elsif ($mode == M_INS) {
 
         if ($key == KEY_C_C) { # Ctrl-C enters command mode
+
             _update_mode(M_CMD);
             return SIG_STOP;
 
-        } elsif ($key == KEY_RET) { # enter.
+        } elsif ($key == KEY_RET) { # Enter
+
             _commit_line();
 
         } elsif ($input_buf_enabled and $imap) {
+
             print "Imap $imap active" if DEBUG;
+
             my $map = $imaps->{$imap};
             if (not defined $map->{map} or chr($key) eq $map->{map}) {
                 $map->{func}($key);
@@ -3451,11 +3462,14 @@ sub process_input {
             } else {
                 push @input_buf, $key;
             }
+
             flush_input_buffer();
             $imap = undef;
+
             return SIG_STOP;
 
         } elsif (exists $imaps->{chr($key)}) {
+
             print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
 
             # start imap pending mode
@@ -3468,12 +3482,13 @@ sub process_input {
 
             return SIG_STOP;
 
-        # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
         # TODO: maybe allow it
         } elsif ($key == KEY_DEL or $key == KEY_BS) {
+
             @insert_buf = ();
         # All other entered characters need to be stored to allow repeat of
         # insert mode. Ignore delete and control characters.
+
         } elsif ($key > 31) {
             push @insert_buf, chr($key);
         }
@@ -3494,12 +3509,15 @@ sub process_input {
     } elsif ($mode == M_EX) {
 
         if ($key == KEY_C_C) { # C-c cancels Ex mdoe as well.
+
             _update_mode(M_CMD);
             return SIG_STOP;
         }
 
         handle_command_ex($key);
     }
+
+    return SIG_CONT;
 }
 
 
@@ -3512,7 +3530,7 @@ sub handle_input_buffer {
     # see what we've collected.
     print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
 
-    if (@input_buf == 1 && $input_buf[0] == 27) {
+    if (@input_buf == 1 && $input_buf[0] == KEY_ESC) {
 
         print "Enter Command Mode" if DEBUG;
         _update_mode(M_CMD);
