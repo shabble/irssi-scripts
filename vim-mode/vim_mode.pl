@@ -653,6 +653,10 @@ my $non_word = qr/[^\w_\s]/o;
 #                    COMMANDS                                  #
 ################################################################
 
+# Command mode commands
+# =====================
+
+
 # All available commands in command mode, they are stored with a char as key,
 # but this is not necessarily the key the command is currently mapped to.
 my $commands
@@ -681,78 +685,84 @@ my $commands
      G      => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
                  needs_count => 1, no_operator => 1 },
      # char movement, take an additional parameter and use $movement
-      f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
-              selection_needs_move_right => 1 },
-      t  => { char => 't', func => \&cmd_t, type => C_NEEDSKEY,
-              selection_needs_move_right => 1 },
-      F  => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
-      T  => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
-     ';' => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
-     ',' => { char => ',', func => \&cmd_comma, type => C_NORMAL },
+     f      => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
+                 selection_needs_move_right => 1 },
+     t      => { char => 't', func => \&cmd_t, type => C_NEEDSKEY,
+                 selection_needs_move_right => 1 },
+     F      => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
+     T      => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
+    ';'     => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
+    ','     => { char => ',', func => \&cmd_comma, type => C_NORMAL },
      # word movement
-     w  => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
-     b  => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
-     e  => { char => 'e',  func => \&cmd_e,  type => C_NORMAL,
-             selection_needs_move_right => 1 },
-     ge => { char => 'ge', func => \&cmd_ge, type => C_NORMAL,
-             selection_needs_move_right => 1 },
-     W  => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
-     B  => { char => 'B',  func => \&cmd_B,  type => C_NORMAL },
-     E  => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
-     gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
-             selection_needs_move_right => 1 },
+     w      => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
+     b      => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
+     e      => { char => 'e',  func => \&cmd_e,  type => C_NORMAL,
+                 selection_needs_move_right => 1 },
+     ge     => { char => 'ge', func => \&cmd_ge, type => C_NORMAL,
+                 selection_needs_move_right => 1 },
+     W      => { char => 'W',  func => \&cmd_W,  type => C_NORMAL },
+     B      => { char => 'B',  func => \&cmd_B,  type => C_NORMAL },
+     E      => { char => 'E',  func => \&cmd_E,  type => C_NORMAL },
+     gE     => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
+                 selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => 'i', func => \&cmd__i,      type => C_TEXTOBJECT },
-     _a => { char => 'a', func => \&cmd__a,      type => C_TEXTOBJECT },
+     _i     => { char => 'i', func => \&cmd__i,      type => C_TEXTOBJECT },
+     _a     => { char => 'a', func => \&cmd__a,      type => C_TEXTOBJECT },
+
      # line movement
-     '0' => { char => '0', func => \&cmd_0,      type => C_NORMAL },
-     '^' => { char => '^', func => \&cmd_caret,  type => C_NORMAL },
-     '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
+     '0'    => { char => '0', func => \&cmd_0,      type => C_NORMAL },
+     '^'    => { char => '^', func => \&cmd_caret,  type => C_NORMAL },
+     '$'    => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
+
      # delete chars
-     x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
-     X => { char => 'X', func => \&cmd_X, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
-          # C_NORMAL is correct, operator c takes care of insert mode
-     s => { char => 's', func => \&cmd_s, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
-          # C_NORMAL is correct, operator c takes care of insert mode
-     S => { char => 'S', func => \&cmd_S, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
+     x      => { char => 'x', func => \&cmd_x, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+     X      => { char => 'X', func => \&cmd_X, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+               # C_NORMAL is correct, operator c takes care of insert mode
+     s      => { char => 's', func => \&cmd_s, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+               # C_NORMAL is correct, operator c takes care of insert mode
+     S      => { char => 'S', func => \&cmd_S, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
      # insert mode
-     i => { char => 'i', func => \&cmd_i, type => C_INSERT,
-            repeatable => 1, no_operator => 1 },
-     I => { char => 'I', func => \&cmd_I, type => C_INSERT,
-            repeatable => 1, no_operator => 1 },
-     a => { char => 'a', func => \&cmd_a, type => C_INSERT,
-            repeatable => 1, no_operator => 1 },
-     A => { char => 'A', func => \&cmd_A, type => C_INSERT,
-            repeatable => 1, no_operator => 1 },
+     i      => { char => 'i', func => \&cmd_i, type => C_INSERT,
+                 repeatable => 1, no_operator => 1 },
+     I      => { char => 'I', func => \&cmd_I, type => C_INSERT,
+                 repeatable => 1, no_operator => 1 },
+     a      => { char => 'a', func => \&cmd_a, type => C_INSERT,
+                 repeatable => 1, no_operator => 1 },
+     A      => { char => 'A', func => \&cmd_A, type => C_INSERT,
+                 repeatable => 1, no_operator => 1 },
+
      # replace
-     r => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
-            repeatable => 1, no_operator => 1 },
+     r      => { char => 'r', func => \&cmd_r, type => C_NEEDSKEY,
+                 repeatable => 1, no_operator => 1 },
+
      # paste
-     p => { char => 'p', func => \&cmd_p, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
-     P => { char => 'P', func => \&cmd_P, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
+     p      => { char => 'p', func => \&cmd_p, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+     P      => { char => 'P', func => \&cmd_P, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+
      # to end of line
-     C => { char => 'C', func => \&cmd_C, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
-     D => { char => 'D', func => \&cmd_D, type => C_NORMAL,
-            repeatable => 1, no_operator => 1 },
+     C      => { char => 'C', func => \&cmd_C, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+     D      => { char => 'D', func => \&cmd_D, type => C_NORMAL,
+                 repeatable => 1, no_operator => 1 },
+
      # scrolling
-     "\x05" => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL,
-                 no_operator => 1 },
-     "\x04" => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
-                 needs_count => 1, no_operator => 1 },
-     "\x19" => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL,
-                 no_operator => 1 },
-     "\x15" => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
-                 needs_count => 1, no_operator => 1 },
-     "\x06" => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
-                 no_operator => 1 },
-     "\x02" => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
+     "\x05"  => { char => '<C-E>', func => \&cmd_ctrl_d, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x04"  => { char => '<C-D>', func => \&cmd_ctrl_d, type => C_NORMAL,
+                  needs_count => 1, no_operator => 1 },
+     "\x19"  => { char => '<C-Y>', func => \&cmd_ctrl_u, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x15"  => { char => '<C-U>', func => \&cmd_ctrl_u, type => C_NORMAL,
+                  needs_count => 1, no_operator => 1 },
+     "\x06"  => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x02"  => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
                  no_operator => 1 },
      # window switching
      "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
@@ -762,103 +772,104 @@ my $commands
      "\x1e"  => { char => '<C-^>',  func => \&cmd_ctrl_6,  type => C_NORMAL,
                   no_operator => 1 },
      # misc
-     '~'  => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
-               repeatable => 1, no_operator => 1 },
-     '"'  => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
-               no_operator => 1 },
-     '.'  => { char => '.', type => C_NORMAL, repeatable => 1,
-               no_operator => 1 },
-     ':'  => { char => ':', type => C_NORMAL },
-     "\n" => { char => '<CR>', type => C_NORMAL }, # return
+     '~'     => { char => '~', func => \&cmd_tilde, type => C_NORMAL,
+                  repeatable => 1, no_operator => 1 },
+     '"'     => { char => '"', func => \&cmd_register, type => C_NEEDSKEY,
+                  no_operator => 1 },
+     '.'     => { char => '.', type => C_NORMAL, repeatable => 1,
+                  no_operator => 1 },
+     ':'     => { char => ':', type => C_NORMAL },
+     "\n"    => { char => '<CR>', type => C_NORMAL }, # return
      # undo
-     'u'    => { char => 'u',     func => \&cmd_undo, type => C_NORMAL,
-                 no_operator => 1 },
-     "\x12" => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL,
-                 no_operator => 1 },
+     'u'     => { char => 'u',     func => \&cmd_undo, type => C_NORMAL,
+                  no_operator => 1 },
+     "\x12"  => { char => '<C-R>', func => \&cmd_redo, type => C_NORMAL,
+                  no_operator => 1 },
     };
 
-# All available commands in Ex-Mode.
+# Ex-mode commands
+# ================
+
 my $commands_ex
   = {
      # arrow keys - not actually used, see handle_input_buffer()
      # TODO: make these work.
-     "\e[A"    => { char => ':exprev',    func => \&ex_history_back,
-                    type => C_EX },
-     "\e[B"    => { char => ':exnext',    func => \&ex_history_fwd,
-                    type => C_EX },
+     "\e[A"      => { char => ':exprev',    func => \&ex_history_back,
+                      type => C_EX },
+     "\e[B"      => { char => ':exnext',    func => \&ex_history_fwd,
+                      type => C_EX },
 
      # normal Ex mode commands.
-     eh        => { char => ':exhist',    func => \&ex_history_show,
-                    type => C_EX },
-     s         => { char => ':s',         func => \&ex_substitute,
-                    type => C_EX },
-     bnext     => { char => ':bnext',     func => \&ex_bnext,
-                    type => C_EX, uses_count => 1 },
-     bn        => { char => ':bn',        func => \&ex_bnext,
-                    type => C_EX, uses_count => 1 },
-     bprev     => { char => ':bprev',     func => \&ex_bprev,
-                    type => C_EX, uses_count => 1 },
-     bp        => { char => ':bp',        func => \&ex_bprev,
-                    type => C_EX, uses_count => 1 },
-     bdelete   => { char => ':bdelete',   func => \&ex_bdelete,
-                    type => C_EX, uses_count => 1 },
-     bd        => { char => ':bd',        func => \&ex_bdelete,
-                    type => C_EX, uses_count => 1 },
-     buffer    => { char => ':buffer',    func => \&ex_buffer,
-                    type => C_EX, uses_count => 1 },
-     b         => { char => ':b',         func => \&ex_buffer,
-                    type => C_EX, uses_count => 1 },
-     registers => { char => ':registers', func => \&ex_registers,
-                    type => C_EX },
-     reg       => { char => ':reg',       func => \&ex_registers,
-                    type => C_EX },
-     display   => { char => ':display',   func => \&ex_registers,
-                    type => C_EX },
-     di        => { char => ':di',        func => \&ex_registers,
-                    type => C_EX },
-     buffers   => { char => ':buffer',    func => \&ex_buffers,
-                    type => C_EX },
-     ls        => { char => ':ls',        func => \&ex_buffers,
-                    type => C_EX },
-     undolist  => { char => ':undolist',  func => \&ex_undolist,
-                    type => C_EX },
-     undol     => { char => ':undol',     func => \&ex_undolist,
-                    type => C_EX },
-     map       => { char => ':map',       func => \&ex_map,
-                    type => C_EX },
-     unmap     => { char => ':unmap',     func => \&ex_unmap,
-                    type => C_EX },
-     unm       => { char => ':unm',       func => \&ex_unmap,
-                    type => C_EX },
-     source    => { char => ':source',    func => \&ex_source,
-                    type => C_EX },
-     so        => { char => ':so',        func => \&ex_source,
-                    type => C_EX },
-     mkvimrc   => { char => ':mkvimrc',   func => \&ex_mkvimrc,
-                    type => C_EX },
-     mkv       => { char => ':mkv',       func => \&ex_mkvimrc,
-                    type => C_EX },
-     se        => { char => ':se',        func => \&ex_set,
-                    type => C_EX },
-     set       => { char => ':set',       func => \&ex_set,
-                    type => C_EX },
-     itemnext  => { char => ':itemnext',  func => \&ex_item_next,
-                    type => C_EX },
-     inext     => { char => ':itemnext',  func => \&ex_item_next,
-                    type => C_EX },
-     itemprev  => { char => ':itemprev',  func => \&ex_item_prev,
-                    type => C_EX },
-     iprev     => { char => ':itemprev',  func => \&ex_item_prev,
-                    type => C_EX },
+     eh          => { char => ':exhist',    func => \&ex_history_show,
+                      type => C_EX },
+     s           => { char => ':s',         func => \&ex_substitute,
+                      type => C_EX },
+     bnext       => { char => ':bnext',     func => \&ex_bnext,
+                      type => C_EX, uses_count => 1 },
+     bn          => { char => ':bn',        func => \&ex_bnext,
+                      type => C_EX, uses_count => 1 },
+     bprev       => { char => ':bprev',     func => \&ex_bprev,
+                      type => C_EX, uses_count => 1 },
+     bp          => { char => ':bp',        func => \&ex_bprev,
+                      type => C_EX, uses_count => 1 },
+     bdelete     => { char => ':bdelete',   func => \&ex_bdelete,
+                      type => C_EX, uses_count => 1 },
+     bd          => { char => ':bd',        func => \&ex_bdelete,
+                      type => C_EX, uses_count => 1 },
+     buffer      => { char => ':buffer',    func => \&ex_buffer,
+                      type => C_EX, uses_count => 1 },
+     b           => { char => ':b',         func => \&ex_buffer,
+                      type => C_EX, uses_count => 1 },
+     registers   => { char => ':registers', func => \&ex_registers,
+                      type => C_EX },
+     reg         => { char => ':reg',       func => \&ex_registers,
+                      type => C_EX },
+     display     => { char => ':display',   func => \&ex_registers,
+                      type => C_EX },
+     di          => { char => ':di',        func => \&ex_registers,
+                      type => C_EX },
+     buffers     => { char => ':buffer',    func => \&ex_buffers,
+                      type => C_EX },
+     ls          => { char => ':ls',        func => \&ex_buffers,
+                      type => C_EX },
+     undolist    => { char => ':undolist',  func => \&ex_undolist,
+                      type => C_EX },
+     undol       => { char => ':undol',     func => \&ex_undolist,
+                      type => C_EX },
+     map         => { char => ':map',       func => \&ex_map,
+                      type => C_EX },
+     unmap       => { char => ':unmap',     func => \&ex_unmap,
+                      type => C_EX },
+     unm         => { char => ':unm',       func => \&ex_unmap,
+                      type => C_EX },
+     source      => { char => ':source',    func => \&ex_source,
+                      type => C_EX },
+     so          => { char => ':so',        func => \&ex_source,
+                      type => C_EX },
+     mkvimrc     => { char => ':mkvimrc',   func => \&ex_mkvimrc,
+                      type => C_EX },
+     mkv         => { char => ':mkv',       func => \&ex_mkvimrc,
+                      type => C_EX },
+     se          => { char => ':se',        func => \&ex_set,
+                      type => C_EX },
+     set         => { char => ':set',       func => \&ex_set,
+                      type => C_EX },
+     itemnext    => { char => ':itemnext',  func => \&ex_item_next,
+                      type => C_EX },
+     inext       => { char => ':itemnext',  func => \&ex_item_next,
+                      type => C_EX },
+     itemprev    => { char => ':itemprev',  func => \&ex_item_prev,
+                      type => C_EX },
+     iprev       => { char => ':itemprev',  func => \&ex_item_prev,
+                      type => C_EX },
      servernext  => { char => ':servernext', func => \&ex_server_next,
-                    type => C_EX },
+                      type => C_EX },
      snext       => { char => ':servernext', func => \&ex_server_next,
-                    type => C_EX },
+                      type => C_EX },
      serverprev  => { char => ':serverprev', func => \&ex_server_prev,
-                    type => C_EX },
+                      type => C_EX },
      sprev       => { char => ':serverprev', func => \&ex_server_prev,
-                    type => C_EX },
-
+                      type => C_EX },
     };
 
 ################################################################
@@ -916,6 +927,18 @@ sub DEBUG { $settings->{debug}->{value} }
 #                    INTERNAL GLOBALS                          #
 ################################################################
 
+# mode related vars:
+# ------------------
+
+# what Vi mode we're in. We start in insert mode.
+my $mode = M_INS;
+
+# Input readaing related vars.
+# ----------------------------
+
+# flag to allow us to emulate keystrokes without re-intercepting them
+my $should_ignore = 0;
+
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
 my @input_buf;
@@ -925,8 +948,8 @@ my $input_buf_enabled = 0;
 # insert mode repeat buffer, used to repeat (.) last insert
 my @insert_buf;
 
-# flag to allow us to emulate keystrokes without re-intercepting them
-my $should_ignore = 0;
+# Ex-mode input related vars
+# --------------------------
 
 # ex mode buffer
 my @ex_buf;
@@ -934,18 +957,23 @@ my @ex_buf;
 my @ex_history;
 my $ex_history_index = 0;
 
+# Command related vars
+# --------------------
+
 # we are waiting for another mapped key (e.g. g pressed, but there are
 # multiple mappings like gg gE etc.)
 my $pending_map = undef;
 
 # for commands like 10x
 my $numeric_prefix = undef;
+
 # current operator as $command hash
 my $operator = undef;
+
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
-# last vi command, used by .
 
+# last vi command, used by .
 my $last
   = {
      'cmd' => $commands->{i}, # = i to support . when loading the script
@@ -954,6 +982,7 @@ my $last
      'movement' => undef,
      'register' => '"',
     };
+
 # last ftFT movement, used by ; and ,
 my $last_ftFT
   = {
@@ -961,8 +990,8 @@ my $last_ftFT
      char => undef,
     };
 
-# what Vi mode we're in. We start in insert mode.
-my $mode = M_INS;
+# register related vars:
+# ----------------------
 
 # current active register
 my $register = '"';
@@ -977,6 +1006,9 @@ my $registers
      '_' => '', # black hole register, always empty
     };
 
+# (irssi) History related vars:
+# -----------------------------
+
 # index into the history list (for j,k)
 my $history_index = undef;
 # current line, necessary for j,k or the current input line gets destroyed
@@ -984,12 +1016,16 @@ my $history_input = undef;
 # position in input line
 my $history_pos = 0;
 
-# Undo/redo buffer.
+
+# Undo/redo vars:
+# ---------------
 
 my @undo_buffer;
 my $undo_index = undef;
 
-# tab completion state vars
+
+# Ex-mode tab-completion vars:
+# ----------------------------
 
 my @tab_candidates;
 my $completion_active = 0;
