@@ -3298,6 +3298,21 @@ sub _setting_get {
 sub _setting_set {
     my ($name, $value) = @_;
 
+    # support the vim convention of no<param> as a way to unset booleans.
+    if ($name =~ m/^no(.*)/) {
+        my $actual_name = $1;
+        eval {
+            use warnings FATAL => qw/all/;
+            my $val = settings_get_bool($actual_name);
+        };
+        if ($@ =~ m/not found/) {
+            _debug("setting $name ($actual_name)) not found, ignoring");
+            return;
+        }
+        $name = $actual_name;
+        $value = 0;
+    }
+
     my $type = $settings->{$name}->{type};
     $name = "vim_mode_$name";
 
