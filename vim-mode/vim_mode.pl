@@ -618,12 +618,14 @@ our %IRSSI   =
 #                    CONSTANTS                                 #
 ################################################################
 
+# a non-existent mode, where data goes to die.
+sub M_NONE () { 0 }
 # command mode
-sub M_CMD () { 1 }
+sub M_CMD  () { 1 }
 # insert mode
-sub M_INS () { 0 }
+sub M_INS  () { 0 }
 # extended mode (after a :?)
-sub M_EX  () { 2 }
+sub M_EX   () { 2 }
 
 # operator command
 sub C_OPERATOR   () { 0 }
@@ -984,7 +986,7 @@ my @escape_buf;
 my $escape_buf_timeout;
 my $escape_buf_ttimeout;
 
-my $escape_buf_enabled = 0;
+my $escape_buf_mode = 0;
 
 # mode-related input buffers
 # --------------------------
@@ -3480,29 +3482,48 @@ sub ex_history_show {
 ################################################################
 
 sub _append_to_mode_buffer {
-    my ($keycode) = @_;
+    my ($keycode, $mode_override) = @_;
+
+    if (not defined $mode_override) {
+        $mode_override = $mode;
+    }
+
     my $char = chr $keycode;
-    if ($mode == M_CMD) {
+
+    if ($mode_override == M_CMD) {
         _debug("Appending %s to CMD buf",  $char);
         push @cmd_mode_buf, $keycode;
-    } elsif ($mode == M_EX) {
+    } elsif ($mode_override == M_EX) {
         _debug("Appending %s to EX buf",  $char);
-
         push @ex_mode_buf, $keycode;
-    } else {
+    } elsif ($mode_override == M_INS) {
         _debug("Appending %s to INS buf",  $char);
-
         push @insert_mode_buf, $keycode;
+    } elsif (ref($mode_override) eq 'ARRAY') {
+        _debug("Appending %s to anon hashref buf",  $char);
+        push @$mode_override, $keycode;
+    } else {
+        _warn("cannot append %s to unknown buffer %s", $char, $mode_override);
     }
 }
 
 sub _get_mode_buffer {
-    if ($mode == M_CMD) {
+    my ($mode_override) = @_;
+
+    if (not defined $mode_override) {
+        $mode_override = $mode;
+    }
+
+    if ($mode_override == M_CMD) {
         return @cmd_mode_buf;
-    } elsif ($mode == M_EX) {
+    } elsif ($mode_override == M_EX) {
         return @ex_mode_buf;
-    } else {
+    } elsif ($mode_override == M_INS) {
         return @insert_mode_buf;
+    } elsif (ref($mode_override) eq 'ARRAY') {
+        return @$mode_override;
+    } else {
+        _warn("cannot get unknown buffer  %s", $mode_override);
     }
 }
 
@@ -3522,6 +3543,8 @@ sub _reset_mode_buffer {
     } elsif ($override_mode == M_INS) {
         _debug("Resetting INS buffer");
         @insert_mode_buf = ();
+    } elsif (ref($override_mode) eq 'ARRAY') {
+        @$override_mode = ();
     } else {
         _warn("Reset mode buffer: Unknown mode: $override_mode");
     }
@@ -3563,6 +3586,20 @@ sub sig_gui_keypress {
 #                    INPUT MODEL                               #
 ################################################################
 
+sub _is_cmd_entry_sequence {
+    my (@data) = @_;
+    return 1 if (@data == 1 and $data[0] == KEY_ESC);
+    return 1 if (@data == 1 and $data[0] == KEY_C_C);
+
+    my $str = _buf_to_str(@data);
+    my $cmd_seq = _setting_get_cached('cmd_seq');
+
+    return 2 if (@data == 2 and length($cmd_seq) and $str eq $cmd_seq);
+
+    return 0;
+}
+
+
 # buffer the input, and set up timeout handlers for both
 # keycode processor and command mapping processor.
 
@@ -3579,38 +3616,30 @@ sub process_input_key {
       = ($settings->{timeoutlen}->{value},
          $settings->{ttimeoutlen}->{value});
 
-    if ($mode != M_INS
-        and $key != KEY_BS
-        and $key != KEY_DEL
-        and $key != KEY_RET)
-      {
-          _append_to_mode_buffer($key);
-      }
+    if ($key == KEY_ESC) {
+        $escape_buf_enabled = 1;
+        # TODO: more logic here about which timeout to use.
+        $escape_buf_timeout = 
+          Irssi::timeout_add_once($timeout_len, \&process_cmd_entry, undef);
+    }
+
+    if ($escape_buf_enabled) {
+        _append_to_mode_buffer($key, \@escape_buf);
+    }
 
 
     if ((not $timeout) and (not $ttimeout)) {
         # wait forever
         _debug("process_keys_timeout none");
 
-        return if $keycode_timeouts_active or $mapping_timeouts_active;
-
-        process_keys_timeout($key, $char, TIMEOUT_MODE_NONE);
-
     } elsif ($timeout) {
         _debug("process_keys_timeout both");
 
         # timeout on both mappings and keycodes
-        process_keys_timeout($key, $char, TIMEOUT_MODE_BOTH,
-                             $timeout_len, $ttimeout_len);
 
     } elsif ((not $timeout) and $ttimeout) {
         # timeout on codes (but not mappings?
         _debug("process_keys_timeout code");
-
-        return if $keycode_timeouts_active;
-
-        process_keys_timeout($key, $char, TIMEOUT_MODE_CODE,
-                             $timeout_len, $ttimeout_len);
 
     } else {
         _debug("What the buggery, shouldn't happen: T: $timeout, TT: $ttimeout");
@@ -3619,208 +3648,276 @@ sub process_input_key {
     # stop signal propagation regardless. If we have to, we'll re-emit
     # any buffer contents with _emulate_keystrokes() later on.
     return SIG_STOP;
+
 }
 
 
-# TODO: try process_keycode and /then/ mapping in some fashion
-# one should be able to suppress the other from acting.
-
-# set up the timeout callbacks based on the value of the various
-# timeout and ttimeout[_len] settings.
-
-sub process_keys_timeout {
-    my ($key, $char, $timeout_mode, $timeout_len, $ttimeout_len) = @_;
-
-    my $ret;
-
-    if ($timeout_mode eq TIMEOUT_MODE_NONE) {
-
-        $ret = _try_processing_keycode($key, $char, 0);
-        if (not $ret) {
-            _try_processing_maps($key, $char, 0);
-        }
-
-    } elsif ($timeout_mode eq TIMEOUT_MODE_BOTH) {
-
-        my ($keycode_delay, $mapping_delay);
-
-        if ($ttimeout_len == 0) {
-            return if $keycode_timeouts_active;
-            _try_processing_keycode($key, $char, 0);
-
-        } elsif ($ttimeout_len > 0 and $ttimeout_len < 10) {
-            $mapping_delay = 10; # minimum irssi timeout.
-        } else {
-
-            $timeout_len   = 10 if $timeout_len < 10;
-            $mapping_delay = $keycode_delay = $timeout_len;
-        }
-
-        if (not $mapping_timeouts_active) {
-
-            _debug("Setting mapping delay to %d", $mapping_delay);
-            $escape_buf_ttimeout
-              = Irssi::timeout_add_once($mapping_delay,
-                                        \&_try_processing_maps, [$key, $char, 1]);
-              $mapping_timeouts_active = 1;
-
-        } else {
-            _debug ("Not adding new mapping timeout");
-        }
-
-        if (not $keycode_timeouts_active) {
-
-            _debug("Setting keycode delay to %d", $keycode_delay);
-            $escape_buf_timeout
-              = Irssi::timeout_add_once($keycode_delay,
-                                        \&_try_processing_keycode, [$key, $char, 1]);
-            $keycode_timeouts_active = 1;
-
-        } else {
-            _debug ("Not adding new keycode timeout");
-        }
-
-    } elsif ($timeout_mode eq TIMEOUT_MODE_CODE) {
-
-        $keycode_timeouts_active = 1;
-
-        _try_processing_maps($key, $char, 0);
-        $escape_buf_timeout
-          = Irssi::timeout_add_once($timeout_len,
-                                    \&_try_processing_keycode, [$key, $char, 1]);
-    }
-}
-
-sub _try_processing_maps {
-    my $args = shift;
-    my ($key, $char, $from_timer) = @$args;
-
-    # TODO: Temp disabled.
-    $mapping_timeouts_active = 0 if defined $from_timer;
-    return 0;
-
-    # my $cmd;
-    # my @buf = _get_mode_buffer();
-    # my $str = _buf_to_str(@buf);
-    # _debug("process mapping: '%s'", $str);
-
-    # $cmd = search_user_mode_maps($str);
-    # if (defined $cmd) {
-    #     _execute_cmd($cmd);
-    # } else {
-    #     if ($mode == M_CMD) {
-    #         _debug('checking existence of $commands->{%s}', $str);
-    #         if (exists $commands->{$str}) {
-    #             $cmd = $commands->{$str};
-    #             _execute_cmd($cmd);
-    #         }
-    #     }
-    # }
-
-    # $mapping_timeouts_active = 0 if defined $from_timer;
-}
-
-sub _try_processing_keycode {
-    my $args = shift;
-    my ($key, $char, $from_timer) = @$args;
-
-    my $ret = 0;
-
-
-    _debug("keycode mapping: '%s'", $char);
-
-    if ($mode == M_INS) {
-        $ret = process_keycode_insert($key, $char);
-    } elsif ($mode == M_CMD) {
-        $ret = process_keycode_command($key, $char);
-    } elsif ($mode == M_EX) {
-        $ret = process_keycode_ex($key, $char);
-    }
-
-    $keycode_timeouts_active = 0 if defined $from_timer;
-
-    # avoids warnings about _reset_mode_buffer being symbol-table murdered
-    # during script destruction.
-
-    return $ret if $unloading;
-
-    # TODO: only reset necessary buffers.
-    # _reset_mode_buffer($_) for (M_CMD, M_INS, M_EX);
-
-    return $ret;
-}
-
-sub process_keycode_ex {
-    my ($key, $char);
-
-    _debug('process_keycode_ex %s', $char);
-
-    # BS key (8) or DEL key (127) - remove last character.
-    if ($key == KEY_BS or $key == KEY_DEL) {
-
-         _debug("Ex: Delete");
-
-        if (@ex_mode_buf > 0) {
-            pop @ex_mode_buf;
-            _set_prompt(':' . _buf_to_str(@ex_mode_buf));
-            # Backspacing over : exits ex-mode.
-        } else {
-            _update_mode(M_CMD);
-        }
-
-         # Return key - execute command
-     } elsif ($key == KEY_RET) {
-
-         _debug("Run ex-mode command");
-         cmd_ex_command();
-         _update_mode(M_CMD);
-         _reset_mode_buffer(M_EX) unless $unloading;
-
-    } elsif ($key > 0 and $key < 32) {
-        # TODO: use them later, e.g. completion
-        _debug("Ex: Control key: 0x%02x", $key);
-    } else {
-
-        _append_to_mode_buffer($key);
-        _set_prompt(':' . _buf_to_str(@ex_mode_buf));
-    }
-
-    Irssi::statusbar_items_redraw("vim_windows");
-
-    _stop();
-}
-
-sub process_keycode_insert {
-    my ($key, $char) = @_;
-
-    my $ret = 0;
-    _debug('process_keycode_insert');
-    my @buf = ($key);
-
-    if (_is_cmd_entry_sequence(@buf)) {
-        _debug ("Buf contains ESC!");
+sub process_cmd_entry {
+    _debug('processing ESC buffer');
+    $escape_buf_timeout = undef;
+    $escape_buf_enabled = 0;
+    my @buf = _get_mode_buffer(\@escape_buf);
+    if (my $chars = _is_cmd_entry_sequence(@buf)) {
         _update_mode(M_CMD);
-        $ret = 1;
-    } elsif (@buf == 1 and $buf[0] == KEY_RET) {
-        _commit_line();
-        _debug("Pressed enter");
-        _emulate_keystrokes(KEY_RET);
-        _reset_mode_buffer(M_INS) unless $unloading;
-        $ret = 1;
-    } else {
-        _debug("buf contains: '%s'", _buf_to_hex_str(@buf));
-        _emulate_keystrokes(@buf);
-        $ret = 0;
+        # remove the escape sequence from teh buffer.
+        shift @buf for (1..$chars);
+    } elif {
+        
     }
-    return $ret;
-}
-
-sub process_keycode_command {
-    my ($key, $char) = @_;
-
-    _debug('process_keycode_command %s', $char);
+    # there may be remainder in the buffer.
 
 }
+
+# my @escape_buf;
+# my $escape_buf_timeout;
+# my $escape_buf_ttimeout;
+
+# my $escape_buf_enabled = 0;
+
+
+
+#     if ($mode != M_INS
+#         and $key != KEY_BS
+#         and $key != KEY_DEL
+#         and $key != KEY_RET)
+#       {
+#           _append_to_mode_buffer($key);
+#       }
+
+
+#     if ((not $timeout) and (not $ttimeout)) {
+#         # wait forever
+#         _debug("process_keys_timeout none");
+
+#         return if $keycode_timeouts_active or $mapping_timeouts_active;
+
+#         process_keys_timeout($key, $char, TIMEOUT_MODE_NONE);
+
+#     } elsif ($timeout) {
+#         _debug("process_keys_timeout both");
+
+#         # timeout on both mappings and keycodes
+#         process_keys_timeout($key, $char, TIMEOUT_MODE_BOTH,
+#                              $timeout_len, $ttimeout_len);
+
+#     } elsif ((not $timeout) and $ttimeout) {
+#         # timeout on codes (but not mappings?
+#         _debug("process_keys_timeout code");
+
+#         return if $keycode_timeouts_active;
+
+#         process_keys_timeout($key, $char, TIMEOUT_MODE_CODE,
+#                              $timeout_len, $ttimeout_len);
+
+#     } else {
+#         _debug("What the buggery, shouldn't happen: T: $timeout, TT: $ttimeout");
+#     }
+
+#     # stop signal propagation regardless. If we have to, we'll re-emit
+#     # any buffer contents with _emulate_keystrokes() later on.
+#     return SIG_STOP;
+# }
+
+
+# # TODO: try process_keycode and /then/ mapping in some fashion
+# # one should be able to suppress the other from acting.
+
+# # set up the timeout callbacks based on the value of the various
+# # timeout and ttimeout[_len] settings.
+
+# sub process_keys_timeout {
+#     my ($key, $char, $timeout_mode, $timeout_len, $ttimeout_len) = @_;
+
+#     my $ret;
+
+#     if ($timeout_mode eq TIMEOUT_MODE_NONE) {
+
+#         $ret = _try_processing_keycode($key, $char, 0);
+#         if (not $ret) {
+#             _try_processing_maps($key, $char, 0);
+#         }
+
+#     } elsif ($timeout_mode eq TIMEOUT_MODE_BOTH) {
+
+#         my ($keycode_delay, $mapping_delay);
+
+#         if ($ttimeout_len == 0) {
+#             return if $keycode_timeouts_active;
+#             _try_processing_keycode($key, $char, 0);
+
+#         } elsif ($ttimeout_len > 0 and $ttimeout_len < 10) {
+#             $mapping_delay = 10; # minimum irssi timeout.
+#         } else {
+
+#             $timeout_len   = 10 if $timeout_len < 10;
+#             $mapping_delay = $keycode_delay = $timeout_len;
+#         }
+
+#         if (not $mapping_timeouts_active) {
+
+#             _debug("Setting mapping delay to %d", $mapping_delay);
+#             $escape_buf_ttimeout
+#               = Irssi::timeout_add_once($mapping_delay,
+#                                         \&_try_processing_maps, [$key, $char, 1]);
+#               $mapping_timeouts_active = 1;
+
+#         } else {
+#             _debug ("Not adding new mapping timeout");
+#         }
+
+#         if (not $keycode_timeouts_active) {
+
+#             _debug("Setting keycode delay to %d", $keycode_delay);
+#             $escape_buf_timeout
+#               = Irssi::timeout_add_once($keycode_delay,
+#                                         \&_try_processing_keycode, [$key, $char, 1]);
+#             $keycode_timeouts_active = 1;
+
+#         } else {
+#             _debug ("Not adding new keycode timeout");
+#         }
+
+#     } elsif ($timeout_mode eq TIMEOUT_MODE_CODE) {
+
+#         $keycode_timeouts_active = 1;
+
+#         _try_processing_maps($key, $char, 0);
+#         $escape_buf_timeout
+#           = Irssi::timeout_add_once($timeout_len,
+#                                     \&_try_processing_keycode, [$key, $char, 1]);
+#     }
+# }
+
+# sub _try_processing_maps {
+#     my $args = shift;
+#     my ($key, $char, $from_timer) = @$args;
+
+#     # TODO: Temp disabled.
+#     $mapping_timeouts_active = 0 if defined $from_timer;
+#     return 0;
+
+#     # my $cmd;
+#     # my @buf = _get_mode_buffer();
+#     # my $str = _buf_to_str(@buf);
+#     # _debug("process mapping: '%s'", $str);
+
+#     # $cmd = search_user_mode_maps($str);
+#     # if (defined $cmd) {
+#     #     _execute_cmd($cmd);
+#     # } else {
+#     #     if ($mode == M_CMD) {
+#     #         _debug('checking existence of $commands->{%s}', $str);
+#     #         if (exists $commands->{$str}) {
+#     #             $cmd = $commands->{$str};
+#     #             _execute_cmd($cmd);
+#     #         }
+#     #     }
+#     # }
+
+#     # $mapping_timeouts_active = 0 if defined $from_timer;
+# }
+
+# sub _try_processing_keycode {
+#     my $args = shift;
+#     my ($key, $char, $from_timer) = @$args;
+
+#     my $ret = 0;
+
+
+#     _debug("keycode mapping: '%s'", $char);
+
+#     if ($mode == M_INS) {
+#         $ret = process_keycode_insert($key, $char);
+#     } elsif ($mode == M_CMD) {
+#         $ret = process_keycode_command($key, $char);
+#     } elsif ($mode == M_EX) {
+#         $ret = process_keycode_ex($key, $char);
+#     }
+
+#     $keycode_timeouts_active = 0 if defined $from_timer;
+
+#     # avoids warnings about _reset_mode_buffer being symbol-table murdered
+#     # during script destruction.
+
+#     return $ret if $unloading;
+
+#     # TODO: only reset necessary buffers.
+#     # _reset_mode_buffer($_) for (M_CMD, M_INS, M_EX);
+
+#     return $ret;
+# }
+
+# sub process_keycode_ex {
+#     my ($key, $char);
+
+#     _debug('process_keycode_ex %s', $char);
+
+#     # BS key (8) or DEL key (127) - remove last character.
+#     if ($key == KEY_BS or $key == KEY_DEL) {
+
+#          _debug("Ex: Delete");
+
+#         if (@ex_mode_buf > 0) {
+#             pop @ex_mode_buf;
+#             _set_prompt(':' . _buf_to_str(@ex_mode_buf));
+#             # Backspacing over : exits ex-mode.
+#         } else {
+#             _update_mode(M_CMD);
+#         }
+
+#          # Return key - execute command
+#      } elsif ($key == KEY_RET) {
+
+#          _debug("Run ex-mode command");
+#          cmd_ex_command();
+#          _update_mode(M_CMD);
+#          _reset_mode_buffer(M_EX) unless $unloading;
+
+#     } elsif ($key > 0 and $key < 32) {
+#         # TODO: use them later, e.g. completion
+#         _debug("Ex: Control key: 0x%02x", $key);
+#     } else {
+
+#         _append_to_mode_buffer($key);
+#         _set_prompt(':' . _buf_to_str(@ex_mode_buf));
+#     }
+
+#     Irssi::statusbar_items_redraw("vim_windows");
+
+#     _stop();
+# }
+
+# sub process_keycode_insert {
+#     my ($key, $char) = @_;
+
+#     my $ret = 0;
+#     _debug('process_keycode_insert');
+#     my @buf = ($key);
+
+#     if (_is_cmd_entry_sequence(@buf)) {
+#         _debug ("Buf contains ESC!");
+#         _update_mode(M_CMD);
+#         $ret = 1;
+#     } elsif (@buf == 1 and $buf[0] == KEY_RET) {
+#         _commit_line();
+#         _debug("Pressed enter");
+#         _emulate_keystrokes(KEY_RET);
+#         _reset_mode_buffer(M_INS) unless $unloading;
+#         $ret = 1;
+#     } else {
+#         _debug("buf contains: '%s'", _buf_to_hex_str(@buf));
+#         _emulate_keystrokes(@buf);
+#         $ret = 0;
+#     }
+#     return $ret;
+# }
+
+# sub process_keycode_command {
+#     my ($key, $char) = @_;
+
+#     _debug('process_keycode_command %s', $char);
+
+# }
 
 # sub blahblbhal {
 
@@ -4106,18 +4203,6 @@ sub process_keycode_command {
 
 # determines whether the buffer contents contains keystroke(s) that
 # would enter command mode.
-sub _is_cmd_entry_sequence {
-    my (@data) = @_;
-    return 1 if (@data == 1 and $data[0] == KEY_ESC);
-    return 1 if (@data == 1 and $data[0] == KEY_C_C);
-
-    my $str = _buf_to_str(@data);
-    my $cmd_seq = _setting_get_cached('cmd_seq');
-
-    return 1 if (@data == 2 and length($cmd_seq) and $str eq $cmd_seq);
-
-    return 0;
-}
 
 
 # sub attempt_escape_buffer_parse {
