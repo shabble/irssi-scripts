@@ -611,7 +611,9 @@ our %IRSSI   =
   );
 
 
-# CONSTANTS
+################################################################
+#                    CONSTANTS                                 #
+################################################################
 
 # command mode
 sub M_CMD () { 1 }
@@ -646,7 +648,10 @@ sub S_STR  () { 2 }
 my $word     = qr/[\w_]/o;
 my $non_word = qr/[^\w_\s]/o;
 
-# COMMANDS
+
+################################################################
+#                    COMMANDS                                  #
+################################################################
 
 # All available commands in command mode, they are stored with a char as key,
 # but this is not necessarily the key the command is currently mapped to.
@@ -856,15 +861,18 @@ my $commands_ex
 
     };
 
-# MAPPINGS
+################################################################
+#                    USER COMMAND MAPPINGS                     #
+################################################################
 
-# default command mode mappings
-my $maps = {};
+# command mode mappings
+my $cmap = undef; # cmap still pending (contains first character entered)
+my $cmaps = {};
 
-# current imap still pending (first character entered)
-my $imap = undef;
 
-# maps for insert mode
+# insert-mode mappings
+
+my $imap = undef; # imap still pending (contains first character entered)
 my $imaps
   = {
      # CTRL-R, insert register
@@ -872,7 +880,10 @@ my $imaps
     };
 
 
-# GLOBAL VARIABLES
+
+################################################################
+#                    CONFIGURABLE SETTINGS                     #
+################################################################
 
 # all vim_mode settings, must be enabled in vim_mode_init() before usage
 my $settings
@@ -900,6 +911,11 @@ my $settings
 
 sub DEBUG { $settings->{debug}->{value} }
 
+
+################################################################
+#                    INTERNAL GLOBALS                          #
+################################################################
+
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
 my @input_buf;
@@ -914,7 +930,6 @@ my $should_ignore = 0;
 
 # ex mode buffer
 my @ex_buf;
-
 # ex mode history storage.
 my @ex_history;
 my $ex_history_index = 0;
@@ -930,6 +945,7 @@ my $operator = undef;
 # vi movements, only used when a movement needs more than one key (like f t).
 my $movement = undef;
 # last vi command, used by .
+
 my $last
   = {
      'cmd' => $commands->{i}, # = i to support . when loading the script
@@ -979,14 +995,19 @@ my @tab_candidates;
 my $completion_active = 0;
 my $completion_string = '';
 
+
+################################################################
+#                    START OF CODE                             #
+################################################################
+
 sub script_is_loaded {
     return exists($Irssi::Script::{shift(@_) . '::'});
 }
 
 
-
-
-# INSERT MODE COMMANDS
+################################################################
+#                    INSERT MODE COMMANDS                      #
+################################################################
 
 sub insert_ctrl_r {
     my ($key) = @_;
@@ -1001,7 +1022,9 @@ sub insert_ctrl_r {
 }
 
 
-# COMMAND MODE OPERATORS
+################################################################
+#                    COMMAND MODE OPERATORS                    #
+################################################################
 
 sub cmd_operator_c {
     my ($old_pos, $new_pos, $move_cmd, $repeat) = @_;
@@ -1099,7 +1122,9 @@ sub _get_pos_and_length {
     return ($old_pos, $length);
 }
 
-# COMMAND MODE COMMANDS
+################################################################
+#                    COMMAND MODE COMMANDS                     #
+################################################################
 
 sub cmd_h {
     my ($count, $pos, $repeat) = @_;
@@ -1985,7 +2010,9 @@ sub _fix_input_pos {
 }
 
 
-# EX MODE COMMANDS
+################################################################
+#                    EX MODE COMMANDS                          #
+################################################################
 
 sub cmd_ex_command {
     my $arg_str = join '', @ex_buf;
@@ -2292,6 +2319,11 @@ sub ex_undolist {
     _print_undo_buffer();
 }
 
+
+################################################################
+#                    MAPPINGS MANIPULATION                     #
+################################################################
+
 sub ex_map {
     my ($arg_str, $count) = @_;
 
@@ -2350,8 +2382,8 @@ sub ex_map {
         $search = _parse_mapping_reverse(_parse_mapping($search));
 
         my $active_window = Irssi::active_win();
-        foreach my $key (sort keys %$maps) {
-            my $map = $maps->{$key};
+        foreach my $key (sort keys %$cmaps) {
+            my $map = $cmaps->{$key};
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
@@ -2378,8 +2410,8 @@ sub ex_unmap {
     if (not defined $lhs) {
         return _warn_ex('unmap', 'invalid {lhs}');
     # Prevent unmapping of unknown or default mappings.
-    } elsif (not exists $maps->{$lhs} or not defined $maps->{$lhs}->{cmd} or
-             ($commands->{$lhs} and $maps->{$lhs}->{cmd} == $commands->{$lhs})) {
+    } elsif (not exists $cmaps->{$lhs} or not defined $cmaps->{$lhs}->{cmd} or
+             ($commands->{$lhs} and $cmaps->{$lhs}->{cmd} == $commands->{$lhs})) {
         return _warn_ex('unmap', "$1 not found");
     }
 
@@ -2459,6 +2491,10 @@ sub _parse_partial_command_reverse {
     return $string;
 }
 
+################################################################
+#                    CONFIG COMMANDS                           #
+################################################################
+
 sub ex_source {
     my ($arg_str, $count) = @_;
 
@@ -2492,8 +2528,8 @@ sub ex_mkvimrc {
     open my $file, '>', $vim_moderc or return;
 
     # copied from ex_map()
-    foreach my $key (sort keys %$maps) {
-        my $map = $maps->{$key};
+    foreach my $key (sort keys %$cmaps) {
+        my $map = $cmaps->{$key};
         my $cmd = $map->{cmd};
         if (defined $cmd) {
             next if $map->{char} eq $cmd->{char}; # skip default mappings
@@ -2547,14 +2583,161 @@ sub ex_set {
     }
 }
 
+################################################################
+#                    UTILITY FUNCTIONS                         #
+################################################################
+
+# input line bits and pieces
+
+sub _input {
+    my ($data) = @_;
+
+    my $current_data = Irssi::parse_special('$L', 0, 0);
+
+    if ($settings->{utf8}->{value}) {
+        $current_data = decode_utf8($current_data);
+    }
+
+    if (defined $data) {
+        if ($settings->{utf8}->{value}) {
+            Irssi::gui_input_set(encode_utf8($data));
+        } else {
+            Irssi::gui_input_set($data);
+        }
+    } else {
+        $data = $current_data;
+    }
+
+    return $data;
+}
+
+sub _input_len {
+    return length _input();
+}
+
+sub _input_pos {
+    my ($pos) = @_;
+    my $cur_pos = Irssi::gui_input_get_pos();
+    # my $dpos = defined $pos?$pos:'undef';
+    # my @call = caller(1);
+    # my $cfunc = $call[3];
+    # $cfunc =~ s/^.*?::([^:]+)$/$1/;
+    # print "pos called from line: $call[2] sub: $cfunc pos: $dpos, cur_pos: $cur_pos"
+    #   if DEBUG;
+
+    if (defined $pos) {
+        #print "Input pos being set from $cur_pos to $pos" if DEBUG;
+        Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
+    } else {
+        $pos = $cur_pos;
+        #print "Input pos retrieved as $pos" if DEBUG;
+    }
+
+    return $pos;
+}
+
+sub _commit_line {
+    _update_mode(M_INS);
+
+    # separate from call above as _update_mode() does additional internal work
+    # and we need to make sure it gets correctly called.
+    _update_mode(M_CMD) if $settings->{start_cmd}->{value};
+
+    _reset_undo_buffer('', 0);
+}
+
+# Error and warning messages
+
+sub _warn {
+    my ($format, @args) = @_;
+    my $str = sprintf($format, @args);
+    print '%_vim_mode: ', $str, '%_';
+}
+
 sub _warn_ex {
     my ($command, $description) = @_;
+
     my $message = "Error in ex-mode command $command";
     if (defined $description) {
         $message .= ": $description";
     }
     _warn($message);
 }
+
+sub _debug {
+    return unless DEBUG;
+
+    my ($format, @args) = @_;
+    my $str = sprintf($format, @args);
+    print $str;
+}
+
+sub _fatal {
+    my ($format, @args) = @_;
+    my $str = sprintf($format, @args);
+    die $str;
+
+}
+
+# uberprompt output.
+
+sub _set_prompt {
+    my $msg = shift;
+
+    # add a leading space unless we're trying to clear it entirely.
+    if  (length($msg) and $settings->{prompt_leading_space}->{value}) {
+        $msg = ' ' . $msg;
+    }
+
+    # escape % symbols. This prevents any _set_prompt calls from using
+    # colouring sequences.
+    $msg =~ s/%/%%/g;
+
+    Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
+}
+
+# signal handling
+
+sub _stop() {
+    Irssi::signal_stop_by_name('gui key pressed');
+}
+
+sub _emulate_keystrokes {
+    my @keys = @_;
+    $should_ignore = 1;
+    for my $key (@keys) {
+        Irssi::signal_emit('gui key pressed', $key);
+    }
+    $should_ignore = 0;
+}
+
+sub _command_with_context {
+    my ($command) = @_;
+    my $context;
+    my $window = Irssi::active_win;
+    if (defined $window) {
+        my $witem = $window->{active};
+        if (defined $witem and ref($witem) eq 'Irssi::Windowitem') {
+            $context = $witem;
+        } else {
+            $context = $window;
+        }
+    } else {
+        my $server = Irssi::active_server;
+        if (defined $server) {
+            $context = $server;
+        }
+    }
+    if (defined $context) {
+        print "Command $command Using context: " . ref($context) if DEBUG;
+        $context->command($command);
+    } else {
+        print "Command $command has no context" if DEBUG;
+        Irssi::command($command);
+    }
+}
+
+# buffer selection stuff
 
 sub _matching_windows {
     my ($buffer) = @_;
@@ -2606,9 +2789,10 @@ sub _matching_windows {
 }
 
 
-# STATUS ITEMS
+################################################################
+#                 STATUSBAR ITEMS AND EXPANDOS                 #
+################################################################
 
-#TODO: give these things better names.
 sub vim_mode_status_string {
 
     my $mode_str = '';
@@ -2706,6 +2890,10 @@ sub _tab_complete {
 
     return sort { $a cmp $b } @out;
 }
+
+################################################################
+#                    INITIALISATION                            #
+################################################################
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&sig_gui_keypress;
@@ -2806,6 +2994,10 @@ sub UNLOAD {
     Irssi::statusbar_item_unregister ('vim_windows');
 }
 
+################################################################
+#                    UNDO MODEL                                #
+################################################################
+
 sub _add_undo_entry {
     my ($line, $pos) = @_;
 
@@ -2873,6 +3065,10 @@ sub _reset_undo_buffer {
     $undo_index  = 0;
 }
 
+################################################################
+#                    MAPPING MODEL                             #
+################################################################
+
 sub add_map {
     my ($keys, $command) = @_;
 
@@ -2883,55 +3079,55 @@ sub add_map {
     my $tmp = $keys;
     while (length $tmp > 1) {
         my $map = substr $tmp, -1, 1, '';
-        if (not exists $maps->{$tmp}) {
-            $maps->{$tmp} = { char => _parse_mapping_reverse($tmp),
+        if (not exists $cmaps->{$tmp}) {
+            $cmaps->{$tmp} = { char => _parse_mapping_reverse($tmp),
                                cmd => undef,
                               maps => {}
                             };
         }
-        if (not exists $maps->{$tmp}->{maps}->{$tmp . $map}) {
-            $maps->{$tmp}->{maps}->{$tmp . $map} = undef;
+        if (not exists $cmaps->{$tmp}->{maps}->{$tmp . $map}) {
+            $cmaps->{$tmp}->{maps}->{$tmp . $map} = undef;
         }
     }
 
-    if (not exists $maps->{$keys}) {
-        $maps->{$keys} = { char => undef,
+    if (not exists $cmaps->{$keys}) {
+        $cmaps->{$keys} = { char => undef,
                             cmd => undef,
                            maps => {}
                          };
     }
-    $maps->{$keys}->{char} = _parse_mapping_reverse($keys);
-    $maps->{$keys}->{cmd} = $command;
+    $cmaps->{$keys}->{char} = _parse_mapping_reverse($keys);
+    $cmaps->{$keys}->{cmd} = $command;
 }
 
 sub delete_map {
     my ($keys) = @_;
 
     # Abort for non-existent mappings or placeholder mappings.
-    return if not exists $maps->{$keys} or not defined $maps->{$keys}->{cmd};
+    return if not exists $cmaps->{$keys} or not defined $cmaps->{$keys}->{cmd};
 
     my @add = ();
 
     # If no maps need the current key, then remove it and all other
     # unnecessary keys in the "tree".
-    if (keys %{$maps->{$keys}->{maps}} == 0) {
+    if (keys %{$cmaps->{$keys}->{maps}} == 0) {
         my $tmp = $keys;
         while (length $tmp > 1) {
             my $map = substr $tmp, -1, 1, '';
-            delete $maps->{$tmp}->{maps}->{$tmp . $map};
-            if (not $maps->{$tmp}->{cmd} and keys %{$maps->{$tmp}->{maps}} == 0) {
+            delete $cmaps->{$tmp}->{maps}->{$tmp . $map};
+            if (not $cmaps->{$tmp}->{cmd} and keys %{$cmaps->{$tmp}->{maps}} == 0) {
                 push @add, $tmp;
-                delete $maps->{$tmp};
+                delete $cmaps->{$tmp};
             } else {
                 last;
             }
         }
     }
 
-    if (keys %{$maps->{$keys}->{maps}} > 0) {
-        $maps->{$keys}->{cmd} = undef;
+    if (keys %{$cmaps->{$keys}->{maps}} > 0) {
+        $cmaps->{$keys}->{cmd} = undef;
     } else {
-        delete $maps->{$keys};
+        delete $cmaps->{$keys};
     }
     push @add, $keys;
 
@@ -2944,76 +3140,10 @@ sub delete_map {
     }
 }
 
+################################################################
+#                    MODE MODEL                                #
+################################################################
 
-sub _commit_line {
-    _update_mode(M_INS);
-
-    # separate from call above as _update_mode() does additional internal work
-    # and we need to make sure it gets correctly called.
-    _update_mode(M_CMD) if $settings->{start_cmd}->{value};
-
-    _reset_undo_buffer('', 0);
-}
-
-sub _input {
-    my ($data) = @_;
-
-    my $current_data = Irssi::parse_special('$L', 0, 0);
-
-    if ($settings->{utf8}->{value}) {
-        $current_data = decode_utf8($current_data);
-    }
-
-    if (defined $data) {
-        if ($settings->{utf8}->{value}) {
-            Irssi::gui_input_set(encode_utf8($data));
-        } else {
-            Irssi::gui_input_set($data);
-        }
-    } else {
-        $data = $current_data;
-    }
-
-    return $data;
-}
-
-sub _input_len {
-    return length _input();
-}
-
-sub _input_pos {
-    my ($pos) = @_;
-    my $cur_pos = Irssi::gui_input_get_pos();
-    # my $dpos = defined $pos?$pos:'undef';
-    # my @call = caller(1);
-    # my $cfunc = $call[3];
-    # $cfunc =~ s/^.*?::([^:]+)$/$1/;
-    # print "pos called from line: $call[2] sub: $cfunc pos: $dpos, cur_pos: $cur_pos"
-    #   if DEBUG;
-
-    if (defined $pos) {
-        #print "Input pos being set from $cur_pos to $pos" if DEBUG;
-        Irssi::gui_input_set_pos($pos) if $pos != $cur_pos;
-    } else {
-        $pos = $cur_pos;
-        #print "Input pos retrieved as $pos" if DEBUG;
-    }
-
-    return $pos;
-}
-
-sub _emulate_keystrokes {
-    my @keys = @_;
-    $should_ignore = 1;
-    for my $key (@keys) {
-        Irssi::signal_emit('gui key pressed', $key);
-    }
-    $should_ignore = 0;
-}
-
-sub _stop() {
-    Irssi::signal_stop_by_name('gui key pressed');
-}
 
 sub _update_mode {
     my ($new_mode) = @_;
@@ -3073,20 +3203,9 @@ sub _update_mode {
 
 }
 
-sub _set_prompt {
-    my $msg = shift;
-
-    # add a leading space unless we're trying to clear it entirely.
-    if  (length($msg) and $settings->{prompt_leading_space}->{value}) {
-        $msg = ' ' . $msg;
-    }
-
-    # escape % symbols. This prevents any _set_prompt calls from using
-    # colouring sequences.
-    $msg =~ s/%/%%/g;
-
-    Irssi::signal_emit('change prompt', $msg, 'UP_INNER');
-}
+################################################################
+#                    SETTINGS MODEL                            #
+################################################################
 
 sub _setting_get {
     my ($name) = @_;
@@ -3143,45 +3262,7 @@ sub _setting_register {
     }
 }
 
-sub _warn {
-    my ($warning) = @_;
 
-    print '%_vim_mode: ', $warning, '%_';
-}
-
-sub _debug {
-    return unless DEBUG;
-
-    my ($format, @args) = @_;
-    my $str = sprintf($format, @args);
-    print $str;
-}
-
-sub _command_with_context {
-    my ($command) = @_;
-    my $context;
-    my $window = Irssi::active_win;
-    if (defined $window) {
-        my $witem = $window->{active};
-        if (defined $witem and ref($witem) eq 'Irssi::Windowitem') {
-            $context = $witem;
-        } else {
-            $context = $window;
-        }
-    } else {
-        my $server = Irssi::active_server;
-        if (defined $server) {
-            $context = $server;
-        }
-    }
-    if (defined $context) {
-        print "Command $command Using context: " . ref($context) if DEBUG;
-        $context->command($command);
-    } else {
-        print "Command $command has no context" if DEBUG;
-        Irssi::command($command);
-    }
-}
 
 sub ex_history_add {
     my ($line) = @_;
@@ -3202,6 +3283,10 @@ sub ex_history_add {
         pop @ex_history; # junk the last entry if we've hit the max.
     }
 }
+
+################################################################
+#                    EX HISTORY MODEL                          #
+################################################################
 
 sub ex_history_fwd {
 
@@ -3479,8 +3564,8 @@ sub handle_command_cmd {
                  maps => {},
                };
 
-    } elsif (exists $maps->{$char}) {
-        $map = $maps->{$char};
+    } elsif (exists $cmaps->{$char}) {
+        $map = $cmaps->{$char};
 
         # We have multiple mappings starting with this key sequence.
         if (!$pending_map_flushed and scalar keys %{$map->{maps}} > 0) {
@@ -3770,6 +3855,11 @@ sub handle_command_ex {
     _stop();
 }
 
+################################################################
+#                    STARTUP                                   #
+################################################################
 
 
 vim_mode_init();
+
+__END__
