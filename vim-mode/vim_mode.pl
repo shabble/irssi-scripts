@@ -919,24 +919,26 @@ my $imaps
 my $settings
   = {
      # print debug output
-     debug          => { type => S_BOOL, value => 0 },
+     debug          => { type => S_BOOL, value => 0      },
      # use UTF-8 internally for string calculations/manipulations
-     utf8           => { type => S_BOOL, value => 1 },
+     utf8           => { type => S_BOOL, value => 1      },
      # esc-shortcut in insert mode
-     cmd_seq        => { type => S_STR,  value => '' },
+     cmd_seq        => { type => S_STR,  value => ''     },
      # start every line in command mode
-     start_cmd      => { type => S_BOOL, value => 0 },
+     start_cmd      => { type => S_BOOL, value => 0      },
      # not used yet
-     max_undo_lines => { type => S_INT,  value => 50 },
+     max_undo_lines => { type => S_INT,  value => 50     },
      # size of history buffer for Ex mode.
-     ex_history_size => { type => S_INT, value => 100 },
+     ex_history_size => { type => S_INT, value => 100    },
      # prompt_leading_space
      prompt_leading_space => { type => S_BOOL, value => 1 },
      # <Leader> value for prepending to commands.
-     map_leader     => { type => S_STR,  value => '\\' },
-     # timeout for keys following esc. In milliseconds.
-     esc_buf_timeout => { type => S_INT, value =>  10 },
-
+     map_leader     => { type => S_STR,  value => '\\'    },
+     # see http://vimdoc.sourceforge.net/htmldoc/options.html#%27timeout%27
+     timeout        => { type => S_BOOL, value =>  1      },
+     ttimeout       => { type => S_BOOL, value =>  0      },
+     timeoutlen     => { type => S_INT,  value => 1000    },
+     ttimeoutlen    => { type => S_INT,  value => -1      },
     };
 
 # internal variables, such as <Leader> for use in :map, as wel as probably
