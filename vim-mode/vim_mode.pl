@@ -588,12 +588,15 @@ Things we're not ever likely to do:
 use strict;
 use warnings;
 
+#TODO: Specify a minimum version of perl (5.8, probably?)
+
+# UTF-8 conversion functions.
 use Encode;
-use List::Util;
+use List::Util; # Not currently used.
 
 use Irssi;
-use Irssi::TextUI;              # for sbar_items_redraw
-use Irssi::Irc;                 # necessary for 0.8.14
+use Irssi::TextUI; # statusbar handling.
+use Irssi::Irc;    # necessary for 0.8.14
 
 
 
