@@ -969,18 +969,21 @@ my $should_ignore = 0;
 
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
-my @input_buf;
-my $input_buf_timer;
-my $input_buf_enabled = 0;
+my @escape_buf;
+my $escape_buf_timer;
+my $escape_buf_enabled = 0;
 
-# insert mode repeat buffer, used to repeat (.) last insert
-my @insert_buf;
-
-# Ex-mode input related vars
+# mode-related input buffers
 # --------------------------
 
-# ex mode buffer
-my @ex_buf;
+# insert mode repeat buffer, used to repeat (.) last insert
+my @insert_mode_buf;
+my @cmd_mode_buf;
+my @ex_mode_buf;
+
+# Ex-mode related vars
+# --------------------
+
 # ex mode history storage.
 my @ex_history;
 my $ex_history_index = 0;
@@ -1856,7 +1859,7 @@ sub cmd_A {
 # Add @insert_buf to _input() at the given position.
 sub _insert_buffer {
     my ($count, $pos) = @_;
-    return _insert_at_position(join('', @insert_buf), $count, $pos);
+    return _insert_at_position(join('', @insert_mode_buf), $count, $pos);
 }
 
 sub _insert_at_position {
@@ -2079,7 +2082,7 @@ sub _fix_input_pos {
 ################################################################
 
 sub cmd_ex_command {
-    my $arg_str = join '', @ex_buf;
+    my $arg_str = join '', @ex_mode_buf;
 
     if ($arg_str !~ /^(\d*)?([a-z]+)/) {
         return _warn("Invalid Ex-mode command!");
@@ -2523,7 +2526,7 @@ sub _parse_mapping_reverse {
     my ($string) = @_;
 
     if (not defined $string) {
-        _warn("Unable to reverse-map command: " . join('', @ex_buf));
+        _warn("Unable to reverse-map command: " . join('', @ex_mode_buf));
         return;
     }
 
@@ -2897,7 +2900,7 @@ sub vim_buffer_windows_string {
 
     # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
     # :bd doesn't display buffers matching d.
-    my $arg_str = join '', @ex_buf;
+    my $arg_str = join '', @ex_mode_buf;
     if ($arg_str =~ m|^b(?:uffer)?\s+(.+)$|) {
         my $buffer = $1;
         if ($buffer !~ /^[0-9]$/ and $buffer ne '#') {
@@ -3247,7 +3250,7 @@ sub _update_mode {
     if ($mode == M_INS) {
         $history_index = undef;
         $register = '"';
-        @insert_buf = ();
+        @insert_mode_buf = ();
     # Reset every command mode related status as a fallback in case something
     # goes wrong.
     } elsif ($mode == M_CMD) {
@@ -3259,7 +3262,7 @@ sub _update_mode {
         $pending_map = undef;
 
         # Also clear ex-mode buffer.
-        @ex_buf = ();
+        @ex_mode_buf = ();
     }
 
     Irssi::statusbar_items_redraw("vim_mode");
@@ -3366,7 +3369,7 @@ sub ex_history_fwd {
 
     _debug("Ex history line: $line");
 
-    @ex_buf = split '', $line;
+    @ex_mode_buf = split '', $line;
     handle_command_ex(-1);
 }
 
@@ -3383,7 +3386,7 @@ sub ex_history_back {
     $line = '' if not defined $line;
 
     _debug("Ex history line: $line");
-    @ex_buf = split '', $line;
+    @ex_mode_buf = split '', $line;
     handle_command_ex(-1);
 
 }
@@ -3414,7 +3417,7 @@ sub sig_gui_keypress {
 
     my $should_stop = process_input_key($key, $char);
 
-    _stop() if ($should_stop == SIG_STOP);
+    _stop() if (defined $should_stop and $should_stop == SIG_STOP);
 
 }
 
@@ -3426,20 +3429,102 @@ sub sig_gui_keypress {
 sub process_input_key {
     my ($key, $char) = @_;
 
+    # no matter what mode we're in, we need to deal with escape (and escape
+    # sequences) specially. So do them first.
+
+    # First,
     if ($key == KEY_ESC) {
-        print "Esc seen, starting buffer" if DEBUG;
-        $input_buf_enabled = 1;
+        _debug("Escape seen, beginning escape_buf collection");
+        $escape_buf_enabled = 1;
+
+        push @escape_buf, $key;
 
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
         my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
 
-        $input_buf_timer
-          = Irssi::timeout_add_once($esc_buf_timeout,
-                                    \&handle_input_buffer, undef);
+        $escape_buf_timer =
+          Irssi::timeout_add_once($esc_buf_timeout,
+                                  \&escape_buffer_timeout, undef);
 
-        print "Buffer Timer tag: $input_buf_timer" if DEBUG;
+        _debug("Buffer Timer tag: $escape_buf_timer");
+
+    } elsif ($escape_buf_enabled) {
+        attempt_escape_buffer_parse($key, $char);
+        # we can check at this point if we recognise the sequence, and cancel
+        # the timeout if we do.
+    }
+}
+sub attempt_escape_buffer_parse {
+    my ($key, $char) = @_;
+
+    if ($char eq '[') {
+        _debug("Spotted CSI");
+    } elsif ($char eq ']') {
+        _debug ("Spotted OSC");
+    } else {
+        push @escape_buf, $key;
+    }
+}
+
+sub escape_buffer_timeout {
+
+    $escape_buf_timer = undef;
+    $escape_buf_enabled = 0;
+
+    _debug("Escape buffer contains: ", join(", ", @escape_buf));
+
+    if (@escape_buf == 1 && $escape_buf[0] == KEY_ESC) {
+
+        _debug("escape only, Enter Command Mode");
+        _update_mode(M_CMD);
+
+    } else {
+        # we have more than a single esc, implying an escape sequence
+        # (meta-* or esc-*)
+
+        # currently, we only extract escape sequences if:
+        # a) we're in ex mode
+        # b) they're arrow keys (for history control)
+
+        if ($mode == M_EX) {
+            # ex mode
+            my $key_str = join '', map { chr } @escape_buf;
+            if ($key_str =~ m/^\e\[([ABCD])/) {
+                my $arrow = $1;
+                _debug( "Arrow key: $arrow");
+                if ($arrow eq 'A') { # up
+                    ex_history_back();
+                } elsif ($arrow eq 'B') { # down
+                    ex_history_fwd();
+                } else {
+                    $arrow =~ s/C/right/;
+                    $arrow =~ s/D/left/;
+                    _debug("Arrow key $arrow not supported");
+                }
+            }
+        } else {
+            # otherwise, we just forward them to irssi.
+            _emulate_keystrokes(@escape_buf);
+        }
+
+        # Clear insert buffer, pressing "special" keys (like arrow keys)
+        # resets it.
+        @escape_buf = ();
+    }
+
+    @escape_buf = ();
+    $escape_buf_enabled = 0;
+}
+
+
+
+
+
+# work slowly incorporating stuff back in.
+
+=pod
 
     } elsif ($mode == M_INS) {
 
@@ -3487,12 +3572,12 @@ sub process_input_key {
         # TODO: maybe allow it
         } elsif ($key == KEY_DEL or $key == KEY_BS) {
 
-            @insert_buf = ();
+            @insert_mode_buf = ();
         # All other entered characters need to be stored to allow repeat of
         # insert mode. Ignore delete and control characters.
 
         } elsif ($key > 31) {
-            push @insert_buf, chr($key);
+            push @insert_mode_buf, chr($key);
         }
     }
 
@@ -3522,72 +3607,24 @@ sub process_input_key {
     return SIG_CONT;
 }
 
+=cut
 
 # TODO: merge this with 'flush_input_buffer' below.
 
-sub handle_input_buffer {
-
-    #Irssi::timeout_remove($input_buf_timer);
-    $input_buf_timer = undef;
-    # see what we've collected.
-    print "Input buffer contains: ", join(", ", @input_buf) if DEBUG;
-
-    if (@input_buf == 1 && $input_buf[0] == KEY_ESC) {
-
-        print "Enter Command Mode" if DEBUG;
-        _update_mode(M_CMD);
-
-    } else {
-        # we have more than a single esc, implying an escape sequence
-        # (meta-* or esc-*)
-
-        # currently, we only extract escape sequences if:
-        # a) we're in ex mode
-        # b) they're arrow keys (for history control)
-
-        if ($mode == M_EX) {
-            # ex mode
-            my $key_str = join '', map { chr } @input_buf;
-            if ($key_str =~ m/^\e\[([ABCD])/) {
-                my $arrow = $1;
-                _debug( "Arrow key: $arrow");
-                if ($arrow eq 'A') { # up
-                    ex_history_back();
-                } elsif ($arrow eq 'B') { # down
-                    ex_history_fwd();
-                } else {
-                    $arrow =~ s/C/right/;
-                    $arrow =~ s/D/left/;
-                    _debug("Arrow key $arrow not supported");
-                }
-            }
-        } else {
-            # otherwise, we just forward them to irssi.
-            _emulate_keystrokes(@input_buf);
-        }
-
-        # Clear insert buffer, pressing "special" keys (like arrow keys)
-        # resets it.
-        @insert_buf = ();
-    }
-
-    @input_buf = ();
-    $input_buf_enabled = 0;
-}
 
 sub flush_input_buffer {
-    Irssi::timeout_remove($input_buf_timer) if defined $input_buf_timer;
-    $input_buf_timer = undef;
+    Irssi::timeout_remove($escape_buf_timer) if defined $escape_buf_timer;
+    $escape_buf_timer = undef;
     # see what we've collected.
-    print "Input buffer flushed" if DEBUG;
+    _debug("Escape buffer flushed");
 
-    # Add the characters to @insert_buf so they can be repeated.
-    push @insert_buf, map chr, @input_buf;
+    # Add the characters to @escape_buf so they can be repeated.
+    push @escape_buf, map chr, @escape_buf;
 
-    _emulate_keystrokes(@input_buf);
+    _emulate_keystrokes(@escape_buf);
 
-    @input_buf = ();
-    $input_buf_enabled = 0;
+    @escape_buf = ();
+    $escape_buf_enabled = 0;
 
     $imap = undef;
 }
@@ -3908,9 +3945,9 @@ sub handle_command_ex {
     # BS key (8) or DEL key (127) - remove last character.
     if ($key == 8 || $key == 127) {
         print "Delete" if DEBUG;
-        if (@ex_buf > 0) {
-            pop @ex_buf;
-            _set_prompt(':' . join '', @ex_buf);
+        if (@ex_mode_buf > 0) {
+            pop @ex_mode_buf;
+            _set_prompt(':' . join '', @ex_mode_buf);
         # Backspacing over : exits ex-mode.
         } else {
             _update_mode(M_CMD);
@@ -3924,12 +3961,12 @@ sub handle_command_ex {
 
     } elsif ($key == 9) { # TAB
         print "Tab pressed" if DEBUG;
-        print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
-        @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
+        print "Ex buf contains: " . join('', @ex_mode_buf) if DEBUG;
+        @tab_candidates = _tab_complete(join('', @ex_mode_buf), [keys %$commands_ex]);
         _debug("Candidates: " . join(", ", @tab_candidates));
         if (@tab_candidates == 1) {
-            @ex_buf = ( split('', $tab_candidates[0]), ' ');
-            _set_prompt(':' . join '', @ex_buf);
+            @ex_mode_buf = ( split('', $tab_candidates[0]), ' ');
+            _set_prompt(':' . join '', @ex_mode_buf);
         }
     # Ignore control characters for now.
     } elsif ($key > 0 && $key < 32) {
@@ -3939,9 +3976,9 @@ sub handle_command_ex {
     } else {
         if ($key != -1) {
             # check we're not called from an ex_history_* function
-            push @ex_buf, chr $key;
+            push @ex_mode_buf, chr $key;
         }
-        _set_prompt(':' . join '', @ex_buf);
+        _set_prompt(':' . join '', @ex_mode_buf);
     }
 
     Irssi::statusbar_items_redraw("vim_windows");
