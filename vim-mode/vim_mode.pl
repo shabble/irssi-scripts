@@ -647,6 +647,22 @@ sub S_BOOL () { 0 }
 sub S_INT  () { 1 }
 sub S_STR  () { 2 }
 
+
+# some useful keyboard keycode values. see
+# https://github.com/shabble/irssi-docs/wiki/Signals#gui-readline.c
+# for a more complete list.
+
+sub KEY_ESC () {  27 }
+sub KEY_RET () {  10 }
+sub KEY_TAB () {   9 }
+sub KEY_DEL () {   8 } # Ctrl-H
+sub KEY_BS  () { 127 } # Backspace (^? usually)
+sub KEY_C_C () {   3 } # Ctrl-C (all Ctrl-<x> are 0 + letter (from a=1 to 26))
+
+
+sub SIG_STOP () { 1 } # stop the signal from reaching other handlers.
+sub SIG_CONT () { 0 } # allow it to continue
+
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
 my $non_word = qr/[^\w_\s]/o;
@@ -979,11 +995,11 @@ my $movement = undef;
 # last vi command, used by .
 my $last
   = {
-     'cmd' => $commands->{i}, # = i to support . when loading the script
+     'cmd'            => $commands->{i}, # = i to support . when loading the script
      'numeric_prefix' => undef,
-     'operator' => undef,
-     'movement' => undef,
-     'register' => '"',
+     'operator'       => undef,
+     'movement'       => undef,
+     'register'       => '"',
     };
 
 # last ftFT movement, used by ; and ,
@@ -3376,7 +3392,7 @@ sub ex_history_show {
 
 
 ################################################################
-#                    INPUT HANDLING                            #
+#                    INPUT SIGNAL HANDLER                      #
 ################################################################
 
 
@@ -3385,8 +3401,23 @@ sub sig_gui_keypress {
 
     return if ($should_ignore);
 
-    # Esc key
-    if ($key == 27) {
+    my $char = chr($key);
+
+    my $should_stop = process_input($key, $char);
+
+    _stop() if ($should_stop == SIG_STOP);
+
+}
+
+
+################################################################
+#                    INPUT MODEL                               #
+################################################################
+
+sub process_input {
+    my ($key, $char) = @_;
+
+    if ($key == KEY_ESC) {
         print "Esc seen, starting buffer" if DEBUG;
         $input_buf_enabled = 1;
 
@@ -3403,12 +3434,11 @@ sub sig_gui_keypress {
 
     } elsif ($mode == M_INS) {
 
-        if ($key == 3) { # Ctrl-C enters command mode
+        if ($key == KEY_C_C) { # Ctrl-C enters command mode
             _update_mode(M_CMD);
-            _stop();
-            return;
+            return SIG_STOP;
 
-        } elsif ($key == 10) { # enter.
+        } elsif ($key == KEY_RET) { # enter.
             _commit_line();
 
         } elsif ($input_buf_enabled and $imap) {
@@ -3422,9 +3452,8 @@ sub sig_gui_keypress {
                 push @input_buf, $key;
             }
             flush_input_buffer();
-            _stop();
             $imap = undef;
-            return;
+            return SIG_STOP;
 
         } elsif (exists $imaps->{chr($key)}) {
             print "Imap " . chr($key) . " seen, starting buffer" if DEBUG;
@@ -3437,12 +3466,11 @@ sub sig_gui_keypress {
             $input_buf_timer
               = Irssi::timeout_add_once(1000, \&flush_input_buffer, undef);
 
-            _stop();
-            return;
+            return SIG_STOP;
 
         # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
         # TODO: maybe allow it
-        } elsif ($key == 8 || $key == 127) {
+        } elsif ($key == KEY_DEL or $key == KEY_BS) {
             @insert_buf = ();
         # All other entered characters need to be stored to allow repeat of
         # insert mode. Ignore delete and control characters.
@@ -3453,26 +3481,27 @@ sub sig_gui_keypress {
 
     if ($input_buf_enabled) {
         push @input_buf, $key;
-        _stop();
-        return;
+        return SIG_STOP;
     }
 
     if ($mode == M_CMD) {
+
         my $should_stop = handle_command_cmd($key);
         _stop() if $should_stop;
+
         Irssi::statusbar_items_redraw("vim_mode");
 
     } elsif ($mode == M_EX) {
 
-        if ($key == 3) { # C-c cancels Ex mdoe as well.
+        if ($key == KEY_C_C) { # C-c cancels Ex mdoe as well.
             _update_mode(M_CMD);
-            _stop();
-            return;
+            return SIG_STOP;
         }
 
         handle_command_ex($key);
     }
 }
+
 
 # TODO: merge this with 'flush_input_buffer' below.
 
@@ -3555,6 +3584,12 @@ sub flush_pending_map {
     handle_command_cmd(undef);
     Irssi::statusbar_items_redraw("vim_mode");
 }
+
+
+
+################################################################
+#                    COMMAND HANDLING                          #
+################################################################
 
 sub handle_numeric_prefix {
     my ($char) = @_;
