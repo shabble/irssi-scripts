@@ -587,16 +587,16 @@ Things we're not ever likely to do:
 
 use strict;
 use warnings;
-
+#use diagnostics;
 #TODO: Specify a minimum version of perl (5.8, probably?)
 #testing.
 # UTF-8 conversion functions.
 use Encode;
-use List::Util; # Not currently used.
+use List::Util;                 # Not currently used.
 
 use Irssi;
-use Irssi::TextUI; # statusbar handling.
-use Irssi::Irc;    # necessary for 0.8.14
+use Irssi::TextUI;              # statusbar handling.
+use Irssi::Irc;                 # necessary for 0.8.14
 
 
 
@@ -605,8 +605,8 @@ our %IRSSI   =
   (
    authors         => "Tom Feist (shabble), Simon Ruderich (rudi_s)",
    contact         => 'shabble+irssi@metavore.org, '
-                    . 'shabble@#irssi/Freenode, simon@ruderich.org'
-                    . 'rudi_s@#irssi/Freenode',
+   . 'shabble@#irssi/Freenode, simon@ruderich.org'
+   . 'rudi_s@#irssi/Freenode',
    name            => "vim_mode",
    description     => "Give Irssi Vim-like commands for editing the inputline",
    license         => "MIT",
@@ -655,13 +655,21 @@ sub S_STR  () { 2 }
 sub KEY_ESC () {  27 }
 sub KEY_RET () {  10 }
 sub KEY_TAB () {   9 }
-sub KEY_DEL () {   8 } # Ctrl-H
-sub KEY_BS  () { 127 } # Backspace (^? usually)
-sub KEY_C_C () {   3 } # Ctrl-C (all Ctrl-<x> are 0 + letter (from a=1 to 26))
+sub KEY_DEL () {   8 }   # Ctrl-H
+sub KEY_BS  () { 127 }   # Backspace (^? usually)
+sub KEY_C_C () {   3 }   # Ctrl-C (all Ctrl-<x> are 0 + letter (from a=1 to 26))
 
 
-sub SIG_STOP () { 1 } # stop the signal from reaching other handlers.
-sub SIG_CONT () { 0 } # allow it to continue
+sub SIG_STOP () { 1 }           # stop the signal from reaching other handlers.
+sub SIG_CONT () { 0 }           # allow it to continue
+
+
+# constants for determining how timeout and ttimeout settings are used.
+
+sub TIMEOUT_MODE_NONE () { 0 }
+sub TIMEOUT_MODE_BOTH () { 1 }
+sub TIMEOUT_MODE_CODE () { 2 }
+sub TIMEOUT_MODE_MAPS () { 3 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -689,8 +697,8 @@ my $commands
             repeatable => 1 },
 
      # arrow like movement
-      h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
-      l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
+     l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
      "\x08" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
@@ -710,8 +718,8 @@ my $commands
                  selection_needs_move_right => 1 },
      F      => { char => 'F', func => \&cmd_F, type => C_NEEDSKEY },
      T      => { char => 'T', func => \&cmd_T, type => C_NEEDSKEY },
-    ';'     => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
-    ','     => { char => ',', func => \&cmd_comma, type => C_NORMAL },
+     ';'     => { char => ';', func => \&cmd_semicolon, type => C_NORMAL },
+     ','     => { char => ',', func => \&cmd_comma, type => C_NORMAL },
      # word movement
      w      => { char => 'w',  func => \&cmd_w,  type => C_NORMAL },
      b      => { char => 'b',  func => \&cmd_b,  type => C_NORMAL },
@@ -738,10 +746,10 @@ my $commands
                  repeatable => 1, no_operator => 1 },
      X      => { char => 'X', func => \&cmd_X, type => C_NORMAL,
                  repeatable => 1, no_operator => 1 },
-               # C_NORMAL is correct, operator c takes care of insert mode
+     # C_NORMAL is correct, operator c takes care of insert mode
      s      => { char => 's', func => \&cmd_s, type => C_NORMAL,
                  repeatable => 1, no_operator => 1 },
-               # C_NORMAL is correct, operator c takes care of insert mode
+     # C_NORMAL is correct, operator c takes care of insert mode
      S      => { char => 'S', func => \&cmd_S, type => C_NORMAL,
                  repeatable => 1, no_operator => 1 },
      # insert mode
@@ -782,7 +790,7 @@ my $commands
      "\x06"  => { char => '<C-F>', func => \&cmd_ctrl_f, type => C_NORMAL,
                   no_operator => 1 },
      "\x02"  => { char => '<C-B>', func => \&cmd_ctrl_b, type => C_NORMAL,
-                 no_operator => 1 },
+                  no_operator => 1 },
      # window switching
      "\x17j" => { char => '<C-W>j', func => \&cmd_ctrl_wj, type => C_NORMAL,
                   no_operator => 1 },
@@ -896,13 +904,13 @@ my $commands_ex
 ################################################################
 
 # command mode mappings
-my $cmap = undef; # cmap still pending (contains first character entered)
+my $cmap = undef;        # cmap still pending (contains first character entered)
 my $cmaps = {};
 
 
 # insert-mode mappings
 
-my $imap = undef; # imap still pending (contains first character entered)
+my $imap = undef;        # imap still pending (contains first character entered)
 my $imaps
   = {
      # CTRL-R, insert register
@@ -970,7 +978,9 @@ my $should_ignore = 0;
 # buffer to keep track of the last N keystrokes, used for Esc detection and
 # insert mode mappings
 my @escape_buf;
-my $escape_buf_timer;
+my $escape_buf_timeout;
+my $escape_buf_ttimeout;
+
 my $escape_buf_enabled = 0;
 
 # mode-related input buffers
@@ -980,6 +990,9 @@ my $escape_buf_enabled = 0;
 my @insert_mode_buf;
 my @cmd_mode_buf;
 my @ex_mode_buf;
+
+my $keycode_timeouts_active;
+my $mapping_timeouts_active;
 
 # Ex-mode related vars
 # --------------------
@@ -1017,7 +1030,7 @@ my $last
 # last ftFT movement, used by ; and ,
 my $last_ftFT
   = {
-     type => undef, # f, t, F or T
+     type => undef,             # f, t, F or T
      char => undef,
     };
 
@@ -1030,11 +1043,11 @@ my $register = '"';
 # vi registers
 my $registers
   = {
-     '"' => '', # default register
-     '0' => '', # yank register
-     '+' => '', # contains irssi's cut buffer
-     '*' => '', # same
-     '_' => '', # black hole register, always empty
+     '"' => '',                 # default register
+     '0' => '',                 # yank register
+     '+' => '',                 # contains irssi's cut buffer
+     '*' => '',                 # same
+     '_' => '',                 # black hole register, always empty
     };
 
 # (irssi) History related vars:
@@ -1102,7 +1115,7 @@ sub cmd_operator_c {
                        $move_cmd == $commands->{W})) {
         my $input = _input();
         if ($new_pos - $old_pos > 1 and
-                substr($input, $new_pos - 1, 1) =~ /\s/) {
+            substr($input, $new_pos - 1, 1) =~ /\s/) {
             $new_pos--;
         }
     }
@@ -1225,10 +1238,10 @@ sub cmd_j {
     if (defined $history_index) {
         $history_index += $count;
         print "History Index: $history_index" if DEBUG;
-    # Prevent destroying the current input when pressing j after entering
-    # command mode. Not exactly like in default irssi, but simplest solution
-    # (and S can be used to clear the input line fast, which is what <down>
-    # does in plain irssi).
+        # Prevent destroying the current input when pressing j after entering
+        # command mode. Not exactly like in default irssi, but simplest solution
+        # (and S can be used to clear the input line fast, which is what <down>
+        # does in plain irssi).
     } else {
         return (undef, undef);
     }
@@ -1393,8 +1406,8 @@ sub cmd_semicolon {
     return (undef, undef) if not defined $last_ftFT->{type};
 
     (undef, $pos)
-        = $commands->{$last_ftFT->{type}}
-                   ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+      = $commands->{$last_ftFT->{type}}
+      ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     return (undef, $pos);
 }
 
@@ -1409,8 +1422,8 @@ sub cmd_comma {
     $type =~ tr/ftFT/FTft/;
 
     (undef, $pos)
-        = $commands->{$type}
-                   ->{func}($count, $pos, $repeat, $last_ftFT->{char});
+      = $commands->{$type}
+      ->{func}($count, $pos, $repeat, $last_ftFT->{char});
     # Restore type as the move functions overwrites it.
     $last_ftFT->{type} = $save;
     return (undef, $pos);
@@ -1492,8 +1505,7 @@ sub _end_of_word {
         if (substr($input, $pos + 1) =~ /^\s+/) {
             $pos += $+[0] + 1;
             $skipped = 1;
-        }
-        elsif (substr($input, $pos) =~ /^\s+/) {
+        } elsif (substr($input, $pos) =~ /^\s+/) {
             $pos += $+[0];
             $skipped = 1;
         }
@@ -1501,9 +1513,9 @@ sub _end_of_word {
         if (substr($input, $pos) =~ /^$word{2,}/ or
             substr($input, $pos) =~ /^$non_word{2,}/) {
             $pos += $+[0] - 1;
-        # We are the border of word/non-word. Skip to the end of the next one.
-        # But not if we've already jumped over whitespace because there could
-        # be only one word/non-word char after the whitespace.
+            # We are the border of word/non-word. Skip to the end of the next one.
+            # But not if we've already jumped over whitespace because there could
+            # be only one word/non-word char after the whitespace.
         } elsif (!$skipped and (substr($input, $pos) =~ /^$word($non_word+)/ or
                                 substr($input, $pos) =~ /^$non_word($word+)/)) {
             $pos += $+[0] - 1;
@@ -1643,7 +1655,7 @@ sub cmd__a {
                     } else {
                         $pos = length($input);
                     }
-                # WORD
+                    # WORD
                 } else {
                     if (substr($input, $pos + 1) =~ /\s/) {
                         $pos += $-[0] + 1;
@@ -1652,7 +1664,7 @@ sub cmd__a {
                     }
                 }
 
-            # word
+                # word
             } elsif ($char eq 'w') {
                 # Start at the beginning of this WORD.
                 if (not defined $cur_pos and $pos > 0
@@ -1694,11 +1706,11 @@ sub cmd__a {
                     }
                 }
 
-            # WORD
+                # WORD
             } else {
                 # Start at the beginning of this WORD.
                 if (not defined $cur_pos and $pos > 0 and
-                        substr($input, $pos - 1, 1) !~ /\s/) {
+                    substr($input, $pos - 1, 1) !~ /\s/) {
                     $cur_pos = _find_regex_before($input, '\s', $pos - 1, 0);
                     if ($cur_pos < 0) {
                         $cur_pos = 0;
@@ -1756,10 +1768,10 @@ sub cmd_caret {
     # No whitespace at all.
     if ($input !~ m/^\s/) {
         $pos = 0;
-    # Some non-whitespace, go to first one.
+        # Some non-whitespace, go to first one.
     } elsif ($input =~ m/[^\s]/) {
         $pos = $-[0];
-    # Only whitespace, go to the end.
+        # Only whitespace, go to the end.
     } else {
         $pos = _fix_input_pos(length $input, length $input);
     }
@@ -2039,7 +2051,7 @@ sub cmd_undo {
         $undo_index++;
         _restore_undo_entry($undo_index);
         print "Undoing entry index: $undo_index of " . scalar(@undo_buffer)
-            if DEBUG;
+          if DEBUG;
     } else {
         print "No further undo." if DEBUG;
     }
@@ -2052,7 +2064,7 @@ sub cmd_redo {
     if ($undo_index != 0) {
         $undo_index--;
         print "Undoing entry index: $undo_index of " . scalar(@undo_buffer)
-            if DEBUG;
+          if DEBUG;
         _restore_undo_entry($undo_index);
     } else {
         print "No further Redo." if DEBUG;
@@ -2068,7 +2080,7 @@ sub _fix_input_pos {
     # correct handling of last character in line.
     if ($operator) {
         $pos = $length if $pos > $length;
-    # Otherwise forbid it.
+        # Otherwise forbid it.
     } else {
         $pos = $length - 1 if $pos > $length - 1;
     }
@@ -2097,7 +2109,7 @@ sub cmd_ex_command {
 
     # add this item to the ex mode history
     ex_history_add($arg_str);
-    $ex_history_index = 0; # and reset the history position.
+    $ex_history_index = 0;      # and reset the history position.
 
     my $count = $1;
     if ($count eq '') {
@@ -2205,13 +2217,13 @@ sub ex_buffer {
         # :[N]:b[uffer]
         if (defined $count) {
             $window = Irssi::window_find_refnum($count);
-        # Go to window number.
+            # Go to window number.
         } elsif ($buffer =~ /^[0-9]+$/) {
             $window = Irssi::window_find_refnum($buffer);
-        # Go to previous window.
+            # Go to previous window.
         } elsif ($buffer eq '#') {
             Irssi::command('window last');
-        # Go to best regex matching window.
+            # Go to best regex matching window.
         } else {
             eval {
                 my $matches = _matching_windows($buffer);
@@ -2416,19 +2428,19 @@ sub ex_map {
                              type => C_EX,
                            };
             }
-        # Irssi command
+            # Irssi command
         } elsif (index($rhs, '/') == 0) {
             $command = { char => $rhs,
                          func => substr($rhs, 1),
                          type => C_IRSSI,
                        };
-        # <Nop> does nothing
+            # <Nop> does nothing
         } elsif (lc $rhs eq '<nop>') {
             $command = { char => '<Nop>',
                          func => undef,
                          type => C_NOP,
                        };
-        # command-mode command
+            # command-mode command
         } else {
             $rhs = _parse_mapping($2);
             if (not defined $rhs) {
@@ -2441,7 +2453,7 @@ sub ex_map {
         }
         add_map($lhs, $command);
 
-    # :map [lhs]
+        # :map [lhs]
     } elsif ($arg_str =~ m/^map\s*$/ or $arg_str =~ m/^map (\S+)$/) {
         # Necessary for case insensitive matchings. lc alone won't work.
         my $search = $1;
@@ -2458,7 +2470,7 @@ sub ex_map {
                 next if $map->{char} eq '<C-H>' and $cmd->{char} eq '<BS>';
                 next if $map->{char} !~ /^\Q$search\E/; # skip non-matches
                 $active_window->print(sprintf "%-15s %s", $map->{char},
-                                                          $cmd->{char});
+                                      $cmd->{char});
             }
         }
     } else {
@@ -2476,7 +2488,7 @@ sub ex_unmap {
     my $lhs = _parse_mapping($1);
     if (not defined $lhs) {
         return _warn_ex('unmap', 'invalid {lhs}');
-    # Prevent unmapping of unknown or default mappings.
+        # Prevent unmapping of unknown or default mappings.
     } elsif (not exists $cmaps->{$lhs} or not defined $cmaps->{$lhs}->{cmd} or
              ($commands->{$lhs} and $cmaps->{$lhs}->{cmd} == $commands->{$lhs})) {
         return _warn_ex('unmap', "$1 not found");
@@ -2502,21 +2514,21 @@ sub _parse_mapping_bracket {
     # <C-X>, get corresponding CTRL char.
     if ($string =~ /^c-([a-z])$/i) {
         $string = chr(ord($1) - 96);
-    # <C-6> and <C-^>
+        # <C-6> and <C-^>
     } elsif ($string =~ /^c-[6^]$/i) {
         $string = chr(30);
-    # <Space>
+        # <Space>
     } elsif ($string eq 'space') {
         $string = ' ';
-    # <CR>
+        # <CR>
     } elsif ($string eq 'cr') {
         $string = "\n";
-    # <BS>
+        # <BS>
     } elsif ($string eq 'bs') {
         $string = chr(127);
     } elsif ($string eq 'leader') {
         $string = $settings->{map_leader}->{value};
-    # Invalid char, return special string to recognize the error.
+        # Invalid char, return special string to recognize the error.
     } else {
         $string = '<invalid>';
     }
@@ -2630,7 +2642,7 @@ sub ex_set {
             _setting_set($name, $value);
             setup_changed();
 
-        # :se[t] [option]
+            # :se[t] [option]
         } else {
             my $search = defined $1 ? $1 : '';
             my $active_window = Irssi::active_win();
@@ -2752,7 +2764,7 @@ sub _set_prompt {
     my $msg = shift;
 
     # add a leading space unless we're trying to clear it entirely.
-    if  (length($msg) and $settings->{prompt_leading_space}->{value}) {
+    if (length($msg) and $settings->{prompt_leading_space}->{value}) {
         $msg = ' ' . $msg;
     }
 
@@ -2825,16 +2837,16 @@ sub _matching_windows {
         if ($window->{name} =~ /$buffer/i) {
             my $win_ratio = ($+[0] - $-[0]) / length($window->{name});
             push @matches, { window => $window,
-                               item => undef,
-                              ratio => $win_ratio,
-                               text => $window->{name} };
+                             item => undef,
+                             ratio => $win_ratio,
+                             text => $window->{name} };
             print ":b $window->{name}: $win_ratio" if DEBUG;
         }
         # Matching Window item names (= channels).
         foreach my $item ($window->items()) {
             # Wrong server.
             if ($server and (!$item->{server} or
-                              $item->{server}->{chatnet} !~ /^$server/i)) {
+                             $item->{server}->{chatnet} !~ /^$server/i)) {
                 next;
             }
             if ($item->{name} =~ /$buffer/i) {
@@ -2842,9 +2854,9 @@ sub _matching_windows {
                 $length-- if index($item->{name}, '#') == 0;
                 my $item_ratio = ($+[0] - $-[0]) / $length;
                 push @matches, { window => $window,
-                                   item => $item,
-                                  ratio => $item_ratio,
-                                   text => $item->{name} };
+                                 item => $item,
+                                 ratio => $item_ratio,
+                                 text => $item->{name} };
                 print ":b $window->{name} $item->{name}: $item_ratio" if DEBUG;
             }
         }
@@ -2992,7 +3004,7 @@ sub vim_mode_init {
 
     # Add all default mappings.
     foreach my $char (keys %$commands) {
-        next if $char =~ /^_/; # skip private commands (text-objects for now)
+        next if $char =~ /^_/;  # skip private commands (text-objects for now)
         add_map($char, $commands->{$char});
     }
 
@@ -3149,8 +3161,8 @@ sub add_map {
         if (not exists $cmaps->{$tmp}) {
             $cmaps->{$tmp} = { char => _parse_mapping_reverse($tmp),
                                cmd => undef,
-                              maps => {}
-                            };
+                               maps => {}
+                             };
         }
         if (not exists $cmaps->{$tmp}->{maps}->{$tmp . $map}) {
             $cmaps->{$tmp}->{maps}->{$tmp . $map} = undef;
@@ -3160,8 +3172,8 @@ sub add_map {
     if (not exists $cmaps->{$keys}) {
         $cmaps->{$keys} = { char => undef,
                             cmd => undef,
-                           maps => {}
-                         };
+                            maps => {}
+                          };
     }
     $cmaps->{$keys}->{char} = _parse_mapping_reverse($keys);
     $cmaps->{$keys}->{cmd} = $command;
@@ -3224,9 +3236,9 @@ sub _update_mode {
             _input_pos($pos);
             $numeric_prefix = undef;
 
-        # In insert mode we are "between" characters, in command mode "on top"
-        # of keys. When leaving insert mode we have to move on key left to
-        # accomplish that.
+            # In insert mode we are "between" characters, in command mode "on top"
+            # of keys. When leaving insert mode we have to move on key left to
+            # accomplish that.
         } else {
             $pos = _input_pos();
             if ($pos != 0) {
@@ -3236,12 +3248,12 @@ sub _update_mode {
         # Store current line to allow undo of i/a/I/A.
         _add_undo_entry(_input(), _input_pos());
 
-    # Change mode to i to support insert mode repetition. This doesn't affect
-    # commands like i/a/I/A because handle_command_cmd() sets $last->{cmd}.
-    # It's necessary when pressing enter so the next line can be repeated.
+        # Change mode to i to support insert mode repetition. This doesn't affect
+        # commands like i/a/I/A because handle_command_cmd() sets $last->{cmd}.
+        # It's necessary when pressing enter so the next line can be repeated.
     } elsif ($mode == M_CMD and $new_mode == M_INS) {
         $last->{cmd} = $commands->{i};
-    # Make sure prompt is cleared when leaving ex mode.
+        # Make sure prompt is cleared when leaving ex mode.
     } elsif ($mode == M_EX and $new_mode != M_EX) {
         _set_prompt('');
     }
@@ -3251,8 +3263,8 @@ sub _update_mode {
         $history_index = undef;
         $register = '"';
         @insert_mode_buf = ();
-    # Reset every command mode related status as a fallback in case something
-    # goes wrong.
+        # Reset every command mode related status as a fallback in case something
+        # goes wrong.
     } elsif ($mode == M_CMD) {
         $numeric_prefix = undef;
         $operator = undef;
@@ -3362,7 +3374,7 @@ sub ex_history_add {
     unshift @ex_history, $line;
 
     if ($settings->{ex_history_size}->{value} < @ex_history) {
-        pop @ex_history; # junk the last entry if we've hit the max.
+        pop @ex_history;        # junk the last entry if we've hit the max.
     }
 }
 
@@ -3444,97 +3456,279 @@ sub sig_gui_keypress {
 sub process_input_key {
     my ($key, $char) = @_;
 
-    # no matter what mode we're in, we need to deal with escape (and escape
-    # sequences) specially. So do them first.
+    my ($timeout, $ttimeout)
+      = ($settings->{timeout}->{value},
+         $settings->{ttimeout}->{value});
 
-    # First,
-    if ($key == KEY_ESC) {
-        _debug("Escape seen, beginning escape_buf collection");
-        $escape_buf_enabled = 1;
+    my ($timeout_len, $ttimeout_len)
+      = ($settings->{timeoutlen}->{value},
+         $settings->{ttimeoutlen}->{value});
 
-        push @escape_buf, $key;
+    _append_to_mode_buffer($key);
 
-        # NOTE: this timeout might be too low on laggy systems, but
-        # it comes at the cost of keystroke latency for things that
-        # contain escape sequences (arrow keys, etc)
-        my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
+    if ((not $timeout) and (not $ttimeout)) {
+        # wait forever
+        _debug("process_keys_timeout none");
 
-        $escape_buf_timer =
-          Irssi::timeout_add_once($esc_buf_timeout,
-                                  \&escape_buffer_timeout, undef);
+        return if $keycode_timeouts_active or $mapping_timeouts_active;
 
-        _debug("Buffer Timer tag: $escape_buf_timer");
+        process_keys_timeout(TIMEOUT_MODE_NONE); # make these constants.
+    } elsif ($timeout) {
+        _debug("process_keys_timeout both");
 
-    } elsif ($escape_buf_enabled) {
-        attempt_escape_buffer_parse($key, $char);
-        # we can check at this point if we recognise the sequence, and cancel
-        # the timeout if we do.
-    }
-}
-sub attempt_escape_buffer_parse {
-    my ($key, $char) = @_;
+        # timeout on both mappings and keycodes
+        process_keys_timeout(TIMEOUT_MODE_BOTH, $timeout_len, $ttimeout_len);
+    } elsif ((not $timeout) and $ttimeout) {
+        # timeout on codes (but not mappings?
+        _debug("process_keys_timeout code");
 
-    if ($char eq '[') {
-        _debug("Spotted CSI");
-    } elsif ($char eq ']') {
-        _debug ("Spotted OSC");
+        return if $keycode_timeouts_active;
+
+        process_keys_timeout(TIMEOUT_MODE_CODE, $timeout_len, $ttimeout_len);
     } else {
-        push @escape_buf, $key;
+        _debug("What the buggery, shouldn't happen: T: $timeout, TT: $ttimeout");
     }
+
 }
+#     if ($key == KEY_ESC) {
+#         _debug("Escape seen, beginning escape_buf collection");
+#         $escape_buf_enabled = 1;
 
-sub escape_buffer_timeout {
+#         push @escape_buf, $key;
 
-    $escape_buf_timer = undef;
-    $escape_buf_enabled = 0;
+#         # NOTE: this timeout might be too low on laggy systems, but
+#         # it comes at the cost of keystroke latency for things that
+#         # contain escape sequences (arrow keys, etc)
+#         my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
 
-    _debug("Escape buffer contains: ", join(", ", @escape_buf));
+#         $escape_buf_timer =
+#           Irssi::timeout_add_once($esc_buf_timeout,
+#                                   \&escape_buffer_timeout, undef);
 
-    if (@escape_buf == 1 && $escape_buf[0] == KEY_ESC) {
+#         _debug("Buffer Timer tag: $escape_buf_timer");
 
-        _debug("escape only, Enter Command Mode");
-        _update_mode(M_CMD);
+#     } elsif ($escape_buf_enabled) {
+#         attempt_escape_buffer_parse($key, $char);
+#         # we can check at this point if we recognise the sequence, and cancel
+#         # the timeout if we do.
+#     }
+# }
 
-    } else {
-        # we have more than a single esc, implying an escape sequence
-        # (meta-* or esc-*)
 
-        # currently, we only extract escape sequences if:
-        # a) we're in ex mode
-        # b) they're arrow keys (for history control)
+sub process_keys_timeout 
+{
+    my ($timeout_mode, $timeout_len, $ttimeout_len) = @_;
 
-        if ($mode == M_EX) {
-            # ex mode
-            my $key_str = join '', map { chr } @escape_buf;
-            if ($key_str =~ m/^\e\[([ABCD])/) {
-                my $arrow = $1;
-                _debug( "Arrow key: $arrow");
-                if ($arrow eq 'A') { # up
-                    ex_history_back();
-                } elsif ($arrow eq 'B') { # down
-                    ex_history_fwd();
-                } else {
-                    $arrow =~ s/C/right/;
-                    $arrow =~ s/D/left/;
-                    _debug("Arrow key $arrow not supported");
-                }
-            }
+    if ($timeout_mode eq TIMEOUT_MODE_NONE) {
+
+        _try_process_keycode();
+        _try_process_mapping();
+
+    } elsif ($timeout_mode eq TIMEOUT_MODE_BOTH) {
+
+        my ($keycode_delay, $mapping_delay);
+
+        if ($ttimeout_len == 0) {
+            return if $keycode_timeouts_active;
+            _try_process_keycode();
+
+        } elsif ($ttimeout_len > 0 and $ttimeout_len < 10) {
+            $mapping_delay = 10; # minimum irssi timeout.
         } else {
-            # otherwise, we just forward them to irssi.
-            _emulate_keystrokes(@escape_buf);
+
+            $timeout_len   = $timeout_len < 10 ? 10 : $timeout_len;
+            $mapping_delay = $keycode_delay = $timeout_len;
         }
 
-        # Clear insert buffer, pressing "special" keys (like arrow keys)
-        # resets it.
-        @escape_buf = ();
+        if (not $mapping_timeouts_active) {
+
+            _debug("Setting mapping delay to %d", $mapping_delay);
+            $escape_buf_ttimeout
+              = Irssi::timeout_add_once($mapping_delay,
+                                        \&_try_process_mapping, 1);
+              $mapping_timeouts_active = 1;
+
+        } else {
+            _debug ("Not adding new mapping timeout");
+        }
+
+        if (not $keycode_timeouts_active) {
+
+            _debug("Setting keycode delay to %d", $keycode_delay);
+            $escape_buf_timeout
+              = Irssi::timeout_add_once($keycode_delay,
+                                        \&_try_process_keycode, 1);
+            $keycode_timeouts_active = 1;
+
+        } else {
+            _debug ("Not adding new keycode timeout");
+        }
+
+    } elsif ($timeout_mode eq TIMEOUT_MODE_CODE) {
+
+        $keycode_timeouts_active = 1;
+
+        _try_process_mapping();
+        $escape_buf_timeout
+          = Irssi::timeout_add_once($timeout_len,
+                                    \&_try_process_keycode, 1);
+    }
+}
+
+sub _try_process_mapping {
+    my ($from_timer) = @_;
+
+    my @buf = _get_mode_buffer();
+    _debug("process mapping: '%s'", _buf_to_str(@buf));
+
+    $mapping_timeouts_active = 0 if $from_timer;
+}
+
+sub _try_process_keycode {
+    my ($from_timer) = @_;
+
+    my @buf = _get_mode_buffer();
+    _debug("keycode mapping: '%s'", _buf_to_str(@buf));
+    if (@buf == 1 and $buf[0] == KEY_ESC) {
+        _debug ("Buf contains ESC!");
+        _update_mode(M_CMD);
+    } elsif (@buf == 1 and $buf[0] == ord('i')) {
+        _debug ("Buf contains i!");
+        _update_mode(M_INS);
+    } else {
+        _debug("buf contains: '%s'", _buf_to_hex_str(@buf));
     }
 
-    @escape_buf = ();
-    $escape_buf_enabled = 0;
+    _reset_mode_buffer($_) for (M_CMD, M_INS, M_EX);
+    $keycode_timeouts_active = 0 if $from_timer;
 }
 
 
+################################################################
+#                    INPUT BUFFER MODEL                        #
+################################################################
 
+sub _append_to_mode_buffer {
+    my ($keycode) = @_;
+    my $char = chr $keycode;
+    if ($mode == M_CMD) {
+        _debug("Appending %s to CMD buf",  $char);
+        push @cmd_mode_buf, $keycode;
+    } elsif ($mode == M_EX) {
+        _debug("Appending %s to EX buf",  $char);
+
+        push @ex_mode_buf, $keycode;
+    } else {
+        _debug("Appending %s to INS buf",  $char);
+
+        push @insert_mode_buf, $keycode;
+    }
+}
+
+sub _get_mode_buffer {
+    if ($mode == M_CMD) {
+        return @cmd_mode_buf;
+    } elsif ($mode == M_EX) {
+        return @ex_mode_buf;
+    } else {
+        return @insert_mode_buf;
+    }
+}
+
+sub _reset_mode_buffer {
+    my ($override_mode) = @_;
+
+    if (not defined $override_mode) {
+        $override_mode = $mode;
+    }
+
+    if ($override_mode == M_CMD) {
+        _debug("Resetting CMD buffer");
+        @cmd_mode_buf = ();
+    } elsif ($override_mode == M_EX) {
+        _debug("Resetting EX buffer");
+        @ex_mode_buf = ();
+    } elsif ($override_mode == M_INS) {
+        _debug("Resetting INS buffer");
+        @insert_mode_buf = ();
+    } else {
+        _warn("Reset mode buffer: Unknown mode: $override_mode");
+    }
+}
+
+sub _buf_to_str {
+    return join '', map { chr } @_;
+}
+
+sub _buf_to_hex_str {
+    my @list;
+    foreach my $key (@_) {
+        push @list, sprintf('0x%02x', $key);
+    }
+    return '[' . join(' ', @list) . ']';
+}
+
+# sub attempt_escape_buffer_parse {
+#     my ($key, $char) = @_;
+
+#     if ($char eq '[') {
+#         _debug("Spotted CSI");
+#     } elsif ($char eq ']') {
+#         _debug ("Spotted OSC");
+#     } else {
+#         push @escape_buf, $key;
+#     }
+# }
+
+# sub escape_buffer_timeout {
+
+#     $escape_buf_timer = undef;
+#     $escape_buf_enabled = 0;
+
+#     _debug("Escape buffer contains: ", join(", ", @escape_buf));
+
+#     if (@escape_buf == 1 && $escape_buf[0] == KEY_ESC) {
+
+#         _debug("escape only, Enter Command Mode");
+#         _update_mode(M_CMD);
+
+#     } else {
+#         # we have more than a single esc, implying an escape sequence
+#         # (meta-* or esc-*)
+
+#         # currently, we only extract escape sequences if:
+#         # a) we're in ex mode
+#         # b) they're arrow keys (for history control)
+
+#         if ($mode == M_EX) {
+#             # ex mode
+#             my $key_str = join '', map { chr } @escape_buf;
+#             if ($key_str =~ m/^\e\[([ABCD])/) {
+#                 my $arrow = $1;
+#                 _debug( "Arrow key: $arrow");
+#                 if ($arrow eq 'A') { # up
+#                     ex_history_back();
+#                 } elsif ($arrow eq 'B') { # down
+#                     ex_history_fwd();
+#                 } else {
+#                     $arrow =~ s/C/right/;
+#                     $arrow =~ s/D/left/;
+#                     _debug("Arrow key $arrow not supported");
+#                 }
+#             }
+#         } else {
+#             # otherwise, we just forward them to irssi.
+#             _emulate_keystrokes(@escape_buf);
+#         }
+
+#         # Clear insert buffer, pressing "special" keys (like arrow keys)
+#         # resets it.
+#         @escape_buf = ();
+#     }
+
+#     @escape_buf = ();
+#     $escape_buf_enabled = 0;
+# }
 
 
 # work slowly incorporating stuff back in.
@@ -3627,35 +3821,35 @@ sub escape_buffer_timeout {
 # TODO: merge this with 'flush_input_buffer' below.
 
 
-sub flush_input_buffer {
-    Irssi::timeout_remove($escape_buf_timer) if defined $escape_buf_timer;
-    $escape_buf_timer = undef;
-    # see what we've collected.
-    _debug("Escape buffer flushed");
+# sub flush_input_buffer {
+#     Irssi::timeout_remove($escape_buf_timer) if defined $escape_buf_timer;
+#     $escape_buf_timer = undef;
+#     # see what we've collected.
+#     _debug("Escape buffer flushed");
 
-    # Add the characters to @escape_buf so they can be repeated.
-    push @escape_buf, map chr, @escape_buf;
+#     # Add the characters to @escape_buf so they can be repeated.
+#     push @escape_buf, map chr, @escape_buf;
 
-    _emulate_keystrokes(@escape_buf);
+#     _emulate_keystrokes(@escape_buf);
 
-    @escape_buf = ();
-    $escape_buf_enabled = 0;
+#     @escape_buf = ();
+#     $escape_buf_enabled = 0;
 
-    $imap = undef;
-}
+#     $imap = undef;
+# }
 
-sub flush_pending_map {
-    my ($old_pending_map) = @_;
+# sub flush_pending_map {
+#     my ($old_pending_map) = @_;
 
-    print "flush_pending_map(): ", $pending_map, ' ', $old_pending_map
-        if DEBUG;
+#     print "flush_pending_map(): ", $pending_map, ' ', $old_pending_map
+#         if DEBUG;
 
-    return if not defined $pending_map or
-              $pending_map ne $old_pending_map;
+#     return if not defined $pending_map or
+#               $pending_map ne $old_pending_map;
 
-    handle_command_cmd(undef);
-    Irssi::statusbar_items_redraw("vim_mode");
-}
+#     handle_command_cmd(undef);
+#     Irssi::statusbar_items_redraw("vim_mode");
+# }
 
 
 
@@ -3683,7 +3877,7 @@ sub handle_command_cmd {
     my $char;
     if (defined $key) {
         $char = chr($key);
-    # We were called from flush_pending_map().
+        # We were called from flush_pending_map().
     } else {
         $char = $pending_map;
         $key = 0;
@@ -3695,7 +3889,7 @@ sub handle_command_cmd {
         ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
         print "Processing numeric prefix: $char" if DEBUG;
         handle_numeric_prefix($char);
-        return 1; # call _stop()
+        return 1;               # call _stop()
     }
 
     if (defined $pending_map and not $pending_map_flushed) {
@@ -3723,16 +3917,16 @@ sub handle_command_cmd {
             # after a timeout.
             if (defined $map->{cmd}) {
                 Irssi::timeout_add_once(1000, \&flush_pending_map,
-                                              $pending_map);
+                                        $pending_map);
             }
-            return 1; # call _stop()
+            return 1;           # call _stop()
         }
 
     } else {
         print "No mapping found for $char" if DEBUG;
         $pending_map = undef;
         $numeric_prefix = undef;
-        return 1; # call _stop()
+        return 1;               # call _stop()
     }
 
     $pending_map = undef;
@@ -3742,7 +3936,7 @@ sub handle_command_cmd {
     # Make sure we have a valid $cmd.
     if (not defined $cmd) {
         print "Bug in pending_map_flushed() $map->{char}" if DEBUG;
-        return 1; # call _stop()
+        return 1;               # call _stop()
     }
 
     # Ex-mode commands can also be bound in command mode.
@@ -3752,21 +3946,21 @@ sub handle_command_cmd {
         $cmd->{func}->(substr($cmd->{char}, 1), $numeric_prefix);
         $numeric_prefix = undef;
 
-        return 1; # call _stop()
-    # As can irssi commands.
+        return 1;               # call _stop()
+        # As can irssi commands.
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
 
         _command_with_context($cmd->{func});
 
         $numeric_prefix = undef;
-        return 1; # call _stop();
-    # <Nop> does nothing.
+        return 1;               # call _stop();
+        # <Nop> does nothing.
     } elsif ($cmd->{type} == C_NOP) {
         print "Processing <Nop>: $map->{char}" if DEBUG;
 
         $numeric_prefix = undef;
-        return 1; # call _stop();
+        return 1;               # call _stop();
     }
 
     # text-objects (i a) are simulated with $movement
@@ -3790,14 +3984,14 @@ sub handle_command_cmd {
                 print "Processing line operator: ",
                   $map->{char}, " (",
                   $cmd->{char} ,")"
-                    if DEBUG;
+                  if DEBUG;
 
                 my $pos = _input_pos();
                 $cmd->{func}->(0, _input_len(), undef, 0);
                 # Restore position for yy.
                 if ($cmd == $commands->{y}) {
                     _input_pos($pos);
-                # And save undo for other operators.
+                    # And save undo for other operators.
                 } else {
                     _add_undo_entry(_input(), _input_pos());
                 }
@@ -3809,26 +4003,26 @@ sub handle_command_cmd {
             $numeric_prefix = undef;
             $operator = undef;
             $movement = undef;
-        # Set new operator.
+            # Set new operator.
         } else {
             $operator = $cmd;
         }
 
-    # Start Ex mode.
+        # Start Ex mode.
     } elsif ($cmd == $commands->{':'}) {
 
         if (not script_is_loaded('uberprompt')) {
             _warn("Warning: Ex mode requires the 'uberprompt' script. " .
-                    "Please load it and try again.");
+                  "Please load it and try again.");
         } else {
             _update_mode(M_EX);
             _set_prompt(':');
         }
 
-    # Enter key sends the current input line in command mode as well.
+        # Enter key sends the current input line in command mode as well.
     } elsif ($key == 10) {
         _commit_line();
-        return 0; # don't call _stop()
+        return 0;               # don't call _stop()
 
     } else {
         print "Processing command: $map->{char} ($cmd->{char})" if DEBUG;
@@ -3858,7 +4052,7 @@ sub handle_command_cmd {
         # Ignore invalid operator/command combinations.
         if ($operator and $cmd->{no_operator}) {
             print "Invalid operator/command: $operator->{char} $cmd->{char}"
-                if DEBUG;
+              if DEBUG;
             $skip = 1;
         }
 
@@ -3880,11 +4074,11 @@ sub handle_command_cmd {
             # Execute the movement (multiple times).
             if (not $movement) {
                 ($old_pos, $new_pos)
-                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat);
+                  = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat);
             } else {
                 ($old_pos, $new_pos)
-                    = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat,
-                                     $char);
+                  = $cmd->{func}->($numeric_prefix, $cur_pos, $repeat,
+                                   $char);
             }
             if (defined $old_pos) {
                 print "Changing \$cur_pos from $cur_pos to $old_pos" if DEBUG;
@@ -3902,7 +4096,7 @@ sub handle_command_cmd {
                 ((defined $operator and $operator == $commands->{d}) or
                  $cmd->{repeatable})) {
                 print "Updating history position: $undo_buffer[0]->[0]"
-                    if DEBUG;
+                  if DEBUG;
                 $undo_buffer[0]->[1] = $cur_pos;
             }
 
@@ -3951,7 +4145,7 @@ sub handle_command_cmd {
 
     }
 
-    return 1; # call _stop()
+    return 1;                   # call _stop()
 }
 
 sub handle_command_ex {
@@ -3963,18 +4157,18 @@ sub handle_command_ex {
         if (@ex_mode_buf > 0) {
             pop @ex_mode_buf;
             _set_prompt(':' . join '', @ex_mode_buf);
-        # Backspacing over : exits ex-mode.
+            # Backspacing over : exits ex-mode.
         } else {
             _update_mode(M_CMD);
         }
 
-    # Return key - execute command
+        # Return key - execute command
     } elsif ($key == 10) {
         print "Run ex-mode command" if DEBUG;
         cmd_ex_command();
         _update_mode(M_CMD);
 
-    } elsif ($key == 9) { # TAB
+    } elsif ($key == 9) {       # TAB
         print "Tab pressed" if DEBUG;
         print "Ex buf contains: " . join('', @ex_mode_buf) if DEBUG;
         @tab_candidates = _tab_complete(join('', @ex_mode_buf), [keys %$commands_ex]);
@@ -3983,11 +4177,11 @@ sub handle_command_ex {
             @ex_mode_buf = ( split('', $tab_candidates[0]), ' ');
             _set_prompt(':' . join '', @ex_mode_buf);
         }
-    # Ignore control characters for now.
+        # Ignore control characters for now.
     } elsif ($key > 0 && $key < 32) {
         # TODO: use them later, e.g. completion
 
-    # Append entered key
+        # Append entered key
     } else {
         if ($key != -1) {
             # check we're not called from an ex_history_* function
