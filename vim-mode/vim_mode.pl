@@ -435,7 +435,7 @@ following settings are available:
 
 =item * debug - Enable debug output, boolean, default off
 
-=item * cmd_seq - Char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
+=item * cmd_seq - Char sequence, that when ppressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
 
 =item * start_cmd - Start every line in command mode, boolean, default off
 
@@ -452,7 +452,7 @@ settings, but only vim_mode's settings can be set/displayed.
 
 Examples:
 
-   :set cmd_seq=j   # set cmd_seq to j
+   :set cmd_seq=jk  # set cmd_seq to jk
    :set cmd_seq=    # disable cmd_seq
    :set debug=on    # enable debug
    :set debug=off   # disable debug
@@ -963,6 +963,8 @@ sub DEBUG { $settings->{debug}->{value} }
 ################################################################
 #                    INTERNAL GLOBALS                          #
 ################################################################
+
+my $unloading = 0;
 
 # mode related vars:
 # ------------------
@@ -2721,8 +2723,7 @@ sub _commit_line {
 
     # separate from call above as _update_mode() does additional internal work
     # and we need to make sure it gets correctly called.
-    _update_mode(M_CMD) if $settings->{start_cmd}->{value};
-
+    _update_mode(M_CMD) if _setting_get_cached('start_cmd');
     _reset_undo_buffer('', 0);
 }
 
@@ -2750,6 +2751,8 @@ sub _debug {
     my ($format, @args) = @_;
     my $str = sprintf($format, @args);
     $str =~ s/\e/<Esc>/g;
+    $str =~ s/\n/<CR>/g;
+
     print $str;
 }
 
@@ -3033,13 +3036,13 @@ sub setup_changed {
     if ($value eq '') {
         $settings->{cmd_seq}->{value} = $value;
     } else {
-        if (length $value == 1) {
+        if (length $value == 2) {
             $imaps->{$value} = { 'map'  => $value,
                                  'func' => sub { _update_mode(M_CMD) }
                                };
             $settings->{cmd_seq}->{value} = $value;
         } else {
-            _warn("Error: vim_mode_cmd_seq must be a single character");
+            _warn("Error: vim_mode_cmd_seq must be 2 characters long");
             # Restore the value so $settings and irssi settings are
             # consistent.
             _setting_set('cmd_seq', $settings->{cmd_seq}->{value});
@@ -3069,8 +3072,21 @@ sub setup_changed {
 }
 
 sub UNLOAD {
+
+    $unloading = 1;
+
+    # remove any pending timeout handlers.
+    Irssi::timeout_remove($escape_buf_timeout)
+      if defined $escape_buf_timeout;
+
+    Irssi::timeout_remove($escape_buf_ttimeout)
+      if defined $escape_buf_ttimeout;
+
+    # these don't currently work anyway:
+    # http://bugs.irssi.org/index.php?do=details&task_id=798&project=5
     Irssi::signal_remove('gui key pressed' => \&got_key);
     Irssi::signal_remove('setup changed' => \&setup_changed);
+
     Irssi::statusbar_item_unregister ('vim_mode');
     Irssi::statusbar_item_unregister ('vim_windows');
 }
@@ -3149,6 +3165,29 @@ sub _reset_undo_buffer {
 ################################################################
 #                    MAPPING MODEL                             #
 ################################################################
+
+sub search_user_mode_maps {
+    my ($str) = @_;
+    _debug("searching user maps");
+    my $map;
+    if ($mode == M_CMD) {
+        _debug("using cmaps");
+        $map = $cmaps;
+    } elsif ($mode == M_INS) {
+        $map = $imaps;
+        _debug("using imaps");
+    } else {
+        return undef;
+    }
+
+    if (exists $map->{$str}) {
+        _debug("found matching map cmd for %s", $str);
+        _stop();
+        return $map->{$str};
+    }
+
+    return undef;
+}
 
 sub add_to_map {
     my ($map, $keys, $command) = @_;
@@ -3463,6 +3502,8 @@ sub sig_gui_keypress {
 sub process_input_key {
     my ($key, $char) = @_;
 
+    return if $unloading;
+
     my ($timeout, $ttimeout)
       = ($settings->{timeout}->{value},
          $settings->{ttimeout}->{value});
@@ -3501,6 +3542,8 @@ sub process_input_key {
     return SIG_STOP; #  $mode == M_INS ? SIG_CONT : SIG_STOP;
 }
 
+# TODO: try process_keycode and /then/ mapping in some fashion
+# one should be able to suppress the other from acting.
 sub process_keys_timeout {
     my ($timeout_mode, $timeout_len, $ttimeout_len) = @_;
 
@@ -3521,7 +3564,7 @@ sub process_keys_timeout {
             $mapping_delay = 10; # minimum irssi timeout.
         } else {
 
-            $timeout_len   = $timeout_len < 10 ? 10 : $timeout_len;
+            $timeout_len   = 10 if $timeout_len < 10;
             $mapping_delay = $keycode_delay = $timeout_len;
         }
 
@@ -3563,22 +3606,30 @@ sub process_keys_timeout {
 sub _try_process_mapping {
     my ($from_timer) = @_;
 
+    my $cmd;
     my @buf = _get_mode_buffer();
     my $str = _buf_to_str(@buf);
-
     _debug("process mapping: '%s'", $str);
 
-    if ($mode == M_CMD) {
-        _debug('checking existence of $commands->{%s}', $str);
-
-        if (exists $commands->{$str}) {
-            _debug('exists!');
-            my $cmd = $commands->{$str};
-            _debug(Dumper($cmd));
+    $cmd = search_user_mode_maps($str);
+    if (defined $cmd) {
+        _execute_cmd($cmd);
+    } else {
+        if ($mode == M_CMD) {
+            _debug('checking existence of $commands->{%s}', $str);
+            if (exists $commands->{$str}) {
+                $cmd = $commands->{$str};
+                _execute_cmd($cmd);
+            }
         }
     }
 
     $mapping_timeouts_active = 0 if $from_timer;
+}
+
+sub _execute_cmd {
+    my ($cmd) = @_;
+    _debug('Executing command: %s', Dumper($cmd));
 }
 
 sub _try_process_keycode {
@@ -3586,30 +3637,47 @@ sub _try_process_keycode {
 
     my @buf = _get_mode_buffer();
     _debug("keycode mapping: '%s'", _buf_to_str(@buf));
+
+
+    #TODO: switch on M_TYPE first.
+    # This function only handles changing modes, numeric prefixes, and
+    # 
+
+    if (!$movement and !$pending_map and
+        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
+        print "Processing numeric prefix: $char" if DEBUG;
+        handle_numeric_prefix($char);
+        return 1;               # call _stop()
+    }
+
+
     if (_is_cmd_entry_sequence(@buf)) {
         _debug ("Buf contains ESC!");
         _update_mode(M_CMD);
-    # } elsif (@buf == 1 and $buf[0] == ord('i')) {
-    #     _debug ("Buf contains i!");
-    #     _update_mode(M_INS);
+
+    } elsif (@buf == 1 and $buf[0] == KEY_RET) {
+        _commit_line();
+        _debug("Pressed enter");
+        _emulate_keystrokes(KEY_RET);
     } else {
         _debug("buf contains: '%s'", _buf_to_hex_str(@buf));
         _emulate_keystrokes(@buf);
     }
 
+    return if $unloading;
     _reset_mode_buffer($_) for (M_CMD, M_INS, M_EX);
     $keycode_timeouts_active = 0 if $from_timer;
 }
 
 sub _is_cmd_entry_sequence {
     my (@data) = @_;
-    return 1 if (@data == 1 && $data[0] == KEY_ESC);
-    return 1 if (@data == 1 && $data[0] == KEY_C_C);
+    return 1 if (@data == 1 and $data[0] == KEY_ESC);
+    return 1 if (@data == 1 and $data[0] == KEY_C_C);
 
     my $str = _buf_to_str(@data);
     my $cmd_seq = _setting_get_cached('cmd_seq');
 
-    return 1 if (@data == 2 && $str eq ($cmd_seq x 2));
+    return 1 if (@data == 2 and length($cmd_seq) and $str eq $cmd_seq);
 
     return 0;
 }
@@ -3894,12 +3962,6 @@ sub handle_command_cmd {
     }
 
     # Counts
-    if (!$movement and !$pending_map and
-        ($char =~ m/[1-9]/ or ($numeric_prefix && $char =~ m/[0-9]/))) {
-        print "Processing numeric prefix: $char" if DEBUG;
-        handle_numeric_prefix($char);
-        return 1;               # call _stop()
-    }
 
     if (defined $pending_map and not $pending_map_flushed) {
         $pending_map = $pending_map . $char;
