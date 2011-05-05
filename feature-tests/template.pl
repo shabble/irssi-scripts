@@ -67,4 +67,3 @@ our %IRSSI = (
               license     => 'MIT',
               updated     => '$DATE'
              );
-#short test comment.
