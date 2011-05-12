@@ -56,3 +56,25 @@ sub check_escape_buffer {
 # if the buffer is otherwise empty, we have received a single escape press.
  mode = command_mode;
 }
+
+
+handling escape vs escape sequences:
+
+if we see an ESC
+set 'seen esc' flag
+start timeout
+
+if seen_esc and another key comes in, cancel timeout, and treat as esc sequence?
+(can we enumerate possible esc sequences?
+
+ESC
+ESC-char (meta-char)
+ESC-[ (CSI)
+ESC-[O (app form of CSI)
+
+when timeout expires, unset 'seen esc' flag
+process input buffer.
+
+
+
+
