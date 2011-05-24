@@ -195,7 +195,7 @@ sub sig_send_text {
 
     return unless($witem);
 
-    return unless $witem->{type} eq 'CHANNEL';
+    return unless ref $witem eq "HASH" && $witem->{type} eq 'CHANNEL';
 
     # shouldn't need escaping, but it doesn't hurt to be paranoid.
     my $target_nick = extract_nick($data);
