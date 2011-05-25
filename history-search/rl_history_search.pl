@@ -147,11 +147,13 @@ Yeah, probably.
 
 
 use strict;
+use warnings;
+
 use Irssi;
 use Irssi::TextUI;
 use Data::Dumper;
 
-our $VERSION = '2.6';
+our $VERSION = '2.7';
 our %IRSSI =
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
@@ -161,7 +163,7 @@ our %IRSSI =
    . ' (like ctrl-R in readline applications)',
    license     => 'GPLv2 or later',
    url         => 'http://github.com/shabble/irssi-scripts/tree/master/history-search/',
-   changed     => '14/4/2011',
+   changed     => '25/5/2011',
    requires    => [qw/uberprompt.pl/],
   );
 
@@ -190,7 +192,7 @@ sub DEBUG () { $DEBUG_ENABLED }
 # check we have uberprompt loaded.
 
 sub script_is_loaded {
-    return exists($Irssi::Script::{$_[0] . '::'}) ;
+    return exists($Irssi::Script::{$_[0] . '::'});
 }
 
 if (not script_is_loaded('uberprompt')) {
@@ -202,7 +204,7 @@ if (not script_is_loaded('uberprompt')) {
     Irssi::command("script load uberprompt.pl");
 
     unless(script_is_loaded('uberprompt')) {
-        load_uberprompt_failed("File does not exist");
+        load_uberprompt_failed({name => 'uberprompt'}, "File does not exist");
     }
     history_init();
 } else {
@@ -210,13 +212,15 @@ if (not script_is_loaded('uberprompt')) {
 }
 
 sub load_uberprompt_failed {
+    my ($script, $error_msg) = @_;
     Irssi::signal_remove('script error', 'load_uberprompt_failed');
+    my $script_name = $script->{name};
 
     print "Script could not be loaded. Script cannot continue. "
         . "Check you have uberprompt.pl installed in your path and "
         .  "try again.";
 
-    die "Script Load Failed: " . join(" ", @_);
+    die "Script '$script_name' Load Failed: $error_msg";
 }
 
 sub history_init {
