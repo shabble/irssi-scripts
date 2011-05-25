@@ -244,6 +244,8 @@ recently active, priority to PMs/hilights, etc?)
 =cut
 
 use strict;
+use warnings;
+
 use Irssi;
 use Irssi::TextUI;
 use Data::Dumper;
