@@ -2389,7 +2389,7 @@ sub _parse_mapping {
     my ($string) = @_;
 
     $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
-    _warn("Parse mapping: $string");
+    _debug("Parse mapping: $string");
     if (index($string, '<invalid>') != -1) {
         return undef;
     }
