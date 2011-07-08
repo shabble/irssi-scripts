@@ -84,6 +84,7 @@ use Data::Dumper;
 
 use IrssiX::Async qw(fork_off);
 use LWP::UserAgent;
+use URI;
 
 our $VERSION = '0.1';
 our %IRSSI = (
@@ -99,6 +100,8 @@ our %IRSSI = (
 my $pending_msg_params = {};
 my $lookup_in_progress;
 my $flushing_message;
+my $domains;
+
 
 sub sig_public_message {
     my ($server, $msg, @rest) = @_;
@@ -113,7 +116,9 @@ sub sig_public_message {
 
     return unless $url;
 
+    my $uri_obj = URI->new($url);
 
+    return unless ref($uri_obj) && exists $domains->{$uri_obj->host};
 
     $pending_msg_params->{$url} = [@_];
     $lookup_in_progress = 1;
@@ -140,8 +145,8 @@ sub expand_url_request {
     my $user_agent = LWP::UserAgent->new;
     $user_agent->agent("irssi-longify-urls/0.1 ");
     $user_agent->timeout(2); # TODO: make this a setting.
-
-    my $request = HTTP::Request->new(HEAD => $url);
+    $user_agent->max_size(0);
+    my $request = HTTP::Request->new(GET => $url);
     my $result = $user_agent->request($request);
 
     print "$url\n";
@@ -169,11 +174,11 @@ sub expand_url_callback {
     my $pending_message_data = $pending_msg_params->{$orig_url};
     my @new_signal = @$pending_message_data;
 
-    Irssi::print("Result: orignal: $orig_url, new: $long_url");
+    #Irssi::print("Result: orignal: $orig_url, new: $long_url");
 
     if ($long_url && $long_url !~ /^ERROR/ && $long_url ne $orig_url) {
         $new_signal[1] =~ s/\Q$orig_url\E/$long_url [was: $orig_url]/;
-        print "Printing with: " . Dumper(@new_signal[1..$#new_signal]);
+        #print "Printing with: " . Dumper(@new_signal[1..$#new_signal]);
     } elsif ($long_url && $long_url =~ /^ERROR/) {
         $new_signal[1] =~ s/\Q$orig_url\E/$long_url while expanding "$orig_url"/;
     }
@@ -227,10 +232,30 @@ sub match_uri {
     }
 }
 
+sub cmd_reload {
+    my $filename = shift || Irssi::get_irssi_dir . '/longify-urls.list';
+    $domains = {};
+    open my $fh, '<', $filename
+      or die "Couldn't open file containing shorteners list $filename: $!";
+    while (<$fh>) {
+        chomp;
+        $domains->{$_} = 1;
+    }
+    close $fh;
+    Irssi::active_win->print('%_Longify:%_ List of domains has been reloaded.');
+}
+
 sub init {
     Irssi::signal_add_first 'message public',  \&sig_public_message;
     Irssi::signal_add_first 'message private', \&sig_private_message;
+    Irssi::signal_add       'setup changed',   \&sig_setup_changed;
+    Irssi::command_bind     'longify-reload',  \&cmd_reload;
+
+    cmd_reload();
 }
 
+sub sig_setup_changed {
+    # TODO: settings updating stuff goes here.
+}
 
 init();
