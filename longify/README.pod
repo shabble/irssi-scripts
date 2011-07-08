@@ -19,6 +19,8 @@ for perl modules, or somewhere that is listed in the C<$PERL5LIB> environment va
 They should be placed in a subdirectory named C<IrssiX/> in whichever module directory
 you choose.
 
+=item * Copy the F<longify-urls.list> file into your F<~/.irssi/> directory.
+
 =item * Copy this script into your F<~/.irssi/scripts/> directory and load with
 C</SCRIPT LOAD F<filename>>.
 
@@ -67,7 +69,7 @@ THE SOFTWARE.
 
 =item * User-configurable timeout
 
-=item * some sort of list of shorteners? (saves having to look up every single url)
+=item * deal with utf-8 (that stupid arrow site).
 
 =back
 
