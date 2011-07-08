@@ -13,13 +13,13 @@ final target address.
 
 =over
 
-=item Download the modules from L<http://mauke.dyndns.org/stuff/irssi/lib/IrssiX/>
+=item * Download the modules from L<http://mauke.dyndns.org/stuff/irssi/lib/IrssiX/>
 and place them in a directory known to Perl (One of the default system locations
 for perl modules, or somewhere that is listed in the C<$PERL5LIB> environment variable).
-They should be placed in a subdirectory named C<IrssiX> in whichever module directory
+They should be placed in a subdirectory named C<IrssiX/> in whichever module directory
 you choose.
 
-=item Copy this script into your F<~/.irssi/scripts/> directory and load with
+=item * Copy this script into your F<~/.irssi/scripts/> directory and load with
 C</SCRIPT LOAD F<filename>>.
 
 =back
