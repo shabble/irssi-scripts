@@ -1,0 +1,24 @@
+--- a/src/perl/common/Core.xs
++++ b/src/perl/common/Core.xs
+@@ -237,8 +237,8 @@ timeout_add(msecs, func, data)
+ 	SV *func
+ 	SV *data
+ CODE:
+-	if (msecs < 10) {
+-		croak("Irssi::timeout() : msecs must be >= 10");
++	if (msecs < 1) {
++		croak("Irssi::timeout() : msecs must be >= 1");
+ 		RETVAL = -1;
+ 	} else {
+ 		RETVAL = perl_timeout_add(msecs, func, data, FALSE);
+@@ -252,8 +252,8 @@ timeout_add_once(msecs, func, data)
+ 	SV *func
+ 	SV *data
+ CODE:
+-	if (msecs < 10) {
+-		croak("Irssi::timeout_once() : msecs must be >= 10");
++	if (msecs < 1) {
++		croak("Irssi::timeout_once() : msecs must be >= 1");
+ 		RETVAL = -1;
+ 	} else {
+ 		RETVAL = perl_timeout_add(msecs, func, data, TRUE);
