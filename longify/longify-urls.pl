@@ -87,6 +87,7 @@ use Data::Dumper;
 use IrssiX::Async qw(fork_off);
 use LWP::UserAgent;
 use URI;
+use File::Spec;
 
 our $VERSION = '0.1';
 our %IRSSI = (
@@ -106,7 +107,16 @@ my $domains;
 
 
 sub sig_public_message {
-    my ($server, $msg, @rest) = @_;
+    _handle_messages(@_);
+}
+
+sub sig_private_message {
+    _handle_messages(@_);
+}
+
+sub _handle_messages {
+
+    my $msg = $_[1];
 
     if ($flushing_message) { # don't interrupt it a second time.
         delete $pending_msg_params->{$flushing_message};
@@ -128,12 +138,6 @@ sub sig_public_message {
 
     Irssi::signal_stop;
 }
-
-sub sig_private_message {
-    my ($server, $msg, $nick, $addr, $target) = @_;
-
-}
-
 
 sub expand_url {
     my ($url) = @_;
@@ -235,7 +239,8 @@ sub match_uri {
 }
 
 sub cmd_reload {
-    my $filename = shift || Irssi::get_irssi_dir . '/longify-urls.list';
+    my $filename = shift 
+      || File::Spec->catfile(Irssi::get_irssi_dir, 'longify-urls.list');
     $domains = {};
     open my $fh, '<', $filename
       or die "Couldn't open file containing shorteners list $filename: $!";
