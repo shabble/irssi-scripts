@@ -80,15 +80,8 @@ my $state;
 sub get_format_string {
     my ($module, $tag, $theme) = @_;
 
-    $theme ||= Irssi::current_theme();
-    my $format_str;
-    {
-        # deeeeeeep black magic.
-        #print "Trying to get format for $module, $tag";
-        local *CORE::GLOBAL::caller = sub { $module };
-        $format_str = $theme->get_format($module, $tag);
-    }
-    return $format_str;
+    $theme ||= Irssi::current_theme;
+    return $theme->get_format($module, $tag);
 }
 
 
