@@ -68,6 +68,15 @@ our %IRSSI = (
               updated     => '$DATE'
              );
 
+
+my $line_format;
+my $head_format;
+my $foot_format;
+
+my $channels = {};
+my @errors;
+my $state;
+
 sub get_format_string {
     my ($module, $tag, $theme) = @_;
 
@@ -82,19 +91,76 @@ sub get_format_string {
     return $format_str;
 }
 
-# see here: https://github.com/shabble/irssi-docs/wiki/complete_themes
-my $fmt = get_format_string('fe-common/core', 'chansetup_line');
 
-if ($fmt) {
-    Irssi::command("^FORMAT chansetup_line Meep meep $fmt");
+sub get_channels {
+    # see here: https://github.com/shabble/irssi-docs/wiki/complete_themes
+    $line_format = get_format_string('fe-common/core', 'chansetup_line');
+    $head_format = get_format_string('fe-common/core', 'chansetup_header');
+    $foot_format = get_format_string('fe-common/core', 'chansetup_footer');
+
+    my $parse_line_format = "channel:\$0\tnet:\$1\tpass:\$2\tsettings:\$3";
+    Irssi::command("^FORMAT chansetup_line $parse_line_format");
+    Irssi::command("^FORMAT chansetup_header START");
+    Irssi::command("^FORMAT chansetup_footer END");
+
+    $state = 0;
+    Irssi::signal_add_first('print text', 'sig_print_text');
     Irssi::command("CHANNEL LIST");
-    Irssi::command("^FORMAT chansetup_line $fmt");
-} else {
-    print "Failed to get format :(";
+    Irssi::signal_remove('print text', 'sig_print_text');
+
 }
 
-# Irssi::UI::Theme::get_format(Irssi::UI::Theme $theme, string $module, string $tag)
+sub restore_formats {
+    Irssi::command("^FORMAT chansetup_line $line_format");
+    Irssi::command("^FORMAT chansetup_header $head_format");
+    Irssi::command("^FORMAT chansetup_footer $foot_format");
+}
 
+sub sig_print_text {
+    my ($dest, $text, $stripped) = @_;
+
+    my $entry = {};
+
+    if ($state == 0 && $text =~ m/START/) {
+        $state = 1;
+        return;
+    } elsif ($state == 1) {
+        # TODO: might we get multiple lines at once?
+        if ($text =~ m/channel:([^\t]+)\tnet:([^\t]+)\tpass:([^\t]*)\tsettings:(.*)$/) {
+            $entry->{channel}  = $1;
+            $entry->{network}  = $2;
+            $entry->{password} = $3;
+            $entry->{settings} = $4;
+
+            my $tag = "$2/$1";
+            $channels->{$tag} = $entry;
+            Irssi::signal_stop();
+        } elsif ($text =~ m/END/) {
+            $state = 0;
+            return;
+        } else {
+            push @errors, "Failed to parse: '$text'";
+        }
+    }
+}
+
+sub go {
+    eval {
+        get_channels();
+    };
+    if ($@) {
+        print "Error: $@. Reloading theme to restore format";
+        Irssi::themes_reload();
+    } else {
+        restore_formats();
+    }
+    if (@errors) {
+        print Dumper(\@errors);
+    }
+    print Dumper($channels);
+}
+
+Irssi::command_bind('getchan', \&go);
 # in fe-common/core
 #
 #  chansetup_not_found = "Channel {channel $0} not found";
@@ -103,5 +169,3 @@ if ($fmt) {
 #  chansetup_header = "%#Channel         Network    Password   Settings";
 #  chansetup_line = "%#{channel $[15]0} %|$[10]1 $[10]2 $3";
 #  chansetup_footer = "";
-# Irssi::active_win->actually_printformat(Irssi::MSGLEVEL_CRAP, 'fe-common/core',
-#                                         'window_name_not_unique')
