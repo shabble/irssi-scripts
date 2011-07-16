@@ -78,10 +78,7 @@ my @errors;
 my $state;
 
 sub get_format_string {
-    my ($module, $tag, $theme) = @_;
-
-    $theme ||= Irssi::current_theme;
-    return $theme->get_format($module, $tag);
+    return Irssi::current_theme->get_format(@_);
 }
 
 
