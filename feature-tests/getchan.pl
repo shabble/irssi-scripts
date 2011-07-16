@@ -82,6 +82,7 @@ sub get_format_string {
     return $format_str;
 }
 
+# see here: https://github.com/shabble/irssi-docs/wiki/complete_themes
 my $fmt = get_format_string('fe-common/core', 'chansetup_line');
 
 if ($fmt) {
