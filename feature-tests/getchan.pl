@@ -113,7 +113,11 @@ sub get_channels {
 sub restore_formats {
     Irssi::command("^FORMAT chansetup_line $line_format");
     Irssi::command("^FORMAT chansetup_header $head_format");
-    Irssi::command("^FORMAT chansetup_footer $foot_format");
+    if ($foot_format =~ m/^\s*$/) {
+        Irssi::command("^FORMAT -reset chansetup_footer");
+    } else {
+        Irssi::command("^FORMAT  chansetup_footer $foot_format");
+    }
 }
 
 sub sig_print_text {
@@ -123,7 +127,6 @@ sub sig_print_text {
 
     if ($state == 0 && $text =~ m/START/) {
         $state = 1;
-        return;
     } elsif ($state == 1) {
         # TODO: might we get multiple lines at once?
         if ($text =~ m/channel:([^\t]+)\tnet:([^\t]+)\tpass:([^\t]*)\tsettings:(.*)$/) {
@@ -134,14 +137,14 @@ sub sig_print_text {
 
             my $tag = "$2/$1";
             $channels->{$tag} = $entry;
-            Irssi::signal_stop();
+
         } elsif ($text =~ m/END/) {
             $state = 0;
-            return;
         } else {
             push @errors, "Failed to parse: '$text'";
         }
     }
+    Irssi::signal_stop();
 }
 
 sub go {
@@ -155,6 +158,7 @@ sub go {
         restore_formats();
     }
     if (@errors) {
+        @errors = map { s/\t/    /g } @errors;
         print Dumper(\@errors);
     }
     print Dumper($channels);
