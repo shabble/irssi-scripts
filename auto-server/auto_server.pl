@@ -104,8 +104,8 @@ sub haxy_print_hook {
 
 sub parse_channel_map {
     #my $data = Irssi::settings_get_str('joinplus_server_maps');
-    unbind_completion();
     my $data = retrieve_channels();
+    unbind_completion();
     my @items = split /\s+/, $data;
     if (@items % 2 == 0) {
         $channel_map = { @items }; # risky?
