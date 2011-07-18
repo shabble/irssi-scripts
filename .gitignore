@@ -1,2 +1,7 @@
 /test/irssi/*
 /nightfrog
+/modules/*/*.so
+/modules/*/*.o
+/vim-mode/TAGS
+/testing/irssi-test.log
+/vim-mode/irssi/scripts/autorun/README.pod

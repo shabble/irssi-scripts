@@ -1,238 +1,589 @@
-# A script to emulate some of the vi(m) features for the Irssi inputline.
-#
-# It should work fine with at least 0.8.12 and later versions. However some
-# features are disabled in older versions (see below for details). Perl >=
-# 5.8.1 is recommended for UTF-8 support (which can be disabled if necessary).
-# Please report bugs in older versions as well, we'll try to fix them.
-#
-# Any behavior different from Vim (unless explicitly documented) should be
-# considered a bug and reported.
-#
-# NOTE: This script is still under heavy development, and there may be bugs.
-# Please submit reproducible sequences to the bug-tracker at:
-# http://github.com/shabble/irssi-scripts/issues
-#
-# or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
-#
-#
-# Features:
-#
-# It supports most commonly used command mode features:
-#
-# * Insert/Command mode. Escape and Ctrl-C enter command mode.
-#   /set vim_mode_cmd_seq j allows to use jj as Escape (any other character
-#   can be used as well).
-# * Cursor motion: h l 0 ^ $ <Space> <BS> f t F T
-# * History motion: j k gg G
-#   gg moves to the oldest (first) history line.
-#   G without a count moves to the current input line, with a count it goes to
-#   the count-th history line (1 is the oldest).
-# * Cursor word motion: w b ge e W gE B E
-# * Word objects (only the following work yet): aw aW
-# * Yank and paste: y p P
-# * Change and delete: c d
-# * Delete at cursor: x X
-# * Replace at cursor: r
-# * Insert mode: i a I A
-# * Switch case: ~
-# * Repeat change: .
-# * Repeat ftFT: ; ,
-# * Registers: "a-"z "" "0 "* "+ "_ (black hole)
-#   Appending to register with "A-"Z
-#   "" is the default yank/delete register.
-#   "0 contains the last yank (if no register was specified).
-#   The special registers "* "+ contain both irssi's cut-buffer.
-# * Line-wise shortcuts: dd cc yy
-# * Shortcuts: s S C D
-# * Scroll the scrollback buffer: Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B
-# * Switch to last active window: Ctrl-6/Ctrl-^
-# * Switch split windows: Ctrl-W j Ctrl-W k
-# * Undo/Redo: u Ctrl-R
-#
-# Counts and combinations work as well, e.g. d5fx or 3iabc<esc>. Counts also
-# work with mapped ex-commands (see below), e.g. if you map gb to do :bn, then
-# 2gb will switch to the second next buffer.
-# Repeat also supports counts.
-#
-# The following insert mode mappings are supported:
-#
-# * Insert register content: Ctrl-R x (where x is the register to insert)
-#
-# Ex-mode supports (activated by : in command mode) the following commands:
-#
-# * Switching buffers: :[N]b [N] - switch to channel number
-#                      :b#       - switch to last channel
-#                      :b <partial-channel-name>
-#                      :b <partial-server>/<partial-channel>
-#                      :buffer {args} (same as :b)
-#                      :[N]bn[ext] [N] - switch to next window
-#                      :[N]bp[rev] [N] - switch to previous window
-# * Close window:      :[N]bd[elete] [N]
-# * Display windows:   :ls :buffers
-# * Display registers: :reg[isters] {args} :di[splay] {args}
-# * Display undolist:  :undol[ist] (mostly used for debugging)
-# * Source files       :so[urce] - only sources vim_moderc at the moment,
-#                                  {file} not supported
-# * Mappings:          :map             - display custom mappings
-#                      :map {lhs}       - display mappings starting with {lhs}
-#                      :map {lhs} {rhs} - add mapping
-#                      :unm[ap] {lhs}   - remove custom mapping
-# * Save mappings:     :mkv[imrc][!] - like in Vim, but [file] not supported
-# * Substitute:        :s/// - i and g are supported as flags, only /// can be
-#                              used as separator, uses Perl regex instead of
-#                              Vim regex
-# * Settings:          :se[t]                  - display all options
-#                      :se[t] {option}         - display all matching options
-#                      :se[t] {option} {value} - change option to value
-#
-#
-# Mappings:
-#
-# {lhs} is the key combination to be mapped, {rhs} the target. The <> notation
-# is used (e.g. <C-F> is Ctrl-F), case is ignored. Supported <> keys:
-# <C-A>-<C-Z>, <C-^>, <C-6>, <Space>, <CR>, <BS>, <Nop>. Mapping ex-mode and
-# irssi commands is supported. When mapping ex-mode commands the trailing <Cr>
-# is not necessary. Only default mappings can be used in {rhs}.
-# Examples:
-#     :map w  W      - to remap w to work like W
-#     :map gb :bnext - to map gb to call :bnext
-#     :map gB :bprev
-#     :map g1 :b 1   - to map g1 to switch to buffer 1
-#     :map gb :b     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
-#     :map <C-L> /clear - map Ctrl-L to irssi command /clear
-#     :map <C-G> /window goto 1
-#     :map <C-E> <Nop> - disable <C-E>, it does nothing now
-#     :unmap <C-E>     - restore default behavior of <C-E> after disabling it
-#
-# Note that you must use / for irssi commands (like /clear), the current value
-# of cmdchars does _not_ work! This is necessary do differentiate between
-# ex-commands and irssi commands.
-#
-#
-# Settings:
-#
-# The settings are stored as irssi settings and can be set using /set as usual
-# (prepend vim_mode_ to setting name) or using the :set ex-command. The
-# following settings are available:
-#
-# * utf8: support UTF-8 characters, boolean, default on
-# * debug: enable debug output, boolean, default off
-# * cmd_seq: char that when double-pressed simulates <esc>, string, default ''
-# * start_cmd: start every line in command mode, boolean, default off
-#
-# In contrast to irssi's settings, :set accepts 0 and 1 as values for boolean
-# settings, but only vim_mode's settings can be set/displayed.
-# Examples:
-#    :set cmd_seq=j   # set cmd_seq to j
-#    :set cmd_seq=    # disable cmd_seq
-#    :set debug=on    # enable debug
-#    :set debug=off   # disable debug
-#
-#
-# The following statusbar items are available:
-#
-# * vim_mode: displays current mode
-# * vim_windows: displays windows selected with :b
-#
-#
-# Configuration
-#
-# Additionally to the irssi settings described above vim_mode can be
-# configured through an external configuration file named "vim_moderc" located
-# in ~/.irssi/vim_moderc. If available it's loaded on startup and every
-# supported ex-command is run. It's syntax is similar to "vimrc". To (re)load
-# it while vim_mode is running use :so[urce].
-#
-# Supported ex-commands:
-#
-# * :map
-#
-#
-# Installation:
-#
-# As always copy the script into .irssi/scripts and load it with
-#     /script load # vim_mode.pl
-#
-# Use the following command to get a statusbar item that shows which mode
-# you're in.
-#
-#     /statusbar window add vim_mode
-#
-# And the following to let :b name display a list of matching channels
-#
-#     /statusbar window add vim_windows
-#
-#
-# Dependencies:
-#
-# For proper :ex mode support, requires the installation of uberprompt.pl
-# Uberprompt can be downloaded from:
-#
-# http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
-#
-# and follow the instructions at the top of that file for installation.
-#
-# If you don't need Ex-mode, you can run vim_mode.pl without the
-# uberprompt.pl script, but it is recommended.
-#
-#
-# Irssi requirements:
-#
-# 0.8.12 and above should work fine. However the following features are
-# disabled in irssi < 0.8.13:
-#
-# * j k (only with count, they work fine without count in older versions)
-# * gg G
-#
-#
-# Known bugs:
-#
-# * count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
-# * mapping an incomplete ex-command doesn't open the ex-mode with the partial
-#   command (e.g. :map gb :b causes an error instead of opening the ex-mode
-#   and displaying :b<cursor>)
-# * undo/redo positions are mostly wrong
-#
-#
-# TODO:
-# * History:
-#   * /,?,n,N to search through history (like history_search.pl)
-# * Window switching (:b)
-#  * Tab completion of window(-item) names
-#  * non-sequential matches(?)
-#
-# WONTFIX - things we're not ever likely to do
-# * Macros
-#
-# THANKS:
-#
-# * estragib: a lot of testing and many bug reports and feature requests
-# * iaj: testing
-#
-# LICENCE:
-#
-# Copyright (c) 2010 Tom Feist & Simon Ruderich
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-#
-#
-# Have fun!
+=pod
+
+=head1 NAME
+
+vim_mode.pl
+
+=head1 DESCRIPTION
+
+An Irssi script to emulate some of the vi(m) features for the Irssi inputline.
+
+=head1 INSTALLATION
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD vim_mode.pl>. You may wish to have it autoload in one of the
+L<usual ways|https://github.com/shabble/irssi-docs/wiki/Guide#Autorunning_Scripts>.
+
+=head2 DEPENDENCIES
+
+For proper :ex mode support, vim-mode requires the installation of F<uberprompt.pl>
+Uberprompt can be downloaded from:
+
+L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+
+and follow the instructions at the top of that file for installation.
+
+If you don't need Ex-mode, you can run vim_mode.pl without the
+uberprompt.pl script, but it is strongly recommended that you use it.
+
+=head3 Irssi requirements
+
+0.8.12 and above should work fine. However the following features are
+disabled in irssi < 0.8.13:
+
+=over 4
+
+=item * C<j> C<k> (only with count, they work fine without count in older versions)
+
+=item * C<gg>, C<G>
+
+=back
+
+It is intended to work with at Irssi  0.8.12 and later versions. However some
+features are disabled in older versions (see below for details).
+
+Perl >= 5.8.1 is recommended for UTF-8 support (which can be disabled if
+necessary).  Please report bugs in older versions as well, we'll try to fix
+them.  Later versions of Perl are also faster, which is probably beneficial
+to a script of this size and complexity.
+
+=head2 SETUP
+
+Vim Mode provides certain feedback to the user, such as the currently active
+mode (command, insert, ex), and if switching buffers, which buffer(s) currently
+match the search terms.
+
+There are two ways to go about displaying this information, as described in
+the following sections:
+
+=head3 Statusbar Items
+
+Run the following command to add a statusbar item that shows which mode
+you're in.
+
+C</statusbar window add vim_mode>
+
+And the following to let C<:b [str]> display a list of channels matching your
+search string.
+
+C</statusbar window add vim_windows>
+
+B<Note:> Remember to C</save> after adding these statusbar items to make them
+permanent.
+
+B<Note:> If you would rather have these statusbar items on your prompt
+line rather than thte window statusbar, please follow these steps.
+
+For technical reasons, I<uberprompt> must occasionally call C</statusbar prompt
+reset>, which will remove or deactivate any manually added items on the prompt
+statusbar.  To get around this, uberprompt provides two command hooks,
+C<uberprompt_load_hook> and C<uberprompt_unload_hook>.  Both of these settings
+can contain one (or more, using C</EVAL>) commands to be executed when the prompt
+is enabled and disabled, respectively.
+
+See the L<uberprompt documentation|https://github.com/shabble/irssi-scripts/blob/master/prompt_info/README.pod> for further details.
+
+For I<right-aligned> items (that is, after the input field:
+
+=over 4
+
+=item 1 C</alias vm_add /^statusbar prompt add -after input -alignment right vim_mode>
+
+=item 2 C</alias vm_del /^statusbar prompt remove vim_mode>
+
+=item 3 C</set uberprompt_load_hook /^vm_add>
+
+=item 4 C</set uberprompt_unload_hook /^vm_del>
+
+=back
+
+For I<left-aligned> items (before the prompt):
+
+=over 4
+
+=item 1 C</alias vm_add /^statusbar prompt add -before prompt -alignment left vim_mode>
+
+=item 2 C</alias vm_del /^statusbar prompt remove vim_mode>
+
+=item 3 C</set uberprompt_load_hook /^vm_add>
+
+=item 4 C</set uberprompt_unload_hook /^vm_del>
+
+=back
+
+If you wish to add both C<vim_mode> and C<vim_windows> items, replace steps 1 and 2
+above with the following (right-aligned):
+
+=over 4
+
+=item 1 C</alias vm_add /^eval /^statusbar prompt add -after input -alightment right vim_mode ; /^statusbar prompt add -after input -alignment right vim_windows>
+
+=item 2 C</alias vm_del /^eval /^statusbar prompt remove vim_mode ; /^statusbar prompt remove vim_windows>
+
+=back
+
+and then complete stages 3 and 4 as above.  Replace the C<-after> and C<-alignment>
+to suit your location preferences.
+
+B<Note:> It is also possible to place the items between the prompt and input field,
+by specifying C<-after prompt> or C<-before input> as appropriate.
+
+=head3 Expando Variables
+
+Vim mode augments the existing Irssi expando (automatic variables) with two
+additional ones: C<$vim_cmd_mode> and C<$vim_wins>.
+
+C<$vim_cmd_mode> is the equivalent of the C<vim_mode> statusbar item, and
+C<$vim_wins> is the counterpart of C<vim_windows>.
+
+They can be added to your theme, or inserted into your uberprompt using
+a command such as:
+
+"C</set uberprompt_format [$vim_cmd_mode] $*$uber] >"
+
+=head3 FILE-BASED CONFIGURATION
+
+Additionally to the irssi settings described in L<settings|/SETTINGS>, vim_mode
+can be configured through an external configuration file named "vim_moderc"
+located in F<~/.irssi/vim_moderc>. If available it's loaded on startup and every
+supported ex-command is run. Its syntax is similar to "vimrc". To (re)load it
+while vim_mode is running use C<:so[urce]>.
+
+Currently Supported ex-commands:
+
+=over 4
+
+=item * C<:map>
+
+=back
+
+=head1 USAGE
+
+The following section is divided into the different modes as supported by Vim itself:
+
+=head2 COMMAND MODE
+
+It supports most commonly used command mode features:
+
+=over 2
+
+=item * Insert/Command mode.
+
+C<Esc> and C<Ctrl-C> enter command mode.  C</set vim_mode_cmd_seq j> allows
+to use C<jj> as Escape (any other character can be used as well).
+
+=item * Cursor motion:
+
+C<h l 0 ^ $ E<lt>SpaceE<gt> E<lt>BSE<gt> f t F T>
+
+=item * History motion:
+
+C<j k gg G> C<gg> moves to the oldest (first) history line.  C<G> without a
+count moves to the current input line, with a count it goes to the I<count-th>
+history line (1 is the oldest).
+
+=item * Cursor word motion:
+
+C<w b ge e W gE B E>
+
+=item * Word objects (only the following work yet):
+
+C<aw aW>
+
+=item * Yank and paste:
+
+ C<y p P>
+
+=item * Change and delete:
+
+C<c d>
+
+=item * Delete at cursor:
+
+C<x X>
+
+=item * Replace at cursor:
+
+C<r>
+
+=item * Insert mode:
+
+C<i a I A>
+
+=item * Switch case:
+
+C<~>
+
+=item * Repeat change:
+
+C<.>
+
+=item * Repeat
+
+C<ftFT: ; ,>
+
+=item * Registers:
+
+C<"a-"z "" "0 "* "+ "_> (black hole)
+
+=item * Line-wise shortcuts:
+
+C<dd cc yy>
+
+=item * Shortcuts:
+
+C<s S C D>
+
+=item * Scroll the scrollback buffer:
+
+C<Ctrl-E Ctrl-D Ctrl-Y Ctrl-U Ctrl-F Ctrl-B>
+
+=item * Switch to last active window:
+
+C<Ctrl-6/Ctrl-^>
+
+=item * Switch split windows:
+
+<Ctrl-W j Ctrl-W k>
+
+=item * Undo/Redo:
+
+C<u Ctrl-R>
+
+=back
+
+Counts and combinations work as well, e.g. C<d5fx> or C<3iabcE<lt>escE<gt>>. Counts also work with mapped ex-commands (see below), e.g. if you map C<gb> to do C<:bn>, then C<2gb> will switch to the second next buffer.  Repeat also supports counts.
+
+=head3 REGISTERS
+
+=over 4
+
+=item * Appending to register with C<"A-"Z>
+
+=item * C<""> is the default yank/delete register.
+
+=item * C<"0> contains the last yank (if no register was specified).
+
+=item * The special registers C<"* "+> both contain irssi's internal cut-buffer.
+
+=back
+
+=head2 INSERT MODE
+
+The following insert mode mappings are supported:
+
+=over 4
+
+=item * Insert register content: Ctrl-R x (where x is the register to insert)
+
+=back
+
+=head2 EX-MODE
+
+Ex-mode (activated by C<:> in command mode) supports the following commands:
+
+=over 4
+
+=item * Command History:
+
+C<E<lt>uparrowE<gt>> - cycle backwards through history
+
+C<E<lt>downarrowE<gt>> - cycle forwards through history
+
+C<:eh> - show ex history
+
+=item * Switching buffers:
+
+C<:[N]b [N]> - switch to channel number
+
+C<:b#>       - switch to last channel
+
+C<:b> E<lt>partial-channel-nameE<gt>
+
+C<:b> <partial-server>/<partial-channel>
+
+C<:buffer {args}> (same as C<:b>)
+
+C<:[N]bn[ext] [N]> - switch to next window
+
+C<:[N]bp[rev] [N]> - switch to previous window
+
+=item * Close window:
+
+C<:[N]bd[elete] [N]>
+
+=item * Display windows:
+
+C<:ls>, C<:buffers>
+
+=item * Display registers:
+
+C<:reg[isters] {args}>, C<:di[splay] {args}>
+
+=item * Display undolist:
+
+C<:undol[ist]> (mostly used for debugging)
+
+=item * Source files:
+
+C<:so[urce]> - only sources vim_moderc at the moment,
+                         F<{file}> not supported
+
+=item * Mappings:
+
+C<:map> - display custom mappings
+
+=item * Saving mappings:
+
+C<:mkv[imrc][!]> - like in Vim, but [file] not supported
+
+=item * Substitution:
+
+C<:s///> - I<i> and I<g> are supported as flags, only C<///> can be used as
+eparator, and it uses Perl regex syntax instead of Vim syntax.
+
+=item * Settings:
+
+C<:se[t]> - display all options
+
+C<:se[t] {option}>         - display all matching options
+
+C<:se[t] {option} {value}> - change option to value
+
+=back
+
+=head3 MAPPINGS
+
+=head4 Commands
+
+=over 4
+
+=item * C<:map {lhs}>       - display mappings starting with {lhs}
+
+=item * C<:map {lhs} {rhs}> - add mapping
+
+=item * C<:unm[ap] {lhs}>   - remove custom mapping
+
+=back
+
+=head4 Parameters
+
+I<{lhs}> is the key combination to be mapped, I<{rhs}> the target. The
+C<E<lt>E<gt>> notation is used
+
+(e.g. C<E<lt>C-FE<gt>> is I<Ctrl-F>), case is ignored.
+ Supported C<E<lt>E<gt>> keys are:
+
+=over 4
+
+=item * C<E<lt>C-AE<gt>> - C<E<lt>C-ZE<gt>>,
+
+=item * C<E<lt>C-^E<gt>>, C<E<lt>C-6E<gt>>
+
+=item * C<E<lt>SpaceE<gt>>
+
+=item * C<E<lt>CRE<gt>> - Enter
+
+=item * C<E<lt>BSE<gt>> - Backspace
+
+=item * C<E<lt>NopE<gt>> - No-op (Do Nothing).
+
+=back
+
+Mapping ex-mode and irssi commands is supported. When mapping ex-mode commands
+the trailing C<E<lt>CrE<gt>> is not necessary. Only default mappings can be used
+in I<{rhs}>.
+
+Examples:
+
+=over 4
+
+=item * C<:map w  W>      - to remap w to work like W
+
+=item * C<:map gb :bnext> - to map gb to call :bnext
+
+=item * C<:map gB :bprev>
+
+=item * C<:map g1 :b 1>   - to map g1 to switch to buffer 1
+
+=item * C<:map gb :b>     - to map gb to :b, 1gb switches to buffer 1, 5gb to 5
+
+=item * C<:map E<lt>C-LE<gt> /clear> - map Ctrl-L to irssi command /clear
+
+=item * C<:map E<lt>C-GE<gt> /window goto 1>
+
+=item * C<:map E<lt>C-EE<gt> <Nop>> - disable E<lt>C-EE<gt>, it does nothing now
+
+=item * C<:unmap E<lt>C-EE<gt>> - restore default behavior of C<E<lt>C-EE<gt>>
+after disabling it
+
+=back
+
+Note that you must use C</> for irssi commands (like C</clear>), the current value
+of Irssi's cmdchars does B<not> work! This is necessary do differentiate between
+ex-commands and irssi commands.
+
+=head2 SETTINGS
+
+The settings are stored as irssi settings and can be set using C</set> as usual
+(prepend C<vim_mode_> to setting name) or using the C<:set> ex-command. The
+following settings are available:
+
+=over 4
+
+=item * utf8 - Support UTF-8 characters, boolean, default on
+
+=item * debug - Enable debug output, boolean, default off
+
+=item * cmd_seq - Char that when double-pressed simulates C<E<lt>EscE<gt>>, string, default '' (disabled)
+
+=item * start_cmd - Start every line in command mode, boolean, default off
+
+=item * max_undo_lines - Sze of the undo buffer. Integer, default 50 items.
+
+=item * ex_history_size - Number of items stored in the ex-mode history. Integer, default 100.
+
+=item * prompt_leading_space - Ddetermines whether ex mode prepends a space to the displayed input. Boolean, default on
+
+=back
+
+In contrast to irssi's settings, C<:set> accepts 0 and 1 as values for boolean
+settings, but only vim_mode's settings can be set/displayed.
+
+Examples:
+
+   :set cmd_seq=j   # set cmd_seq to j
+   :set cmd_seq=    # disable cmd_seq
+   :set debug=on    # enable debug
+   :set debug=off   # disable debug
+
+=head1 SUPPORT
+
+Any behavior different from Vim (unless explicitly documented) should be
+considered a bug and reported.
+
+B<NOTE:> This script is still under heavy development, and there may be bugs.
+Please submit reproducible sequences to the bug-tracker at:
+L<http://github.com/shabble/irssi-scripts/issues/new>
+
+or contact rudi_s or shabble on irc.freenode.net (#irssi and #irssi_vim)
+
+=head1 AUTHORS
+
+Copyright E<copy> 2010-2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>> and
+
+Copyright E<copy> 2010-2011 Simon Ruderich C<E<lt>simon@ruderich.orgE<gt>>
+
+=head1 THANKS
+
+Particular thanks go to
+
+=over 4
+
+=item * estragib: a lot of testing and many bug reports and feature requests
+
+=item * iaj: testing
+
+=item * tmr: explaining how various bits of vim work
+
+=back
+
+as well as the rest of C<#irssi> and C<#irssi_vim> on Freenode IRC.
+
+=head1 LICENCE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+=head1 BUGS
+
+=over 4
+
+=item *
+
+count before register doesn't work: e.g. 3"ap doesn't work, but "a3p does
+
+=item *
+
+mapping an incomplete ex-command doesn't open the ex-mode with the partial
+command (e.g. C<:map gb :b> causes an error instead of opening the ex-mode and
+displaying C<:bE<lt>cursorE<gt>>)
+
+=item *
+
+ undo/redo cursor positions are mostly wrong
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item *
+
+Make sure the input line is empty when entering ex mode. Stuff hanging around
+just looks silly.
+
+=item *
+
+History:
+
+=over 4
+
+=item *
+
+ C< * /,?,n,N> to search through history (like rl_history_search.pl)
+
+=back
+
+=item *
+
+Window switching (C<:b>)
+
+=over 4
+
+=item *
+
+Tab completion of window(-item) names
+
+=item *
+
+non-sequential matches(?)
+
+=back
+
+=back
+
+See also the TODO file at
+L<github|https://github.com/shabble/irssi-scripts/blob/master/vim-mode/TODO> for
+many many more things.
+
+=head2 WONTFIX
+
+Things we're not ever likely to do:
+
+=over 4
+
+=item * Macros
+
+=back
+
+=cut
 
 use strict;
 use warnings;
@@ -245,9 +596,9 @@ use Irssi::TextUI;              # for sbar_items_redraw
 use Irssi::Irc;                 # necessary for 0.8.14
 
 
-use vars qw($VERSION %IRSSI);
-$VERSION = "1.0.1";
-%IRSSI =
+
+our $VERSION = "1.0.2";
+our %IRSSI   =
   (
    authors         => "Tom Feist (shabble), Simon Ruderich (rudi_s)",
    contact         => 'shabble+irssi@metavore.org, '
@@ -267,24 +618,24 @@ sub M_CMD () { 1 }
 # insert mode
 sub M_INS () { 0 }
 # extended mode (after a :?)
-sub M_EX () { 2 }
+sub M_EX  () { 2 }
 
 # operator command
-sub C_OPERATOR () { 0 }
+sub C_OPERATOR   () { 0 }
 # normal command, no special handling necessary
-sub C_NORMAL () { 1 }
+sub C_NORMAL     () { 1 }
 # command taking another key as argument
-sub C_NEEDSKEY () { 2 }
+sub C_NEEDSKEY   () { 2 }
 # text-object command (i a)
 sub C_TEXTOBJECT () { 3 }
 # commands entering insert mode
-sub C_INSERT () { 4 }
+sub C_INSERT     () { 4 }
 # ex-mode commands
-sub C_EX () { 5 }
+sub C_EX         () { 5 }
 # irssi commands
-sub C_IRSSI () { 6 }
+sub C_IRSSI      () { 6 }
 # does nothing
-sub C_NOP () { 7 }
+sub C_NOP        () { 7 }
 
 # setting types, match irssi types as they are stored as irssi settings
 sub S_BOOL () { 0 }
@@ -312,17 +663,18 @@ my $commands
      # arrow like movement
       h     => { char => 'h',       func => \&cmd_h, type => C_NORMAL },
       l     => { char => 'l',       func => \&cmd_l, type => C_NORMAL },
+     "\x08" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      "\x7F" => { char => '<BS>',    func => \&cmd_h, type => C_NORMAL },
      ' '    => { char => '<Space>', func => \&cmd_l, type => C_NORMAL },
      # history movement
-     j  => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
-             no_operator => 1 },
-     k  => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
-             no_operator => 1 },
-     gg => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
-             no_operator => 1 },
-     G  => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
-             needs_count => 1, no_operator => 1 },
+     j      => { char => 'j',  func => \&cmd_j,  type => C_NORMAL,
+                 no_operator => 1 },
+     k      => { char => 'k',  func => \&cmd_k,  type => C_NORMAL,
+                 no_operator => 1 },
+     gg     => { char => 'gg', func => \&cmd_gg, type => C_NORMAL,
+                 no_operator => 1 },
+     G      => { char => 'G',  func => \&cmd_G,  type => C_NORMAL,
+                 needs_count => 1, no_operator => 1 },
      # char movement, take an additional parameter and use $movement
       f  => { char => 'f', func => \&cmd_f, type => C_NEEDSKEY,
               selection_needs_move_right => 1 },
@@ -345,11 +697,11 @@ my $commands
      gE => { char => 'gE', func => \&cmd_gE, type => C_NORMAL,
              selection_needs_move_right => 1 },
      # text-objects, leading _ means can't be mapped!
-     _i => { char => 'i', func => \&cmd__i, type => C_TEXTOBJECT },
-     _a => { char => 'a', func => \&cmd__a, type => C_TEXTOBJECT },
+     _i => { char => 'i', func => \&cmd__i,      type => C_TEXTOBJECT },
+     _a => { char => 'a', func => \&cmd__a,      type => C_TEXTOBJECT },
      # line movement
-     '0' => { char => '0', func => \&cmd_0, type => C_NORMAL },
-     '^' => { char => '^', func => \&cmd_caret, type => C_NORMAL },
+     '0' => { char => '0', func => \&cmd_0,      type => C_NORMAL },
+     '^' => { char => '^', func => \&cmd_caret,  type => C_NORMAL },
      '$' => { char => '$', func => \&cmd_dollar, type => C_NORMAL },
      # delete chars
      x => { char => 'x', func => \&cmd_x, type => C_NORMAL,
@@ -423,6 +775,16 @@ my $commands
 # All available commands in Ex-Mode.
 my $commands_ex
   = {
+     # arrow keys - not actually used, see handle_input_buffer()
+     # TODO: make these work.
+     "\e[A"    => { char => ':exprev',    func => \&ex_history_back,
+                    type => C_EX },
+     "\e[B"    => { char => ':exnext',    func => \&ex_history_fwd,
+                    type => C_EX },
+
+     # normal Ex mode commands.
+     eh        => { char => ':exhist',    func => \&ex_history_show,
+                    type => C_EX },
      s         => { char => ':s',         func => \&ex_substitute,
                     type => C_EX },
      bnext     => { char => ':bnext',     func => \&ex_bnext,
@@ -499,11 +861,16 @@ my $commands_ex
 # default command mode mappings
 my $maps = {};
 
-# Add all default mappings.
-foreach my $char (keys %$commands) {
-    next if $char =~ /^_/; # skip private commands (text-objects for now)
-    add_map($char, $commands->{$char});
-}
+# current imap still pending (first character entered)
+my $imap = undef;
+
+# maps for insert mode
+my $imaps
+  = {
+     # CTRL-R, insert register
+     "\x12" => { map  => undef, func => \&insert_ctrl_r },
+    };
+
 
 # GLOBAL VARIABLES
 
@@ -520,8 +887,15 @@ my $settings
      start_cmd      => { type => S_BOOL, value => 0 },
      # not used yet
      max_undo_lines => { type => S_INT,  value => 50 },
+     # size of history buffer for Ex mode.
+     ex_history_size => { type => S_INT, value => 100 },
      # prompt_leading_space
      prompt_leading_space => { type => S_BOOL, value => 1 },
+     # <Leader> value for prepending to commands.
+     map_leader     => { type => S_STR,  value => '\\' },
+     # timeout for keys following esc. In milliseconds.
+     esc_buf_timeout => { type => S_INT, value =>  10 },
+
     };
 
 sub DEBUG { $settings->{debug}->{value} }
@@ -540,6 +914,10 @@ my $should_ignore = 0;
 
 # ex mode buffer
 my @ex_buf;
+
+# ex mode history storage.
+my @ex_history;
+my $ex_history_index = 0;
 
 # we are waiting for another mapped key (e.g. g pressed, but there are
 # multiple mappings like gg gE etc.)
@@ -582,19 +960,6 @@ my $registers
      '*' => '', # same
      '_' => '', # black hole register, always empty
     };
-foreach my $char ('a' .. 'z') {
-    $registers->{$char} = '';
-}
-
-# current imap still pending (first character entered)
-my $imap = undef;
-
-# maps for insert mode
-my $imaps
-  = {
-     # CTRL-R, insert register
-     "\x12" => { map  => undef, func => \&insert_ctrl_r },
-    };
 
 # index into the history list (for j,k)
 my $history_index = undef;
@@ -615,24 +980,20 @@ my $completion_active = 0;
 my $completion_string = '';
 
 sub script_is_loaded {
-    my $name = shift;
-    print "Checking if $name is loaded" if DEBUG;
-    no strict 'refs';
-    my $retval = defined %{ "Irssi::Script::${name}::" };
-    use strict 'refs';
-
-    return $retval;
+    return exists($Irssi::Script::{shift(@_) . '::'});
 }
 
-vim_mode_init();
+
 
 
 # INSERT MODE COMMANDS
 
 sub insert_ctrl_r {
     my ($key) = @_;
-
+    _debug("ctrl-r called");
     my $char = chr($key);
+    _debug("ctrl-r called with $char");
+
     return if not defined $registers->{$char} or $registers->{$char} eq '';
 
     my $pos = _insert_at_position($registers->{$char}, 1, _input_pos());
@@ -1640,6 +2001,10 @@ sub cmd_ex_command {
         return _warn("Ex-mode $1$2 doesn't exist!");
     }
 
+    # add this item to the ex mode history
+    ex_history_add($arg_str);
+    $ex_history_index = 0; # and reset the history position.
+
     my $count = $1;
     if ($count eq '') {
         $count = undef;
@@ -1990,6 +2355,8 @@ sub ex_map {
             my $cmd = $map->{cmd};
             if (defined $cmd) {
                 next if $map->{char} eq $cmd->{char}; # skip default mappings
+                # FIXME: Hack so <C-H> doesn't show up as mapped to <BS>.
+                next if $map->{char} eq '<C-H>' and $cmd->{char} eq '<BS>';
                 next if $map->{char} !~ /^\Q$search\E/; # skip non-matches
                 $active_window->print(sprintf "%-15s %s", $map->{char},
                                                           $cmd->{char});
@@ -2022,6 +2389,7 @@ sub _parse_mapping {
     my ($string) = @_;
 
     $string =~ s/<([^>]+)>/_parse_mapping_bracket($1)/ge;
+    _debug("Parse mapping: $string");
     if (index($string, '<invalid>') != -1) {
         return undef;
     }
@@ -2047,6 +2415,8 @@ sub _parse_mapping_bracket {
     # <BS>
     } elsif ($string eq 'bs') {
         $string = chr(127);
+    } elsif ($string eq 'leader') {
+        $string = $settings->{map_leader}->{value};
     # Invalid char, return special string to recognize the error.
     } else {
         $string = '<invalid>';
@@ -2055,6 +2425,14 @@ sub _parse_mapping_bracket {
 }
 sub _parse_mapping_reverse {
     my ($string) = @_;
+
+    if (not defined $string) {
+        _warn("Unable to reverse-map command: " . join('', @ex_buf));
+        return;
+    }
+
+    my $escaped_leader = quotemeta($settings->{map_leader}->{value});
+    $string =~ s/$escaped_leader/<Leader>/g;
 
     # Convert char to <char-name>.
     $string =~ s/ /<Space>/g;
@@ -2069,6 +2447,9 @@ sub _parse_mapping_reverse {
 }
 sub _parse_partial_command_reverse {
     my ($string) = @_;
+
+    my $escaped_leader = quotemeta($settings->{map_leader}->{value});
+    $string =~ s/$escaped_leader/<Leader>/g;
 
     # Convert Ctrl-X to ^X.
     $string =~ s/([\x01-\x1A])/"^" . chr(ord($1) + 64)/ge;
@@ -2227,9 +2608,9 @@ sub _matching_windows {
 
 # STATUS ITEMS
 
-# vi mode status item.
-sub vim_mode_cb {
-    my ($sb_item, $get_size_only) = @_;
+#TODO: give these things better names.
+sub vim_mode_cmd {
+
     my $mode_str = '';
     if ($mode == M_INS) {
         $mode_str = 'Insert';
@@ -2238,7 +2619,7 @@ sub vim_mode_cb {
     } else {
         $mode_str = '%_Command%_';
         if ($register ne '"' or $numeric_prefix or $operator or $movement or
-                                $pending_map) {
+            $pending_map) {
             my $partial = '';
             if ($register ne '"') {
                 $partial .= '"' . $register;
@@ -2260,13 +2641,10 @@ sub vim_mode_cb {
             $mode_str .= " ($partial)";
         }
     }
-    $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
+    return $mode_str;
 }
 
-# :b window list item.
-sub b_windows_cb {
-    my ($sb_item, $get_size_only) = @_;
-
+sub vim_wins_data {
     my $windows = '';
 
     # A little code duplication of cmd_ex_command(), but \s+ instead of \s* so
@@ -2286,6 +2664,31 @@ sub b_windows_cb {
             }
         }
     }
+    return $windows;
+}
+
+sub vim_exp_mode {
+    my ($server, $witem, $arg) = @_;
+    return vim_mode_cmd();
+}
+
+sub vim_exp_wins {
+    my ($server, $witem, $arg) = @_;
+    return vim_wins_data();
+}
+
+# vi mode status item.
+sub vim_mode_cb {
+    my ($sb_item, $get_size_only) = @_;
+    my $mode_str = vim_mode_cmd();
+    $sb_item->default_handler($get_size_only, "{sb $mode_str}", '', 0);
+}
+
+# :b window list item.
+sub b_windows_cb {
+    my ($sb_item, $get_size_only) = @_;
+
+    my $windows = vim_wins_data();
 
     $sb_item->default_handler($get_size_only, "{sb $windows}", '', 0);
 }
@@ -2306,11 +2709,17 @@ sub got_key {
         # NOTE: this timeout might be too low on laggy systems, but
         # it comes at the cost of keystroke latency for things that
         # contain escape sequences (arrow keys, etc)
+        my $esc_buf_timeout = $settings->{esc_buf_timeout}->{value};
+
         $input_buf_timer
-          = Irssi::timeout_add_once(10, \&handle_input_buffer, undef);
+          = Irssi::timeout_add_once($esc_buf_timeout,
+                                    \&handle_input_buffer, undef);
+
         print "Buffer Timer tag: $input_buf_timer" if DEBUG;
+
     } elsif ($mode == M_INS) {
-        if ($key == 3) { # Ctrl-C enter command mode
+
+        if ($key == 3) { # Ctrl-C enters command mode
             _update_mode(M_CMD);
             _stop();
             return;
@@ -2347,9 +2756,9 @@ sub got_key {
             _stop();
             return;
 
-        # Pressing delete resets insert mode repetition.
+        # Pressing delete resets insert mode repetition (8 = BS, 127 = DEL).
         # TODO: maybe allow it
-        } elsif ($key == 127) {
+        } elsif ($key == 8 || $key == 127) {
             @insert_buf = ();
         # All other entered characters need to be stored to allow repeat of
         # insert mode. Ignore delete and control characters.
@@ -2370,6 +2779,13 @@ sub got_key {
         Irssi::statusbar_items_redraw("vim_mode");
 
     } elsif ($mode == M_EX) {
+
+        if ($key == 3) { # C-c cancels Ex mdoe as well.
+            _update_mode(M_CMD);
+            _stop();
+            return;
+        }
+
         handle_command_ex($key);
     }
 }
@@ -2389,20 +2805,33 @@ sub handle_input_buffer {
         _update_mode(M_CMD);
 
     } else {
-        # we need to identify what we got, and either replay it
-        # or pass it off to the command handler.
-        # if ($mode == M_CMD) {
-        #     # command
-        #     my $key_str = join '', map { chr } @input_buf;
-        #     if ($key_str =~ m/^\e\[([ABCD])/) {
-        #         print "Arrow key: $1" if DEBUG;
-        #     } else {
-        #         print "Dunno what that is." if DEBUG;
-        #     }
-        # } else {
-        #     _emulate_keystrokes(@input_buf);
-        # }
-        _emulate_keystrokes(@input_buf);
+        # we have more than a single esc, implying an escape sequence
+        # (meta-* or esc-*)
+
+        # currently, we only extract escape sequences if:
+        # a) we're in ex mode
+        # b) they're arrow keys (for history control)
+
+        if ($mode == M_EX) {
+            # ex mode
+            my $key_str = join '', map { chr } @input_buf;
+            if ($key_str =~ m/^\e\[([ABCD])/) {
+                my $arrow = $1;
+                _debug( "Arrow key: $arrow");
+                if ($arrow eq 'A') { # up
+                    ex_history_back();
+                } elsif ($arrow eq 'B') { # down
+                    ex_history_fwd();
+                } else {
+                    $arrow =~ s/C/right/;
+                    $arrow =~ s/D/left/;
+                    _debug("Arrow key $arrow not supported");
+                }
+            }
+        } else {
+            # otherwise, we just forward them to irssi.
+            _emulate_keystrokes(@input_buf);
+        }
 
         # Clear insert buffer, pressing "special" keys (like arrow keys)
         # resets it.
@@ -2414,7 +2843,7 @@ sub handle_input_buffer {
 }
 
 sub flush_input_buffer {
-    Irssi::timeout_remove($input_buf_timer);
+    Irssi::timeout_remove($input_buf_timer) if defined $input_buf_timer;
     $input_buf_timer = undef;
     # see what we've collected.
     print "Input buffer flushed" if DEBUG;
@@ -2537,13 +2966,7 @@ sub handle_command_cmd {
     } elsif ($cmd->{type} == C_IRSSI) {
         print "Processing irssi-command: $map->{char} ($cmd->{char})" if DEBUG;
 
-        # TODO: fix me more better (general server/win/none context?)
-        my $server = Irssi::active_server;
-        if (defined $server) {
-            $server->command($cmd->{func});
-        } else {
-            Irssi::command($cmd->{func});
-        }
+        _command_with_context($cmd->{func});
 
         $numeric_prefix = undef;
         return 1; # call _stop();
@@ -2743,10 +3166,10 @@ sub handle_command_cmd {
 sub handle_command_ex {
     my ($key) = @_;
 
-    # DEL key - remove last character
-    if ($key == 127) {
+    # BS key (8) or DEL key (127) - remove last character.
+    if ($key == 8 || $key == 127) {
         print "Delete" if DEBUG;
-        if (scalar @ex_buf > 0) {
+        if (@ex_buf > 0) {
             pop @ex_buf;
             _set_prompt(':' . join '', @ex_buf);
         # Backspacing over : exits ex-mode.
@@ -2764,14 +3187,21 @@ sub handle_command_ex {
         print "Tab pressed" if DEBUG;
         print "Ex buf contains: " . join('', @ex_buf) if DEBUG;
         @tab_candidates = _tab_complete(join('', @ex_buf), [keys %$commands_ex]);
-
+        _debug("Candidates: " . join(", ", @tab_candidates));
+        if (@tab_candidates == 1) {
+            @ex_buf = ( split('', $tab_candidates[0]), ' ');
+            _set_prompt(':' . join '', @ex_buf);
+        }
     # Ignore control characters for now.
-    } elsif ($key < 32) {
+    } elsif ($key > 0 && $key < 32) {
         # TODO: use them later, e.g. completion
 
     # Append entered key
     } else {
-        push @ex_buf, chr $key;
+        if ($key != -1) {
+            # check we're not called from an ex_history_* function
+            push @ex_buf, chr $key;
+        }
         _set_prompt(':' . join '', @ex_buf);
     }
 
@@ -2794,13 +3224,30 @@ sub _tab_complete {
 
 sub vim_mode_init {
     Irssi::signal_add_first 'gui key pressed' => \&got_key;
-    Irssi::signal_add 'setup changed' => \&setup_changed;
-    Irssi::statusbar_item_register ('vim_mode', 0, 'vim_mode_cb');
+    Irssi::statusbar_item_register ('vim_mode',    0, 'vim_mode_cb');
     Irssi::statusbar_item_register ('vim_windows', 0, 'b_windows_cb');
+
+    Irssi::expando_create('vim_cmd_mode' => \&vim_exp_mode, {});
+    Irssi::expando_create('vim_wins'     => \&vim_exp_wins, {});
+
 
     # Register all available settings.
     foreach my $name (keys %$settings) {
         _setting_register($name);
+    }
+
+    foreach my $char ('a' .. 'z') {
+        $registers->{$char} = '';
+    }
+
+    setup_changed();
+
+    Irssi::signal_add 'setup changed' => \&setup_changed;
+
+    # Add all default mappings.
+    foreach my $char (keys %$commands) {
+        next if $char =~ /^_/; # skip private commands (text-objects for now)
+        add_map($char, $commands->{$char});
     }
 
     # Load the vim_moderc file if it exists.
@@ -2811,6 +3258,8 @@ sub vim_mode_init {
 
     if ($settings->{start_cmd}->{value}) {
         _update_mode(M_CMD);
+    } else {
+        _update_mode(M_INS);
     }
 }
 
@@ -2995,7 +3444,7 @@ sub delete_map {
     }
     push @add, $keys;
 
-    # Restore default keybindings in case we :unmaped a <Nop> or a remapped
+    # Restore default keybindings in case we :unmapped a <Nop> or a remapped
     # key.
     foreach my $key (@add) {
         if (exists $commands->{$key}) {
@@ -3129,6 +3578,8 @@ sub _update_mode {
     }
 
     Irssi::statusbar_items_redraw("vim_mode");
+    Irssi::statusbar_items_redraw ('uberprompt');
+
 }
 
 sub _set_prompt {
@@ -3206,3 +3657,105 @@ sub _warn {
 
     print '%_vim_mode: ', $warning, '%_';
 }
+
+sub _debug {
+    return unless DEBUG;
+
+    my ($format, @args) = @_;
+    my $str = sprintf($format, @args);
+    print $str;
+}
+
+sub _command_with_context {
+    my ($command) = @_;
+    my $context;
+    my $window = Irssi::active_win;
+    if (defined $window) {
+        my $witem = $window->{active};
+        if (defined $witem and ref($witem) eq 'Irssi::Windowitem') {
+            $context = $witem;
+        } else {
+            $context = $window;
+        }
+    } else {
+        my $server = Irssi::active_server;
+        if (defined $server) {
+            $context = $server;
+        }
+    }
+    if (defined $context) {
+        print "Command $command Using context: " . ref($context) if DEBUG;
+        $context->command($command);
+    } else {
+        print "Command $command has no context" if DEBUG;
+        Irssi::command($command);
+    }
+}
+
+sub ex_history_add {
+    my ($line) = @_;
+
+    # check it's not an exact dupe of the previous history line
+
+    my $last_hist = $ex_history[$ex_history_index];
+    $last_hist = '' unless defined $last_hist;
+
+    return if $last_hist eq $line;
+
+    _debug("Adding $line to ex command history");
+
+    # add it to the history
+    unshift @ex_history, $line;
+
+    if ($settings->{ex_history_size}->{value} < @ex_history) {
+        pop @ex_history; # junk the last entry if we've hit the max.
+    }
+}
+
+sub ex_history_fwd {
+
+    my $hist_max = $#ex_history;
+    $ex_history_index++;
+    if ($ex_history_index > $hist_max) {
+        $ex_history_index = 0;
+        _debug("ex history hit top, wrapping to 0");
+    }
+
+    my $line = $ex_history[$ex_history_index];
+    $line = '' if not defined $line;
+
+    _debug("Ex history line: $line");
+
+    @ex_buf = split '', $line;
+    handle_command_ex(-1);
+}
+
+sub ex_history_back {
+    my $hist_max = $#ex_history;
+    $ex_history_index--;
+    if ($ex_history_index == -1) {
+        $ex_history_index = $hist_max;
+        _debug("ex history hit bottom, wrapping to $hist_max");
+
+    }
+
+    my $line = $ex_history[$ex_history_index];
+    $line = '' if not defined $line;
+
+    _debug("Ex history line: $line");
+    @ex_buf = split '', $line;
+    handle_command_ex(-1);
+
+}
+
+sub ex_history_show {
+    my $win = Irssi::active_win();
+    $win->print("Ex command history:");
+    for my $i (0 .. $#ex_history) {
+        my $flag = $i == $ex_history_index
+          ? ' <'
+          : '';
+        $win->print("$i " . $ex_history[$i] . $flag);
+    }
+}
+vim_mode_init();

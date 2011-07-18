@@ -1,0 +1,58 @@
+How the input system for vim_mode should work.
+=============================================
+
+* insert mode mappings
+* normal (command)  mode mappings
+* timeout for ambiguous mappings
+**  but support for no timeout for some mappings (like Ctrl-R in insert mode)
+* maybe 'timeout' and 'ttimeout' settings (and 'timeoutlen' and 'ttimeoutlen')
+* partial commands/mappings (like :map a :b a which inserts ex mode and
+* displays :b a there without running any command)
+* support for mappings entering insert mode: :map gX itexthere<esc> (also without esc!)
+** (.) (repeat) for all (most) commands
+* more general command order: 3"ap doesn't work but "a3p does
+* arbitrary mappings, like 3dwjjihi<esc>10G (at the moment even :map Y y$ doesn't work)
+* support to disable mappings temporarily (:set paste, 'pastetoggle')
+* (better) support multiple bindings for the same action (especially <BS> and <C-H>)
+* unmapping of internal mappings (for example <C-C> to <Nop> as it's also used for colors in irssi)
+* better approach to detecting single ESC push (compared to F-keys or meta-* keys)
+
+We base the input model on a simple state machine.
+It can exist in any of 4 (5) states:
+ - insert mode
+   - insert escape mode
+     a transitional mode to distingush that we've received an escape char.
+ - command mode
+ - ex mode
+ - visual mode (can be mostly ignored for now, until I sort my overlays stuff
+   out)
+
+to swap between these modes, there are various bindings available.
+The most challenging is going from insert -> command.  Typically this is done
+by a single push of the <esc> key, but C-c and <jj> are both alternatives that
+people use.
+
+The single entrypoint we have into the input system is detecting keystrokes.
+when a 'gui key pressed' signal is fired, we can receive, process and interrupt
+it such that it never gets passed to irssi proper.
+
+in order to detect single <esc> presses from their meta comrades, we operate
+as the following:
+
+if (key == 27) {
+    mode = insert_escape
+    add_timeout(short, check_escape_buffer)
+} elsif (mode == insert_escape) {
+    insert(key, escape_buffer)
+} else {
+   # do nothing
+}
+
+sub check_escape_buffer {
+# when the timeout fires, we can assume that only meta-keys would be fast enough
+# to insert additional characters into the buffer.  In which case, we replay
+# them and clear the buffer.
+ mode = insert_mode;
+# if the buffer is otherwise empty, we have received a single escape press.
+ mode = command_mode;
+}

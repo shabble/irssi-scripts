@@ -1,87 +1,258 @@
-# Search and select windows similar to ido-mode for emacs
-#
-# INSTALL:
-#
-# This script requires that you have first installed and loaded 'uberprompt.pl'
-# Uberprompt can be downloaded from:
-#
-# http://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl
-#
-# and follow the instructions at the top of that file for installation.
-#
-# SETUP:
-#
-# * Setup: /bind ^G /ido_switch_start
-#
-# * Then type ctrl-G and type what you're searching for
-#
-# USAGE:
-#
-# C-g (or whatever you've set the above bind to), enters window switching mode.
-#
-# NB: When entering window switching mode, the contents of your input line will
-# be saved and cleared, to avoid visual clutter whilst using the switching
-# interface.  It will be restored once you exit the mode using either C-g, Esc,
-# or RET.
+=pod
 
-# The following key-bindings are available only once the mode has been
-# activated:
-#
-# * C-g   - cancel out of the mode without changing windows.
-# * Esc   - cancel out, as above.
-# * C-s   - rotate the list of window candidates forward by 1
-# * C-r   - rotate the list of window candidates backward by 1
-# * C-e   - Toggle 'Active windows only' filter
-# * C-f   - Switch between 'Flex' and 'Exact' matching.
-# * C-d   - Select a network or server to filter candidates by
-# * C-u   - Clear the current search string
-# * C-q   - Cycle between showing only queries, channels, or all.
-# * C-SPC - Filter candidates by current search string, and then reset
-#            the search string
-# * RET   - Select the current head of the candidate list (the green one)
-# * SPC   - Select the current head of the list, without exiting the
-#            switching mode. The head is then moved one place to the right,
-#            allowing one to cycle through channels by repeatedly pressing space.
-# * TAB   - [currently in development] displays all possible completions
-#            at the bottom of the current window.
-# * All other keys (a-z, A-Z, etc) - Add that character to the current search
-#                                     string.
-#
-# USAGE NOTES:
-#
-# * Using C-e (show actives), followed by repeatedly pressing space will cycle
-#   through all your currently active windows.
-#
-# * If you enter a search string fragment, and realise that more than one candidate
-#   is still presented, rather than delete the whole string and modify it, you can
-#   use C-SPC to 'lock' the current matching candidates, but allow you to search
-#   through those matches alone.
-#
-# Based in part on window_switcher.pl script Copyright 2007 Wouter Coekaerts
-# <coekie@irssi.org>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+=head1 NAME
+
+ido_switcher.pl
+
+=head1 DESCRIPTION 
+
+Search and select windows similar to ido-mode for emacs
+
+=head1 INSTALLATION
+
+This script requires that you have first installed and loaded F<uberprompt.pl>
+
+Uberprompt can be downloaded from:
+
+L<https://github.com/shabble/irssi-scripts/raw/master/prompt_info/uberprompt.pl>
+
+and follow the instructions at the top of that file or its README for installation.
+
+If uberprompt.pl is available, but not loaded, this script will make one
+attempt to load it before giving up.  This eliminates the need to precisely
+arrange the startup order of your scripts.
+
+=head2 SETUP
+
+C</bind ^G /ido_switch_start [options]>
+
+Where C<^G> is a key of your choice.
+
+=head2 USAGE
+
+C<C-g> (or whatever you've set the above bind to), enters IDO window switching mode.
+You can then type either a search string, or use one of the additional key-bindings
+to change the behaviour of the search.  C<C-h> provides online help regarding
+the possible interactive options.
+
+=head3 EXTENDED USAGE:
+
+It is possible to pass arguments to the C</ido_switch_start> command, which
+correspond to some of the interactively settable parameters listed below.
+
+The following options are available:
+
+=over 4
+
+=item C<-channels>
+
+Search through only channels.
+
+=item C<-queries>
+
+Search through only queries.
+
+=item C<-all>
+
+search both queries and channels (Default).
+
+=item C<-active>
+
+Lmit search to only window items with activity.
+
+=item C<-exact>
+
+Enable exact-substring matching
+
+=item C<-flex>
+
+Enable flex-string matching
+
+=back
+
+I<If neither of C<-exact> or C<-flex> are given, the default is the value of
+C</set ido_use_flex>>
+
+=head4 EXAMPLE
+
+=over 2
+
+=item C</bind ^G /ido_switch_start -channels>
+
+=item C</bind ^F /ido_switch_start -queries -active>
+
+=back
+
+B<NOTE:> When entering window switching mode, the contents of your input line will
+be saved and cleared, to avoid visual clutter whilst using the switching
+interface.  It will be restored once you exit the mode using either C<C-g>, C<Esc>,
+or C<RET>.
+
+=head3 INTERACTIVE COMMANDS
+
+The following key-bindings are available only once the mode has been
+activated:
+
+=over 4
+
+=item C<C-g>
+
+ Exit the mode without changing windows.
+
+=item C<Esc>
+
+Exit, as above.
+
+=item C<C-s>
+
+Rotate the list of window candidates forward by one item
+
+=item C<C-r>
+
+Rotate the list of window candidates backward by one item
+
+=item C<C-e>
+
+Toggle 'Active windows only' filter
+
+=item C<C-f>
+
+Switch between 'Flex' and 'Exact' matching.
+
+=item C<C-d>
+
+Select a network or server to filter candidates by
+
+=item C<C-u>
+
+Clear the current search string
+
+=item C<C-q>
+
+Cycle between showing only queries, channels, or all.
+
+=item C<C-SPC>
+
+Filter candidates by current search string, and then reset
+the search string
+
+=item C<RET>
+
+Select the current head of the candidate list (the green one)
+
+=item C<SPC>
+
+Select the current head of the list, without exiting the
+switching mode. The head is then moved one place to the right,
+allowing one to cycle through channels by repeatedly pressing space.
+
+=item C<TAB>
+
+B<[currently in development]> displays all possible completions
+at the bottom of the current window.
+
+=item I<All other keys> (C<a-z, A-Z>, etc)
+
+Add that character to the current search string.
+
+=back
+
+=head3 USAGE NOTES
+
+=over 4
+
+=item * 
+
+Using C-e (show actives), followed by repeatedly pressing space will cycle
+through all your currently active windows.
+
+=item *
+
+If you enter a search string fragment, and realise that more than one candidate
+is still presented, rather than delete the whole string and modify it, you
+can use C-SPC to 'lock' the current matching candidates, but allow you to
+search through those matches alone.
+
+=back
+
+=head1 AUTHORS
+
+Based originally on L<window_switcher.pl|http://scripts.irssi.org/scripts/window_switcher.pl> script Copyright 2007 Wouter Coekaerts
+C<E<lt>coekie@irssi.orgE<gt>>.
+
+Primary functionality Copyright 2010-2011 Tom Feist
+C<E<lt>shabble+irssi@metavore.orgE<gt>>.
+
+=head1 LICENCE
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+=head1 BUGS:
+
+=over 4
+
+=item B<FIXED> Sometimes selecting a channel with the same name on a different
+   network will take you to the wrong channel.
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item B<DONE> C-g - cancel
+
+=item B<DONE> C-spc - narrow
+
+=item B<DONE> flex matching (on by default, but optional)
+
+=item TODO server/network narrowing
+
+=item B<DONE> colourised output (via uberprompt)
+
+=item B<DONE> C-r / C-s rotate matches
+
+=item B<DONE> toggle queries/channels
+
+=item B<DONE> remove inputline content, restore it afterwards.
+
+=item TODO tab - display all possibilities in window (clean up afterwards)
+how exactly will this work?
+
+=item B<DONE> sort by recent activity/recently used windows (separate commands?)
+
+=item B<TODO> need to be able to switch ordering of active ones (numerical, or most
+recently active, priority to PMs/hilights, etc?)
+
+=item B<DONE> should space auto-move forward to next window for easy stepping
+     through sequential/active windows?
+
+=back
+
+=cut
 
 use strict;
+use warnings;
+
 use Irssi;
 use Irssi::TextUI;
 use Data::Dumper;
 
-use vars qw($VERSION %IRSSI);
-$VERSION = '2.0';
-%IRSSI =
+
+our $VERSION = '2.1';
+our %IRSSI   =
   (
    authors     => 'Tom Feist, Wouter Coekaerts',
    contact     => 'shabble+irssi@metavore.org, shabble@#irssi/freenode',
@@ -93,22 +264,10 @@ $VERSION = '2.0';
   );
 
 
-# TODO:
-# DONE C-g - cancel
-# DONE C-spc - narrow
-# DONE flex matching (on by default, but optional)
-# TODO server/network narrowing
-# DONE colourised output (via uberprompt)
-# DONE C-r / C-s rotate matches
-# DONE toggle queries/channels
-# DONE remove inputline content, restore it afterwards.
-# TODO tab - display all possibilities in window (clean up afterwards)
-#       how exactly will this work?
-# DONE sort by recent activity/recently used windows (separate commands?)
-# TODO need to be able to switch ordering of active ones (numerical, or most recently
-#      active, priority to PMs/hilights, etc?)
-# DONE should space auto-move forward to next window for easy stepping through
-#      sequential/active windows?
+
+my $CMD_NAME = 'ido_switch_start';
+my $CMD_OPTS = '-channels -queries -all -active -exact -flex';
+
 
 my $input_copy     = '';
 my $input_pos_copy = 0;
@@ -129,6 +288,7 @@ my $showing_help = 0;
 my $need_clear = 0;
 
 my $sort_ordering = "start-asc";
+my $sort_active_first = 0;
 
 # /set configurable settings
 my $ido_show_count;
@@ -152,22 +312,25 @@ sub _print {
     my $win = Irssi::active_win;
     my $str = join('', @_);
     $need_clear = 1;
-    $win->print($str, Irssi::MSGLEVEL_NEVER);
+    $win->print($str, MSGLEVEL_NEVER);
 }
 
 sub _debug_print {
     return unless DEBUG;
     my $win = Irssi::active_win;
     my $str = join('', @_);
-    $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
+    $win->print($str, MSGLEVEL_CLIENTCRAP);
 }
 
 sub _print_clear {
     return unless $need_clear;
     my $win = Irssi::active_win();
-    $win->command('/scrollback levelclear -level NEVER');
+    $win->command('/^scrollback levelclear -level NEVER');
 }
 
+# TODO: use the code from rl_history_search to put this into a disposable
+#       split win.
+# TODO: create formats for this.
 sub display_help {
 
     my @message =
@@ -242,15 +405,9 @@ sub print_all_matches {
     #_print("Longtest name: $longest_name");
 }
 
-  sub script_is_loaded {
-      my $name = shift;
-      _debug_print "Checking if $name is loaded";
-      no strict 'refs';
-      my $retval = defined %{ "Irssi::Script::${name}::" };
-      use strict 'refs';
-
-      return $retval;
-  }
+sub script_is_loaded {
+    return exists($Irssi::Script::{$_[0] . '::'});
+}
 
 unless (script_is_loaded('uberprompt')) {
 
@@ -275,11 +432,14 @@ sub load_uberprompt_failed {
 }
 
 sub ido_switch_init {
-    Irssi::settings_add_bool('ido_switch', 'ido_switch_debug', 0);
-    Irssi::settings_add_bool('ido_switch', 'ido_use_flex',     1);
-    Irssi::settings_add_int ('ido_switch', 'ido_show_count',   5);
+    Irssi::settings_add_bool('ido_switch', 'ido_switch_debug',      0);
+    Irssi::settings_add_bool('ido_switch', 'ido_use_flex',          1);
+    Irssi::settings_add_bool('ido_switch', 'ido_show_active_first', 1);
+    Irssi::settings_add_int ('ido_switch', 'ido_show_count',        5);
 
-    Irssi::command_bind('ido_switch_start', \&ido_switch_start);
+
+    Irssi::command_bind($CMD_NAME, \&ido_switch_start);
+    Irssi::command_set_options($CMD_NAME, $CMD_OPTS);
 
     Irssi::signal_add      ('setup changed'   => \&setup_changed);
     Irssi::signal_add_first('gui key pressed' => \&handle_keypress);
@@ -288,28 +448,52 @@ sub ido_switch_init {
 }
 
 sub setup_changed {
-    $DEBUG_ENABLED  = Irssi::settings_get_bool('ido_switch_debug');
-    $ido_show_count = Irssi::settings_get_int ('ido_show_count');
-    $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
+    $DEBUG_ENABLED     = Irssi::settings_get_bool('ido_switch_debug');
+    $ido_show_count    = Irssi::settings_get_int ('ido_show_count');
+    $ido_use_flex      = Irssi::settings_get_bool('ido_use_flex');
+    $sort_active_first = Irssi::settings_get_bool('ido_show_active_first');
 }
 
-
 sub ido_switch_start {
+
+    my ($args, $server, $witem) = @_;
+
     # store copy of input line to restore later.
     $input_copy     = Irssi::parse_special('$L');
     $input_pos_copy = Irssi::gui_input_get_pos();
 
     Irssi::gui_input_set('');
 
-    # set startup flags
+    my $options = {};
+    my @opts = Irssi::command_parse_options($CMD_NAME, $args);
+    if (@opts and ref($opts[0]) eq 'HASH') {
+        $options = $opts[0];
+        print "Options: " . Dumper($options);
+    }
+
+    # clear / initialise match variables.
     $ido_switch_active = 1;
     $search_str        = '';
     $match_index       = 0;
-    $mode_type         = 'ALL';
 
-    # refresh in case we toggled it last time.
-    $ido_use_flex   = Irssi::settings_get_bool('ido_use_flex');
-    $active_only    = 0;
+    # configure settings from provided arguments.
+
+    # use provided options first, or fall back to /setting.
+    $ido_use_flex = exists $options->{exact}
+      ? 0
+      : exists $options->{flex}
+      ? 1
+      : Irssi::settings_get_bool('ido_use_flex');
+
+    # only select active items
+    $active_only = exists $options->{active};
+
+    # what type of items to search.
+    $mode_type   = exists $options->{queries}
+      ? 'QUERY'
+      : exists $options->{channels}
+      ? 'CHANNEL'
+      : 'ALL';
 
     _debug_print "Win cache: " . join(", ", map { $_->{name} } @window_cache);
 
@@ -370,7 +554,12 @@ sub get_all_windows {
                 push @ret, { _build_win_obj($win, $item) };
             }
         } else {
-            _debug_print "Error occurred reading info from window: $win";
+            if (not grep { $_->{num} == $win->{refnum} } @ret) {
+                my $item = { _build_win_obj($win, undef) };
+                $item->{name} = "Unknown";
+                push @ret, $item;
+            }
+            #_debug_print "Error occurred reading info from window: $win";
             #_debug_print Dumper($win);
         }
     }
@@ -384,17 +573,24 @@ sub get_all_windows {
         my $list_ref = shift;
         my @ret = @$list_ref;
 
-        @ret = sort { $a->{num} <=> $b->{num} } @ret;
+        @ret = sort { $a->{num} <=> $b->{num}  } @ret;
+        if ($sort_active_first) {
+            my @active   = grep {     $_->{active} } @ret;
+            my @inactive = grep { not $_->{active} } @ret;
 
-        return @ret;
+            return (@active, @inactive);
+        } else {
+            return @ret;
+        }
     }
 
     sub ido_switch_select {
-        my ($selected) = @_;
+        my ($selected, $tag) = @_;
 
-        _debug_print "Selecting window: " . $selected->{name};
+        _debug_print sprintf("Selecting window: %s (%d)",
+                             $selected->{name}, $selected->{num});
 
-        Irssi::command("WINDOW GOTO " . $selected->{name});
+        Irssi::command("WINDOW GOTO " . $selected->{num});
 
         if ($selected->{type} ne 'WIN') {
             _debug_print "Selecting window item: " . $selected->{itemname};
@@ -424,7 +620,7 @@ sub get_all_windows {
         # take the top $ido_show_count entries and display them.
         my $match_count  = scalar @search_matches;
         my $show_count   = $ido_show_count;
-        my $match_string = '[No match';
+        my $match_string = '[No matches]';
 
         $show_count = $match_count if $match_count < $show_count;
 
@@ -486,7 +682,7 @@ sub get_all_windows {
         push @indicators, 'Active' if $active_only;
         push @indicators, ucfirst(lc($mode_type));
 
-        my $flex = sprintf(' %%k[%%n%s%%k]%%n ', join ',', @indicators);
+        my $flex = sprintf(' %%b[%%n%s%%b]%%n ', join ', ', @indicators);
 
         my $search = '';
         $search = (sprintf '`%s\': ', $search_str) if length $search_str;
@@ -539,7 +735,7 @@ sub get_all_windows {
 
         if ($mode_type ne 'ALL') {
             @mode_cache = @window_cache;
-            @window_cache = grep { print "Type: " . $_->{type}; $_->{type} eq $mode_type } @window_cache;
+            @window_cache = grep { $_->{type} eq $mode_type } @window_cache;
         } else {
             @window_cache = @mode_cache if @mode_cache;
         }
@@ -717,6 +913,16 @@ sub get_all_windows {
             ido_switch_exit();
             Irssi::signal_stop();
             return;
+        }
+        if ($key == 11) { # Ctrl-K
+            my $sel = get_window_match();
+            _debug_print("deleting entry: " . $sel->{num});
+            Irssi::command("window close " . $sel->{num});
+            _update_cache();
+            update_matches();
+            update_window_select_prompt();
+            Irssi::signal_stop();
+
         }
 
         if ($key == 18) {       # Ctrl-R

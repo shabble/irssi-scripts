@@ -104,8 +104,8 @@ sub haxy_print_hook {
 
 sub parse_channel_map {
     #my $data = Irssi::settings_get_str('joinplus_server_maps');
-    unbind_completion();
     my $data = retrieve_channels();
+    unbind_completion();
     my @items = split /\s+/, $data;
     if (@items % 2 == 0) {
         $channel_map = { @items }; # risky?
@@ -135,7 +135,7 @@ sub join_plus {
 
     # parse out channel name from args:
     my $channel;
-    if ($args =~ m/^(#?[#a-zA-Z0-9]+)/) {
+    if ($args =~ m/^(#?[#a-zA-Z0-9-]+)/) {
         $channel = $1;
         _debug_print ("Channel is: $channel");
     }
@@ -211,13 +211,14 @@ sub do_channel_join {
 
     my $channel = $pending_joins->{$serv->{address}};
     $channel = $pending_joins->{$serv->{tag}} unless $channel;
+    if ($channel) {
+        _debug_print ("attempting to join $channel");
 
-    _debug_print ("attempting to join $channel");
+        Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
 
-    Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
-
-    delete $pending_joins->{$serv->{address}};
-    delete $pending_joins->{$serv->{tag}};
+        delete $pending_joins->{$serv->{address}};
+        delete $pending_joins->{$serv->{tag}};
+    }
 
 }
 

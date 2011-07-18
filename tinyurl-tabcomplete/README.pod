@@ -1,0 +1,56 @@
+=pod
+
+=head1 NAME
+
+complete-tiny-url.pl
+
+=head1 DESCRIPTION
+
+Shortens web links from your Irssi input field by pressing tab directly after
+them.
+
+=head1 INSTALLATION
+
+Copy into your F<~/.irssi/scripts/> directory and load with
+C</SCRIPT LOAD complete-tiny-url.pl>. You may wish to have it autoload in one of the
+L<usual ways|https://github.com/shabble/irssi-docs/wiki/Guide#Autorunning_Scripts>.
+
+=head1 USAGE
+
+Type or paste a URL into your input field, then immediately following the last
+character of it, press the C<E<lt>TABE<gt>> key.  After a few seconds, the
+URL will be replaced with an appropriate L<http://tinyurl.com/> address.
+
+=head1 AUTHORS
+
+Copyright E<copy> 2010-2011 Tom Feist C<E<lt>shabble+irssi@metavore.orgE<gt>> and
+
+=head1 LICENCE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+=head1 BUGS
+
+None Known. Please report any at
+L<https://github.com/shabble/irssi-scripts/issues/new>
+
+
+
+=cut
+
