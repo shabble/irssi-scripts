@@ -209,13 +209,14 @@ sub do_channel_join {
 
     my $channel = $pending_joins->{$serv->{address}};
     $channel = $pending_joins->{$serv->{tag}} unless $channel;
+    if ($channel) {
+        _debug_print ("attempting to join $channel");
 
-    _debug_print ("attempting to join $channel");
+        Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
 
-    Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
-
-    delete $pending_joins->{$serv->{address}};
-    delete $pending_joins->{$serv->{tag}};
+        delete $pending_joins->{$serv->{address}};
+        delete $pending_joins->{$serv->{tag}};
+    }
 
 }
 
