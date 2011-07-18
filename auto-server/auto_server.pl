@@ -94,7 +94,7 @@ sub haxy_print_hook {
     my $data = $_[1];
     # Hose control characters
     $data =~ s/\x04.//g;
-    if ($data =~ m/^#/) {
+    if ($data =~ m/^[#&!]/) {
         my @items = split /\s+/, $data;
         push(@hack_channels, $items[0]);
         push(@hack_channels, $items[1]);
@@ -135,7 +135,7 @@ sub join_plus {
 
     # parse out channel name from args:
     my $channel;
-    if ($args =~ m/^(#?[#a-zA-Z0-9-]+)/) {
+    if ($args =~ m/^([#&!]?[^ ]+)/) {
         $channel = $1;
         _debug_print ("Channel is: $channel");
     }
