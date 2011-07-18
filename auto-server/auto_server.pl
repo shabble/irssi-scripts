@@ -135,7 +135,7 @@ sub join_plus {
 
     # parse out channel name from args:
     my $channel;
-    if ($args =~ m/^([#&!]?[^ ]+)/) {
+    if ($args =~ m/^([#&!]?[^ ]*)/) {
         $channel = $1;
         _debug_print ("Channel is: $channel");
     }
