@@ -130,7 +130,12 @@ sub _handle_messages {
 
     my $uri_obj = URI->new($url);
 
-    return unless ref($uri_obj) && exists $domains->{$uri_obj->host};
+    # check we've got a valid url
+    return unless ref($uri_obj);
+    return unless $uri_obj->can('host');
+
+    # match against the whitelist.
+    return unless exists $domains->{$uri_obj->host};
 
     $pending_msg_params->{$url} = [@_];
     $lookup_in_progress = 1;
