@@ -123,7 +123,7 @@ sub match_uri {
     if ($text =~ $regex) {
         my $uri = $1;
         # shorten needs the http prefix or it'll treat it as a relative link.
-        $uri = 'http://' . $uri if $uri !~ m(http://);
+        $uri = 'http://' . $uri if $uri !~ m([a-z][\w-]+:(?:/{1,3}|[a-z0-9%]));
         return $uri;
     } else {
         # no match
