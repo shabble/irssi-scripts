@@ -211,7 +211,7 @@ I<---- start of snippet ---->
     }
 
     sub load_uberprompt_failed {
-        Irssi::signal_remove('script error', 'load_prompt_failed');
+        Irssi::signal_remove('script error', 'load_uberprompt_failed');
 
         print "Script could not be loaded. Script cannot continue. "
           . "Check you have uberprompt.pl installed in your path and "
