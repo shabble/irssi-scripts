@@ -5,8 +5,8 @@
 #
 # the primary command used is /join+ #channelname
 #
-# Mappings for channels to servers is accomplished with the
-# joinplus_server_maps setting.
+# Mappings for channels and servers are retrieved from irssi's internal
+# /channel list
 #
 # Within this setting, space separated pairs denote channel, server pairs.
 # Spaces also separate individual pairs, for example:
@@ -17,9 +17,9 @@
 # will connect you, and then join that channel.
 
 # TODO:
-# Autocompletion for channel names
 # address conflict resolution
 # fix that disgusting race condition
+# Fix incredibly slow shutdown time after a few days
 
 use strict;
 use warnings;
