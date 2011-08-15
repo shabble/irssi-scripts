@@ -82,9 +82,13 @@ sub init {
 }
 
 sub cmd_password {
-    # Hmm, broken.
-    #Irssi::gui_input_set('Password: ');
-    begin_entry_redirect();
+
+    # not sure why this delay is needed, but otherwise
+    # setting the input (" Password: ") doesn't work.
+    Irssi::timeout_add_once(10, sub {
+                                Irssi::gui_input_set('Password: ');
+                                begin_entry_redirect();
+                            }, 0);
 }
 
 sub begin_entry_redirect {
