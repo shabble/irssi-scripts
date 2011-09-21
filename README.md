@@ -125,17 +125,18 @@ reminder. I'll go create an issue for it Right Now!
 * override `/set` to provide list manipulation options, something like
 `/set {-append, -remove} $param $value`.
 
-* Finish work on [[foreach-guard/]]
+* Finish work on [`foreach-guard`](foreach-guard/)
 
-* Finish (Well, start) something in [[colour_popup/]] to make an actual popup
+* Finish (Well, start) something in [`colour_popup`](colour_popup/)
+ to make an actual popup
 
 * Revisit some of the cracked-out ideas for colour/format overlays
 
-* Go back and clean up [[irssi_vim/]] like I promised to everyone ages and ages
-  ago. Also do the features thing.
+* Go back and clean up [`irssi_vim`](irssi_vim/) like I promised to everyone
+  ages and ages ago. Also do the features thing.
   
 * Actually fix all the
-  [[issues|https://github.com/shabble/irssi-scripts/issues]] people have
+  [issues](https://github.com/shabble/irssi-scripts/issues) people have
   dilligently reported.
   
 #### Other things
@@ -150,20 +151,20 @@ useful general features.
  * Overlays?
  
  * Format helper functions like the ones listed in the
-   [[Guide|https://github.com/shabble/irssi-docs/wiki/Guide]]
+ [Guide](https://github.com/shabble/irssi-docs/wiki/Guide).
    
 * Refactor just about everything to use the above.
 
 * Do something productive again on the 256colour fork/patches
 
-* Ditto @leonerd's [[fixterms|http://www.leonerd.org.uk/hacks/fixterms/]] key
+* Ditto @leonerd's [fixterms](http://www.leonerd.org.uk/hacks/fixterms/) key
 binding support
 
 * Try to get someone to look at my patches & bug reports.
 
 #### Documentation Wiki
 
-You know, [[that|https://github.com/shabble/irssi-docs/wiki]] one.
+You know, [that](https://github.com/shabble/irssi-docs/wiki) one.
 
 * Fix the stupid ToC generator internal anchor names problem.
 
