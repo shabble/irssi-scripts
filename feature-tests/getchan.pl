@@ -104,7 +104,7 @@ sub restore_formats {
     Irssi::command("^FORMAT chansetup_line $line_format");
     Irssi::command("^FORMAT chansetup_header $head_format");
     if ($foot_format =~ m/^\s*$/) {
-        Irssi::command("^FORMAT -reset chansetup_footer");
+        Irssi::command("^FORMAT -delete chansetup_footer");
     } else {
         Irssi::command("^FORMAT  chansetup_footer $foot_format");
     }

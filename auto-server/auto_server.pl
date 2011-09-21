@@ -5,21 +5,16 @@
 #
 # the primary command used is /join+ #channelname
 #
-# Mappings for channels to servers is accomplished with the
-# joinplus_server_maps setting.
-#
-# Within this setting, space separated pairs denote channel, server pairs.
-# Spaces also separate individual pairs, for example:
-#
-# /set joinplus_server_maps #foo Freenode #bar irc.somewhere.tld #meep DALNet
+# Mappings for channels and servers are retrieved from irssi's internal
+# /channel list
 #
 # Then use /join+ #foo, and if you are not already connected to freenode, it
 # will connect you, and then join that channel.
 
 # TODO:
-# Autocompletion for channel names
 # address conflict resolution
 # fix that disgusting race condition
+# Fix incredibly slow shutdown time after a few days
 
 use strict;
 use warnings;
@@ -94,7 +89,7 @@ sub haxy_print_hook {
     my $data = $_[1];
     # Hose control characters
     $data =~ s/\x04.//g;
-    if ($data =~ m/^#/) {
+    if ($data =~ m/^[#&!]/) {
         my @items = split /\s+/, $data;
         push(@hack_channels, $items[0]);
         push(@hack_channels, $items[1]);
@@ -135,7 +130,7 @@ sub join_plus {
 
     # parse out channel name from args:
     my $channel;
-    if ($args =~ m/^(#?[#a-zA-Z0-9-]+)/) {
+    if ($args =~ m/^([#&!]?[^ ]*)/) {
         $channel = $1;
         _debug_print ("Channel is: $channel");
     }
