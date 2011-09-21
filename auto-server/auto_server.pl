@@ -8,11 +8,6 @@
 # Mappings for channels and servers are retrieved from irssi's internal
 # /channel list
 #
-# Within this setting, space separated pairs denote channel, server pairs.
-# Spaces also separate individual pairs, for example:
-#
-# /set joinplus_server_maps #foo Freenode #bar irc.somewhere.tld #meep DALNet
-#
 # Then use /join+ #foo, and if you are not already connected to freenode, it
 # will connect you, and then join that channel.
 
