@@ -112,6 +112,63 @@ and will probably refuse to load without it.
 
 ## Reminders for myself
 
+*Not for public consumption. This section contains text  known to the State of
+California to cause madness, rabies, or other reproductive harm.*
+
+### Todo Lists
+
+I should really put these into the issue tracker instead. That can be a
+reminder. I'll go create an issue for it Right Now!
+
+#### Script ideas
+
+* override `/set` to provide list manipulation options, something like
+`/set {-append, -remove} $param $value`.
+
+* Finish work on [[foreach-guard/]]
+
+* Finish (Well, start) something in [[colour_popup/]] to make an actual popup
+
+* Revisit some of the cracked-out ideas for colour/format overlays
+
+* Go back and clean up [[irssi_vim/]] like I promised to everyone ages and ages
+  ago. Also do the features thing.
+  
+* Actually fix all the
+  [[issues|https://github.com/shabble/irssi-scripts/issues]] people have
+  dilligently reported.
+  
+#### Other things
+
+* Go do something useful regarding the `IrssiX::` namespace and add some
+useful general features.
+
+ * Window and transient-split handling
+ 
+ * Higher-level abstraction for key-interception
+ 
+ * Overlays?
+ 
+ * Format helper functions like the ones listed in the
+   [[Guide|https://github.com/shabble/irssi-docs/wiki/Guide]]
+   
+* Refactor just about everything to use the above.
+
+* Do something productive again on the 256colour fork/patches
+
+* Ditto @leonerd's [[fixterms|http://www.leonerd.org.uk/hacks/fixterms/]] key
+binding support
+
+* Try to get someone to look at my patches & bug reports.
+
+#### Documentation Wiki
+
+You know, [[that|https://github.com/shabble/irssi-docs/wiki]] one.
+
+* Fix the stupid ToC generator internal anchor names problem.
+
+* Add more examples, always more examples.
+
 ### Deployment Process
 
 * Commit messages should be prefixed with something approximating the name of
