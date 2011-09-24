@@ -69,24 +69,6 @@ our %IRSSI = (
               updated     => '$DATE'
              );
 
-
-sub get_lines {
-
-}
-
-sub del_line {
-
-}
-
-sub insert_line {
-
-    my $line = shift;
-}
-
-sub alter_line {
-
-}
-
 sub find_line {
     my ($win, $pattern) = @_;
 
