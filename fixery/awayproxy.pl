@@ -60,7 +60,19 @@ our %IRSSI = (
               . "them to an email address.",
               license     => "GPLv2",
               url         => "http://www.n0-life.com",
-);
+             );
+
+sub MODE_BOTH  () { 0 }
+sub MODE_EMAIL () { 1 }
+sub MODE_IRC   () { 2 }
+sub MODE_OFF   () { 3 }
+
+sub mode_should_email {
+    return grep { $_ == $config{script_mode} } (MODE_EMAIL, MODE_BOTH);
+}
+sub mode_should_irc {
+    return grep { $_ == $config{script_mode} } (MODE_IRC, MODE_BOTH);
+}
 
 my %config =
   (
@@ -93,19 +105,19 @@ my %config =
    #  1 - only email
    #  2 - only irc
    #  3 - off
-   script_mode => 1,
+   script_mode => MODE_EMAIL,
 
    # email address where to send the email
-   emailto => 'email@email.org',
+   email_to => 'email@email.org',
 
    # sendmail location
    sendmail => '/usr/sbin/sendmail',
 
    # who is the sender of the email
-   emailfrom => 'email@email.org',
+   email_from => 'email@email.org',
 
    # Subject of email
-   emailsubject => '[irssi-proxy]',
+   email_subject => '[irssi-proxy]',
 
    # and the awayreason setting (Thanx Wulf)
    awayreason => 'Auto-away because client has disconnected from proxy.',
@@ -113,38 +125,38 @@ my %config =
    # Debugging mode
    debug => 0,
 
-# -- Don't change anything below this line if you don't know Perl. --
-# number of clients connected
-clientcount => 0,
-# number of lines recorded
-expansion_lines_count => 0,
+   # -- Don't change anything below this line if you don't know Perl. --
+   # number of clients connected
+   clientcount => 0,
+   # number of lines recorded
+   expansion_lines_count => 0,
 
-expansion_started => 0,
-# the small list and archive list
-awaymsglist => [],
-awaymsglist2 => [],
+   expansion_started => 0,
+   # the small list and archive list
+   awaymsglist => [],
+   awaymsglist_irc => [],
 
+  );                            # end of config init
 
-);
+if (mode_should_email()) {
 
-if ( $config{script_mode} == 0 || $config{script_mode} == 1 ) { # {{{
 	# timeouts for check loop
-	debug('Timer on, timeout: ' . $config{check_interval});
+	_debug('Timer on, timeout: ' . $config{check_interval});
 	Irssi::timeout_add($config{check_interval} * 1000, 'msgsend_check', '');
-} # }}}
+}
 
-sub debug { # {{{
+sub _debug {
 	if ($config{debug}) {
 		my $text = shift;
 		my $caller = caller;
 		Irssi::print('From ' . $caller . ":\n" . $text);
 	}
-} # }}}
+}
 
-sub msgsend_check { # {{{
+sub msgsend_check {
 	# If there are any messages to send
 	my $count = @{$config{awaymsglist}};
-	debug("Checking for messages: $count");
+	_debug("Checking for messages: $count");
 	# Check if we didn't grep msgs right now
 	if ($count > 0 && !$config{expansion_started}) {
 		# Concentate messages into one text.
@@ -152,33 +164,33 @@ sub msgsend_check { # {{{
 		# Then empty list.
 		$config{awaymsglist} = [];
 		# Finally send email
-		debug("Concentated msgs: $text");
+		_debug("Concentated msgs: $text");
 		send_mail($text);
 	}
-} # }}}
+}
 
-sub send_mail { # {{{
+sub send_mail {
 	my $text = shift;
-	debug("Sending mail");
+	_debug("Sending mail");
 
 	open my $mail_fh, '|', $config{sendmail} . " -t"
-                  or warn "Failed to open pipe to sendmail";
+                                  or warn "Failed to open pipe to sendmail";
 
     return unless $mail_fh;
 
-	print $mail_fh "To: $config{emailto}\n";
-	print $mail_fh "From: $config{emailfrom}\n";
-	print $mail_fh "Subject: $config{emailsubject}\n";
+	print $mail_fh "To: $config{email_to}\n";
+	print $mail_fh "From: $config{email_from}\n";
+	print $mail_fh "Subject: $config{email_subject}\n";
 	print $mail_fh "\n$text\n";
 	close $mail_fh;
-} # }}}
+}
 
-sub client_connect { # {{{
+sub client_connect {
 	my (@servers) = Irssi::servers;
 
 	$config{clientcount}++;
 
-	debug("Client connected, current script mode: $config{script_mode}");
+	_debug("Client connected, current script mode: $config{script_mode}");
 
 	# setback
 	foreach my $server (@servers) {
@@ -192,21 +204,20 @@ sub client_connect { # {{{
 			# connected... this is somewhat weird i know
 			# but if someone wants to make a patch to this i would really
 			# appreciate it.
-			if ($config{script_mode} == 0 || $config{script_mode} == 2) {
-				debug('Sending notices');
+			if (mode_should_irc()) {
+				_debug('Sending notices');
 				$server->send_raw('NOTICE ' . $server->{nick} . " :$_")
-					for @{$config{awaymsglist2}};
+                  for @{$config{awaymsglist_irc}};
 			}
 		}
 	}
-	# and "clear" the awaymessage list
-	$config{awaymsglist2} = []
-		if $config{script_mode} == 0 || $config{script_mode} == 2;
-} # }}}
+	# and "clear" the irc awaymessage list
+	$config{awaymsglist_irc} = [] if mode_should_irc();
+}
 
-sub client_disconnect { # {{{
+sub client_disconnect {
 	my (@servers) = Irssi::servers;
-	debug('Client Disconnectted');
+	_debug('Client Disconnectted');
 
 	$config{clientcount}-- unless $config{clientcount} == 0;
 
@@ -218,82 +229,87 @@ sub client_disconnect { # {{{
 				# we are not away on this server allready.. set the autoaway
 				# reason
 				$server->send_raw(
-					'AWAY :' . $config{awayreason}
-				);
+                                  'AWAY :' . $config{awayreason}
+                                 );
 			}
 		}
 	}
-} # }}}
+}
 
-sub msg_pub { # {{{
+sub msg_pub {
 	my ($server, $data, $nick, $mask, $target) = @_;
-
-	sub push_into_archive { # {{{
-		my ($nick, $mask, $target, $data) = @_;
-		# simple list that is emptied on the email run
-		push @{$config{awaymsglist}}, "<$nick!$mask\@$target> $data"
-			if $config{script_mode} == 0 || $config{script_mode} == 1;
-		# archive list that is emptied only on the client connect run
-		push @{$config{awaymsglist2}}, "<$nick!$mask\@$target> $data"
-			if $config{script_mode} == 0 || $config{script_mode} == 2;
-	} # }}}
 
 	if ($config{expansion_started}) {
 		if ($config{expansion_mode} eq 'line') {
 			if ($config{expansion_lines_count} <= $config{expansion_lines} -1) {
 				if ($config{expansion_chan} eq $target) {
-					debug("In effect from line expansion, pushing on. Cnt: "
-						. $config{expansion_lines_count});
+					_debug("In effect from line expansion, pushing on. Cnt: "
+                           . $config{expansion_lines_count});
 					push_into_archive($nick, $mask, $target, $data);
 					$config{expansion_lines_count}++;
 				}
-			}
-			else {
-				debug("Line counter reached max, stopping expansion");
+			} else {
+				_debug("Line counter reached max, stopping expansion");
 				$config{expansion_lines_count} = 0;
 				$config{expansion_started} = 0;
 				$config{expansion_chan} = '';
 			}
-		}
-		elsif ($config{expansion_mode} eq 'time') {
+		} elsif ($config{expansion_mode} eq 'time') {
 			if ($config{expansion_chan} eq $target) {
-				debug("Time expansion in effect, pushing on.");
+				_debug("Time expansion in effect, pushing on.");
 				push_into_archive($nick, $mask, $target, $data);
 			}
 		}
-	}
-	elsif ($server->{usermode_away} == 1 && $data =~ /$server->{nick}/i) {
-		debug("Got pub msg with my name");
+	} elsif ($server->{usermode_away} == 1 && $data =~ /$server->{nick}/i) {
+		_debug("Got pub msg with my name");
 		push_into_archive($nick, $mask, $target, $data);
 		if ($config{expansion_mode}) {
-			debug("Starting expansion in mode: " . $config{expansion_mode});
+			_debug("Starting expansion in mode: " . $config{expansion_mode});
 			$config{expansion_started} = 1;
 			$config{expansion_chan} = $target;
-			$config{expansion_time_out} = Irssi::timeout_add(
-				$config{expansion_timeout} * 1000, 'expansion_stop', ''
-			) if $config{expansion_mode} eq 'time';
+
+            if ($config{expansion_mode} eq 'time') {
+                $config{expansion_time_out}
+                  = Irssi::timeout_add(
+                                       $config{expansion_timeout} * 1000,
+                                       'expansion_stop',
+                                       ''
+                                      );
+            }
+
 		}
 	}
-} # }}}
+}
 
-sub expansion_stop { # {{{
-	debug("Stopping expansion from timer");
+sub push_into_archive {
+    my ($nick, $mask, $target, $data) = @_;
+
+    # simple list that is emptied on the email run
+    push @{$config{awaymsglist}}, "<$nick!$mask\@$target> $data"
+                                  if mode_should_email();
+    # archive list that is emptied only on the client connect run
+    push @{$config{awaymsglist_irc}}, "<$nick!$mask\@$target> $data"
+                                  if mode_should_irc();
+}
+
+sub expansion_stop {
+	_debug("Stopping expansion from timer");
 	$config{expansion_started} = 0;
 	$config{expansion_chan} = '';
-} # }}}
+}
 
-sub msg_pri { # {{{
+sub msg_pri {
 	my ($server, $data, $nick, $address) = @_;
 	if ($server->{usermode_away} == 1) {
-		debug("Got priv msg");
+		_debug("Got priv msg");
 		# simple list that is emptied on the email run
 		push @{$config{awaymsglist}}, "<$nick!$address> $data"
-			if $config{script_mode} == 0 || $config{script_mode} == 1;
+          if mode_should_email();
 		# archive list that is emptied only on the client connect run
-		push @{$config{awaymsglist2}}, "<$nick!$address> $data"
-			if $config{script_mode} == 0 || $config{script_mode} == 2;
+		push @{$config{awaymsglist_irc}}, "<$nick!$address> $data"
+          if mode_should_irc();
 	}
-} # }}}
+}
 
 Irssi::signal_add_last('proxy client connected',    \&client_connect);
 Irssi::signal_add_last('proxy client disconnected', \&client_disconnect);
