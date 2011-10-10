@@ -7,15 +7,17 @@ use Fcntl;                      # for sysopen
 
 use Data::Dumper;
 
-our $VERSION = '0.4.6';
+our $VERSION = '0.5.0';
 our %IRSSI = (
-          authors     => 'Wouter Coekaerts',
-          contact     => 'coekie@irssi.org',
+          authors     => 'Wouter Coekaerts, shabble',
+          contact     => 'coekie@irssi.org, shabble+irssi@metavore.org',
           name        => 'nicklist',
           description => 'draws a nicklist to another terminal, '
-              . 'or at the right of your irssi in the same terminal',
+                       . 'or at the right of your irssi in the same terminal',
           license     => 'GPLv2',
-          url         => 'http://wouter.coekaerts.be/irssi',
+          url         => 'http://wouter.coekaerts.be/irssi, '
+                       . 'https://github.com/shabble/irssi-scripts'
+                       . '/blob/master/fixery/nicklist.pl',
           changed     => '10/10/2011'
          );
 
@@ -727,12 +729,15 @@ Irssi::signal_add('setup changed', \&read_settings);
 
 ##### settings #####
 Irssi::settings_add_str('nicklist', 'nicklist_screen_prefix',      '\e[m ');
+Irssi::settings_add_str('nicklist', 'nicklist_screen_mode_suffix', '\e[39m');
+
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_owner',  '\e[31m~\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_admin',  '\e[33m&\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_op',     '\e[32m@\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_halfop', '\e[34m%\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_voice',  '\e[3m+\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_normal', ' ');
+
 
 Irssi::settings_add_int('nicklist', 'nicklist_width',11);
 Irssi::settings_add_int('nicklist', 'nicklist_height',24);
