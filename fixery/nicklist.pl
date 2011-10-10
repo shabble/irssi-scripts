@@ -258,34 +258,39 @@ sub screen_size {
 			do 'asm/ioctls.ph';
 		};
 
-		# ugly way not working, let's try something uglier, the dg-hack(tm) (constant for linux only?)
+		# ugly way not working, let's try something uglier, the dg-hack(tm)
+		# (constant for linux only?)
 		if ($@) {
             no strict 'refs'; *TIOCGWINSZ = sub { return 0x5413 };
         }
 
 		unless (defined &TIOCGWINSZ) {
-			die "Term::ReadKey not found, and ioctl 'workaround' failed. Install the Term::ReadKey perl module to use screen mode.\n";
+			die "Term::ReadKey not found, and ioctl 'workaround' failed. "
+              . "Install the Term::ReadKey perl module to use screen mode.\n";
 		}
-		open(TTY, "+</dev/tty") or die "No tty: $!";
-		unless (ioctl(TTY, &TIOCGWINSZ, $winsize='')) {
-			die "Term::ReadKey not found, and ioctl 'workaround' failed ($!). Install the Term::ReadKey perl module to use screen mode.\n";
+		open my $tty, "+</dev/tty" or die "No tty: $!";
+		unless (ioctl($tty, &TIOCGWINSZ, $winsize='')) {
+			die "Term::ReadKey not found, and ioctl 'workaround' failed ($!)."
+              . " Install the Term::ReadKey perl module to use screen mode.\n";
 		}
-		close(TTY);
+		close $tty;
 		($row, $col, $xpixel, $ypixel) = unpack('S4', $winsize);
 	}
 
 	# set screen width
-	$irssi_width = $col-$nicklist_width-1;
-	$height = $row-1;
+	$irssi_width = $col - $nicklist_width - 1;
+	$height = $row - 1;
 
-	# on some recent systems, "screen -X fit; screen -X width -w 50" doesn't work, needs a sleep in between the 2 commands
-	# so we wait a second before setting the width
-	Irssi::timeout_add_once(1000, sub {
-                                my ($new_irssi_width) = @_;
-                                system 'screen -x '.$ENV{'STY'}.' -X width -w ' . $new_irssi_width;
-                                # and then we wait another second for the resizing, and then redraw.
-                                Irssi::timeout_add_once(1000, sub {$screen_resizing = 0; redraw()}, []);
-                            }, $irssi_width);
+	# on some recent systems, "screen -X fit; screen -X width -w 50" doesn't
+	# work, needs a sleep in between the 2 commands so we wait a second before
+	# setting the width
+	Irssi::timeout_add_once
+      (1000, sub {
+           my ($new_irssi_width) = @_;
+           system 'screen -x '.$ENV{'STY'}.' -X width -w ' . $new_irssi_width;
+           # and then we wait another second for the resizing, and then redraw.
+           Irssi::timeout_add_once(1000, sub {$screen_resizing = 0; redraw()}, []);
+       }, $irssi_width);
 }
 
 sub sig_terminal_resized {
@@ -293,7 +298,7 @@ sub sig_terminal_resized {
 		return;
 	}
 	$screen_resizing = 1;
-	Irssi::timeout_add_once(1000,\&screen_size,[]);
+	Irssi::timeout_add_once(1000, \&screen_size, []);
 }
 
 
@@ -313,6 +318,7 @@ sub nicklist_write_end {
 
 sub nicklist_write_line {
 	my ($line, $data) = @_;
+
 	if ($mode == $SCREEN) {
 		print STDERR "\033P\033[" . ($line+1) . ';'. ($irssi_width+1) .'H'. $screen_prefix . $data . "\033\\";
 	} elsif ($mode == $FIFO) {
