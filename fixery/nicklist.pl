@@ -54,11 +54,67 @@ my $need_redraw = 0;                 # nicklist needs redrawing
 my $screen_resizing = 0;             # terminal is being resized
 my $active_channel;                  # (REC)
 
+
+# TODO: have this use isupport('PREFIX') where supported to check mappings.
+my $server_prefix_mapping
+  = {
+     '@' => { sigil => '@', mode => 'o', name => 'op'     },
+     '&' => { sigil => '&', mode => 'a', name => 'admin'  },
+     '~' => { sigil => '~', mode => 'q', name => 'owner'  },
+     '%' => { sigil => '%', mode => 'h', name => 'halfop' },
+     '+' => { sigil => '+', mode => 'v', name => 'voice'  },
+     ''  => { sigil => '',  mode => '',  name => 'normal' },
+    };
+
+my $sigil_cache = {};
+
+my $DEBUG = 0;
+
+sub _debug {
+    my ($msg) = @_;
+    Irssi::print($msg) if $DEBUG;
+}
+
+sub _select_nick_sigil {
+    my ($nick) = @_;
+    my $prefixes = { map { $_ => 1 } split '', $nick->{prefixes} };
+
+    # first check for each of the prefix sigils in given order of precedence.
+    for my $sigil_priority (('~', '&', '@', '%', '+')) {
+        if (exists $prefixes->{$sigil_priority}) {
+            return $server_prefix_mapping->{$sigil_priority};
+        }
+    }
+    # check other properties
+    if ($nick->{op}) {
+        return $server_prefix_mapping->{'@'};
+    } elsif ($nick->{halfop}) {
+        return $server_prefix_mapping->{'%'};
+    } elsif ($nick->{voice}) {
+        return $server_prefix_mapping->{'+'};
+    } else {
+        return $server_prefix_mapping->{''};
+    }
+
+}
+
+sub _render_sigil {
+    my ($sigil) = @_;
+
+    return $value;
+}
+
 # array of hashes, containing the internal nicklist of the active channel
-my @nicklist=();
+my @nicklist = ();
 # nick => realnick
 # mode =>
-my ($MODE_OP, $MODE_HALFOP, $MODE_VOICE, $MODE_NORMAL) = (0,1,2,3);
+#sub UMODE_OP     () { 0 } # +o
+#sub UMODE_HALFOP () { 1 } # +h
+#sub UMODE_VOICE  () { 2 } # +v
+#sub UMODE_NORMAL () { 3 } # none
+#sub UMODE_OWNER  () { 4 } # +q
+#sub UMODE_ADMIN  () { 5 } # +a
+#my ($MODE_OP, $MODE_HALFOP, $MODE_VOICE, $MODE_NORMAL) = (0,1,2,3);
 # status =>
 my ($STATUS_NORMAL, $STATUS_JOINING, $STATUS_PARTING,
     $STATUS_QUITING, $STATUS_KICKED, $STATUS_SPLIT) = (0,1,2,3,4,5);
@@ -67,16 +123,49 @@ my ($STATUS_NORMAL, $STATUS_JOINING, $STATUS_PARTING,
 
 
 # 'cached' settings
-my ($screen_prefix, $irssi_width, 
+my ($screen_prefix, $irssi_width,
     @prefix_mode, @prefix_status, $height, $nicklist_width);
 
 sub read_settings {
-	($screen_prefix = Irssi::settings_get_str('nicklist_screen_prefix')) =~ s/\\e/\033/g;
 
-	($prefix_mode[$MODE_OP] = Irssi::settings_get_str('nicklist_prefix_mode_op')) =~ s/\\e/\033/g;
-	($prefix_mode[$MODE_HALFOP] = Irssi::settings_get_str('nicklist_prefix_mode_halfop')) =~ s/\\e/\033/g;
-	($prefix_mode[$MODE_VOICE] = Irssi::settings_get_str('nicklist_prefix_mode_voice')) =~ s/\\e/\033/g;
-	($prefix_mode[$MODE_NORMAL] = Irssi::settings_get_str('nicklist_prefix_mode_normal')) =~ s/\\e/\033/g;
+    $DEBUG = Irssi::settings_get_bool('nicklist_debug');
+
+	$screen_prefix = Irssi::settings_get_str('nicklist_screen_prefix');
+    $screen_prefix =~ s/\\e/\033/g;
+
+
+    foreach my $umode_prefix (values %$server_prefix_mapping) {
+        my $umode_name = $umode_prefix->{name};
+        my $setting_name = 'nicklist_prefix_mode_' . $umode_name;
+        my $value = Irssi::settings_get_str($setting_name);
+
+        $value = '' unless defined $value;
+        $value =~ s/\\e/\x1b/g;
+
+        $sigil_cache->{$umode_name} = $value;
+    }
+
+	# $prefix_mode[UMODE_OP]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_op');
+	# $prefix_mode[UMODE_HALFOP]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_halfop');
+	# $prefix_mode[UMODE_VOICE]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_voice');
+	# $prefix_mode[UMODE_NORMAL]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_normal');
+	# $prefix_mode[UMODE_ADMIN]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_admin');
+	# $prefix_mode[UMODE_OWNER]
+    #   = Irssi::settings_get_str('nicklist_prefix_mode_owner');
+
+	# ($prefix_mode[MODE_HALFOP] = Irssi::settings_get_str('nicklist_prefix_mode_halfop')) =~ s/\\e/\033/g;
+	# ($prefix_mode[MODE_VOICE] = Irssi::settings_get_str('nicklist_prefix_mode_voice')) =~ s/\\e/\033/g;
+	# ($prefix_mode[MODE_NORMAL] = Irssi::settings_get_str('nicklist_prefix_mode_normal')) =~ s/\\e/\033/g;
+
+
+    # for (@prefix_mode) {
+    #     s/\\e/\033/g;
+    # }
 
 	if ($mode != $SCREEN) {
 		$height = Irssi::settings_get_int('nicklist_height');
@@ -414,26 +503,36 @@ sub make_nicklist {
 	### get & check channel ###
 	my $channel = Irssi::active_win->{active};
 
-	if (!$channel || (ref($channel) ne 'Irssi::Irc::Channel' && ref($channel) ne 'Irssi::Silc::Channel') || $channel->{'type'} ne 'CHANNEL' || ($channel->{chat_type} ne 'SILC' && !$channel->{'names_got'}) ) {
+	if (!$channel || (ref($channel) ne 'Irssi::Irc::Channel' && ref($channel) ne
+                      'Irssi::Silc::Channel') || $channel->{'type'} ne 'CHANNEL' ||
+        ($channel->{chat_type} ne 'SILC' && !$channel->{'names_got'}) ) {
+
 		$active_channel = undef;
 		# no nicklist
 	} else {
 		$active_channel = $channel;
+
 		### make nicklist ###
-		my $thisnick;
         my @sorted_nicks = sort nicksort $channel->nicks();
 
         foreach my $nick (@sorted_nicks) {
-			$thisnick = {'nick' => $nick->{'nick'},
-                         'mode' => ($nick->{'op'}
-                                    ? $MODE_OP
-                                    :$nick->{'halfop'}
-                                    ? $MODE_HALFOP
-                                    :$nick->{'voice'}
-                                    ? $MODE_VOICE:$MODE_NORMAL)
-                        };
-			calc_text($thisnick);
-			push @nicklist, $thisnick;
+			my $this_nick = { 'nick' => $nick->{'nick'} };
+
+            if ($nick->{}) {
+                $this_nick->{mode} = x
+
+            if ($nick->{op}) {
+            $this_nick->{mode}
+                             'mode' => ($nick->{'op'}
+                                        ? UMODE_OP
+                                        :$nick->{'halfop'}
+                                        ? UMODE_HALFOP
+                                        :$nick->{'voice'}
+                                        ? UMODE_VOICE
+                                        :MODE_NORMAL)
+                            };
+			calc_text($this_nick);
+			push @nicklist, $this_nick;
 		}
 	}
 	need_redraw();
@@ -627,19 +726,27 @@ Irssi::signal_add_first('nick mode changed', \&sig_mode);
 Irssi::signal_add('setup changed', \&read_settings);
 
 ##### settings #####
-Irssi::settings_add_str('nicklist', 'nicklist_screen_prefix', '\e[m ');
-Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_op', '\e[32m@\e[39m');
+Irssi::settings_add_str('nicklist', 'nicklist_screen_prefix',      '\e[m ');
+Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_owner',  '\e[32m~\e[39m');
+Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_admin',  '\e[32m&\e[39m');
+Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_op',     '\e[32m@\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_halfop', '\e[34m%\e[39m');
-Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_voice', '\e[33m+\e[39m');
+Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_voice',  '\e[33m+\e[39m');
 Irssi::settings_add_str('nicklist', 'nicklist_prefix_mode_normal', ' ');
 
 Irssi::settings_add_int('nicklist', 'nicklist_width',11);
 Irssi::settings_add_int('nicklist', 'nicklist_height',24);
-Irssi::settings_add_str('nicklist', 'nicklist_fifo_path', Irssi::get_irssi_dir . '/nicklistfifo');
+
+Irssi::settings_add_str('nicklist', 'nicklist_fifo_path',
+                        Irssi::get_irssi_dir . '/nicklistfifo');
+
 Irssi::settings_add_str('nicklist', 'nicklist_screen_split_windows', '');
 Irssi::settings_add_str('nicklist', 'nicklist_automode', '');
 
+Irssi::settings_add_bool('nicklist', 'nicklist_debug', 0);
+
 read_settings();
+
 if (uc(Irssi::settings_get_str('nicklist_automode')) eq 'SCREEN') {
 	cmd_screen_start();
 } elsif (uc(Irssi::settings_get_str('nicklist_automode')) eq 'FIFO') {
