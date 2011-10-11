@@ -49,12 +49,15 @@ in short:
 EOF
           );
 }
+sub MODE_OFF    () { 0 }
+sub MODE_SCREEN () { 1 }
+sub MODE_FIFO   () { 2 }
 
 my $prev_lines = 0;             # number of lines in previous written nicklist
 my $scroll_pos = 0;             # scrolling position
 my $cursor_line;                # line the cursor is currently on
 my ($OFF, $SCREEN, $FIFO) = (0,1,2); # modes
-my $mode = $OFF;                     # current mode
+my $mode = MODE_OFF;                     # current mode
 my $need_redraw = 0;                 # nicklist needs redrawing
 my $screen_resizing = 0;             # terminal is being resized
 my $active_channel;                  # (REC)
@@ -72,7 +75,7 @@ my $server_prefix_mapping
     };
 
 
-# order the sigils by priority (lowest = first) from the table above. 
+# order the sigils by priority (lowest = first) from the table above.
 my @sigil_priorities = map  { $_->{sigil} }
                        sort { $a->{priority} <=> $b->{priority} }
                        values %$server_prefix_mapping;
@@ -144,11 +147,11 @@ sub read_settings {
         $sigil_cache->{$umode_name} = $value;
     }
 
-	if ($mode != $SCREEN) {
+	if ($mode != MODE_SCREEN) {
 		$height = Irssi::settings_get_int('nicklist_height');
 	}
 	my $new_nicklist_width = Irssi::settings_get_int('nicklist_width');
-	if ($new_nicklist_width != $nicklist_width && $mode == $SCREEN) {
+	if ($new_nicklist_width != $nicklist_width && $mode == MODE_SCREEN) {
 		sig_terminal_resized();
 	}
 	$nicklist_width = $new_nicklist_width;
@@ -166,9 +169,9 @@ sub update {
 ### off ###
 
 sub cmd_off {
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
 		screen_stop();
-	} elsif ($mode == $FIFO) {
+	} elsif ($mode == MODE_FIFO) {
 		fifo_stop();
 	}
 }
@@ -195,34 +198,34 @@ sub cmd_fifo_start {
 	FIFO->autoflush(1);
 	print FIFO "\033[2J\033[1;1H"; # erase screen & jump to 0,0
 	$cursor_line = 0;
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
 		screen_stop();
 	}
-	$mode = $FIFO;
+	$mode = MODE_FIFO;
 	make_nicklist();
 }
 
 sub fifo_stop {
 	close FIFO;
-	$mode = $OFF;
+	$mode = MODE_OFF;
 	Irssi::print("Fifo closed.");
 }
 
 ### screen ###
 
 sub cmd_screen_start {
-	if (!defined($ENV{'STY'})) {
+	if (!defined($ENV{STY})) {
 		Irssi::print 'screen not detected, screen mode only works inside screen';
 		return;
 	}
 	read_settings();
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
         return;
     }
-	if ($mode == $FIFO) {
+	if ($mode == MODE_FIFO) {
 		fifo_stop();
 	}
-	$mode = $SCREEN;
+	$mode = MODE_SCREEN;
 	Irssi::signal_add_last('gui print text finished', 'sig_gui_print_text_finished');
 	Irssi::signal_add_last('gui page scrolled',       'sig_page_scrolled');
 	Irssi::signal_add('terminal resized',             'sig_terminal_resized');
@@ -231,20 +234,20 @@ sub cmd_screen_start {
 }
 
 sub screen_stop {
-	$mode = $OFF;
+	$mode = MODE_OFF;
 	Irssi::signal_remove('gui print text finished', 'sig_gui_print_text_finished');
 	Irssi::signal_remove('gui page scrolled',       'sig_page_scrolled');
 	Irssi::signal_remove('terminal resized',        'sig_terminal_resized');
-	system 'screen -x '.$ENV{'STY'}.' -X fit';
+	system 'screen -x '.$ENV{STY}.' -X fit';
 }
 
 sub screen_size {
-	if ($mode != $SCREEN) {
+	if ($mode != MODE_SCREEN) {
 		return;
 	}
 	$screen_resizing = 1;
 	# fit screen
-	system 'screen -x '.$ENV{'STY'}.' -X fit';
+	system 'screen -x '.$ENV{STY}.' -X fit';
 	# get size (from perldoc -q size)
 	my ($winsize, $row, $col, $xpixel, $ypixel);
 	eval 'use Term::ReadKey; ($col, $row, $xpixel, $ypixel) = GetTerminalSize';
@@ -287,7 +290,7 @@ sub screen_size {
 	Irssi::timeout_add_once
       (1000, sub {
            my ($new_irssi_width) = @_;
-           system 'screen -x '.$ENV{'STY'}.' -X width -w ' . $new_irssi_width;
+           system 'screen -x '.$ENV{STY}.' -X width -w ' . $new_irssi_width;
            # and then we wait another second for the resizing, and then redraw.
            Irssi::timeout_add_once(1000, sub {$screen_resizing = 0; redraw()}, []);
        }, $irssi_width);
@@ -305,13 +308,13 @@ sub sig_terminal_resized {
 ### both ###
 
 sub nicklist_write_start {
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
 		print STDERR "\033P\033[s\033\\"; # save cursor
 	}
 }
 
 sub nicklist_write_end {
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
 		print STDERR "\033P\033[u\033\\"; # restore cursor
 	}
 }
@@ -319,9 +322,9 @@ sub nicklist_write_end {
 sub nicklist_write_line {
 	my ($line, $data) = @_;
 
-	if ($mode == $SCREEN) {
+	if ($mode == MODE_SCREEN) {
 		print STDERR "\033P\033[" . ($line+1) . ';'. ($irssi_width+1) .'H'. $screen_prefix . $data . "\033\\";
-	} elsif ($mode == $FIFO) {
+	} elsif ($mode == MODE_FIFO) {
 		$data = "\033[m$data";  # reset color
 		if ($line == $cursor_line+1) {
 			$data = "\n$data";  # next line
@@ -358,7 +361,7 @@ sub redraw_nick_nr {
 	my ($nr) = @_;
 	my $line = $nr - $scroll_pos;
 	if ($line >= 0 && $line < $height) {
-		nicklist_write_line($line, $nicklist[$nr]->{'text'});
+		nicklist_write_line($line, $nicklist[$nr]->{text});
 	}
 }
 
@@ -369,10 +372,11 @@ sub draw_insert_nick_nr {
 	if ($line < 0) {            # nick is inserted above visible area
 		$scroll_pos++;          # 'scroll' down :)
 	} elsif ($line < $height) { # line is visible
-		if ($mode == $SCREEN) {
+		if ($mode == MODE_SCREEN) {
 			need_redraw();
-		} elsif ($mode == $FIFO) {
-			my $data = "\033[m\033[L". $nicklist[$nr]->{'text'}; # reset color & insert line & write nick
+		} elsif ($mode == MODE_FIFO) {
+            # reset color & insert line & write nick
+			my $data = "\033[m\033[L". $nicklist[$nr]->{text};
 			if ($line == $cursor_line) {
 				$data = "\033[1G".$data; # back to beginning of line
 			} else {
@@ -393,10 +397,10 @@ sub draw_remove_nick_nr {
 	if ($line < 0) {            # nick removed above visible area
 		$scroll_pos--;          # 'scroll' up :)
 	} elsif ($line < $height) { # line is visible
-		if ($mode == $SCREEN) {
+		if ($mode == MODE_SCREEN) {
 			need_redraw();
-		} elsif ($mode == $FIFO) {
-			#my $data = "\033[m\033[L[i$line]". $nicklist[$nr]->{'text'}; # reset color & insert line & write nick
+		} elsif ($mode == MODE_FIFO) {
+			#my $data = "\033[m\033[L[i$line]". $nicklist[$nr]->{text}; # reset color & insert line & write nick
 			my $data = "\033[M"; # delete line
 			if ($line != $cursor_line) {
 				$data = "\033[".($line+1)."d".$data; # jump
@@ -418,7 +422,7 @@ sub redraw {
 	my $line = 0;
 	### draw nicklist ###
 	for (my $i=$scroll_pos;$line < $height && $i < @nicklist; $i++) {
-		nicklist_write_line($line++, $nicklist[$i]->{'text'});
+		nicklist_write_line($line++, $nicklist[$i]->{text});
 	}
 
 	### clean up other lines ###
@@ -434,7 +438,7 @@ sub redraw {
 sub need_redraw {
 	if (!$need_redraw) {
 		$need_redraw = 1;
-		Irssi::timeout_add_once(10,\&redraw,[]);
+		Irssi::timeout_add_once(10, \&redraw, []);
 	}
 }
 
@@ -449,12 +453,12 @@ sub sig_gui_print_text_finished {
 		return;
 	}
 	my $window = @_[0];
-	if ($window->{'refnum'} == Irssi::active_win->{'refnum'} || Irssi::settings_get_str('nicklist_screen_split_windows') eq '*') {
+	if ($window->{refnum} == Irssi::active_win->{refnum} || Irssi::settings_get_str('nicklist_screen_split_windows') eq '*') {
 		need_redraw;
 		return;
 	}
 	foreach my $win (split(/[ ,]/, Irssi::settings_get_str('nicklist_screen_split_windows'))) {
-		if ($window->{'refnum'} == $win || $window->{'name'} eq $win) {
+		if ($window->{refnum} == $win || $window->{name} eq $win) {
 			need_redraw;
 			return;
 		}
@@ -469,7 +473,7 @@ sub sig_gui_print_text_finished {
 sub find_nick {
 	my ($nick) = @_;
 	for (my $i=0;$i < @nicklist; $i++) {
-		if ($nicklist[$i]->{'nick'} eq $nick) {
+		if ($nicklist[$i]->{nick} eq $nick) {
 			return $i;
 		}
 	}
@@ -480,7 +484,7 @@ sub find_nick {
 sub find_insert_pos {
 	my ($cmp)= @_;
 	for (my $i=0;$i < @nicklist; $i++) {
-		if ($nicklist[$i]->{'cmp'} gt $cmp) {
+		if ($nicklist[$i]->{cmp} gt $cmp) {
 			return $i;
 		}
 	}
@@ -496,8 +500,8 @@ sub make_nicklist {
 	my $channel = Irssi::active_win->{active};
 
 	if (!$channel || (ref($channel) ne 'Irssi::Irc::Channel' && ref($channel) ne
-                      'Irssi::Silc::Channel') || $channel->{'type'} ne 'CHANNEL' ||
-        ($channel->{chat_type} ne 'SILC' && !$channel->{'names_got'}) ) {
+                      'Irssi::Silc::Channel') || $channel->{type} ne 'CHANNEL' ||
+        ($channel->{chat_type} ne 'SILC' && !$channel->{names_got}) ) {
 
 		$active_channel = undef;
 		# no nicklist
@@ -536,32 +540,11 @@ sub sort_prefixed_nicks {
     ($b->[0]->{priority} . lc $b->[1]->{nick});
 }
 
-sub blahblah {
-    (
-     ($a->{'op'}
-      ? '1'
-      : $a->{'halfop'}
-      ? '2'
-      : $a->{'voice'}
-      ? '3'
-      : '4') .
-     lc($a->{'nick'})
-    ) cmp (
-           ($b->{'op'}
-            ?'1'
-            :$b->{'halfop'}
-            ?'2'
-            :$b->{'voice'}
-            ?'3'
-            :'4') .
-           lc($b->{'nick'})
-          )
-}
 # insert nick(as hash) into nicklist
 # pre: cmp has to be calculated
 sub insert_nick {
 	my ($nick) = @_;
-	my $nr = find_insert_pos($nick->{'cmp'});
+	my $nr = find_insert_pos($nick->{cmp});
 	splice @nicklist, $nr, 0, $nick;
 	draw_insert_nick_nr($nr);
 }
@@ -601,12 +584,12 @@ sub cmd_scroll {
 
 sub is_active_channel {
 	my ($server,$channel) = @_; # (channel as string)
-	return ($server && $server->{'tag'} eq $active_channel->{'server'}->{'tag'} && $server->channel_find($channel) && $active_channel && $server->channel_find($channel)->{'name'} eq $active_channel->{'name'});
+	return ($server && $server->{tag} eq $active_channel->{server}->{tag} && $server->channel_find($channel) && $active_channel && $server->channel_find($channel)->{name} eq $active_channel->{name});
 }
 
 sub sig_channel_wholist { # this is actualy a little late, when the names are received would be better
 	my ($channel) = @_;
-	if (Irssi::active_win->{'active'} && Irssi::active_win->{'active'}->{'name'} eq $channel->{'name'}) { # the channel joined is active
+	if (Irssi::active_win->{active} && Irssi::active_win->{active}->{name} eq $channel->{name}) { # the channel joined is active
 		make_nicklist
                                                                                                       }
 }
@@ -653,7 +636,7 @@ sub sig_part {
 
 sub sig_quit {
 	my ($server,$nick,$address, $reason) = @_;
-	if ($server->{'tag'} ne $active_channel->{'server'}->{'tag'}) {
+	if ($server->{tag} ne $active_channel->{server}->{tag}) {
 		return;
 	}
 	my $nr = find_nick($nick);
@@ -664,7 +647,7 @@ sub sig_quit {
 
 sub sig_nick {
 	my ($server, $newnick, $oldnick, $address) = @_;
-	if ($server->{'tag'} ne $active_channel->{'server'}->{'tag'}) {
+	if ($server->{tag} ne $active_channel->{server}->{tag}) {
 		return;
 	}
 	my $nr = find_nick($oldnick);
@@ -681,20 +664,20 @@ sub sig_nick {
 
 sub sig_mode {
 	my ($channel, $nick, $setby, $mode, $type) = @_; # (nick and channel as rec)
-	if ($channel->{'server'}->{'tag'} ne $active_channel->{'server'}->{'tag'} || $channel->{'name'} ne $active_channel->{'name'}) {
+	if ($channel->{server}->{tag} ne $active_channel->{server}->{tag} || $channel->{name} ne $active_channel->{name}) {
 		return;
 	}
 	my $nr = find_nick($nick->{nick});
 	if ($nr == -1) {
-		Irssi::print("nicklist warning: $nick->{'nick'} had mode set on " .
-                     "$channel->{'name'}, but was not found in nicklist");
+		Irssi::print("nicklist warning: $nick->{nick} had mode set on " .
+                     "$channel->{name}, but was not found in nicklist");
 	} else {
 		my $nicklist_item = $nicklist[$nr];
 		remove_nick($nr);
 
         $nicklist_item->{mode} = _select_prefix_umode($nick);
 
-#		$nicklist_item->{'mode'} = ($nick->{'op'}?$MODE_OP:$nick->{'halfop'}?$MODE_HALFOP:$nick->{'voice'}?$MODE_VOICE:$MODE_NORMAL);
+#		$nicklist_item->{mode} = ($nick->{op}?$MODE_OP:$nick->{halfop}?$MODE_HALFOP:$nick->{voice}?$MODE_VOICE:$MODE_NORMAL);
 
 		calc_text($nicklist_item);
 		insert_nick($nicklist_item);
