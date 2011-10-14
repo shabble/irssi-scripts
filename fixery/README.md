@@ -17,3 +17,7 @@ When there are some here, this will be a shiney exciting list:
   
   * **TODO** Add proper settings support
   * **TODO** 
+
+* `trackbar` - Shows a trackbar with where you last read up to in a buffer
+
+  * **TODO** Verify this works with other settings for irssi time output
