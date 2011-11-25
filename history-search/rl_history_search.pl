@@ -396,7 +396,8 @@ sub next_match {
 
 sub update_input {
     my $match = get_history_match();
-    Irssi::gui_input_set($match);
+    # TODO: Use of uninitialized value in subroutine entry at /Users/shabble/projects/tmp/test/irssi-shab/scripts/rl_history_search.pl line 399.
+    Irssi::gui_input_set($match); # <--- here.
 	Irssi::gui_input_set_pos(length $match);
 }
 
