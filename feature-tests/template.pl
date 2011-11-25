@@ -67,3 +67,35 @@ our %IRSSI = (
               license     => 'MIT',
               updated     => '$DATE'
              );
+
+my $NAME  = $IRSSI{name};
+my $DEBUG = 0;
+
+sub DEBUG () { $DEBUG }
+
+sub _debug_print {
+    my ($msg) = @_;
+    Irssi::active_window()->print($msg);
+}
+
+sub sig_setup_changed {
+    $DEBUG = Irssi::settings_get_bool($NAME . '_debug');
+    _debug_print($NAME . ': debug enabled') if $DEBUG;
+}
+
+sub init {
+    Irssi::theme_register
+        ([
+          verbatim      => '[$*]',
+          script_loaded => 'Loaded script {hilight $0} v$1',
+         ]);
+    Irssi::settings_add_bool($NAME, $NAME . '_debug', 0);
+    Irssi::signal_add('setup changed', \&sig_setup_changed);
+
+    sig_setup_changed();
+
+    Irssi::printformat(Irssi::MSGLEVEL_CLIENTCRAP,
+                       'script_loaded', $NAME, $VERSION);
+}
+
+init();
