@@ -2,11 +2,30 @@
 
 =head1 NAME
 
-foreach-guard.pl - confirm that you really mean to send a (non-)command to all channels.
+molly_guard.pl - confirm that you really mean to do things that could have
+potentially dangerous (or embarassing) effects.
 
 =head1 DESCRIPTION
 
+Named after the plastic cover installed over some Big Red Switches With
+Major Consequences. See L<http://catb.org/jargon/html/M/molly-guard.html>.
+Attempts to stop you shooting yourself in the foot, face, or other body-part
+during normal day-to-day use of Irssi.
 
+By default, it protects you from the following potential mishaps:
+
+=over 4
+
+=item * C</foreach <channel|query|window|server> [not a command]>
+
+C</foreach THING ARGS> will pass I<ARGS> to every I<THING> specified. Usually,
+this is used to, for example, run a command in every window. A common mistake is
+not including a command char such as C</> in your I<ARGS>, in which case I<ARGS>
+is sent as text to every window or channel it can be. This is almost always bad.
+
+=item * I<Nothing else, yet>
+
+=back
 
 =head1 INSTALLATION
 
@@ -45,7 +64,25 @@ THE SOFTWARE.
 
 =head1 TODO
 
-Use this template to make an actual script.
+=over 4
+
+=item * Commands to protect:
+
+=over 4
+
+=item * C</foreach [noncommand]>
+
+=item * C</server> (in cases where C</connect> is probably meant)
+
+=item * C</upgrade> (way too easy to tab-complete instead of /UPTIME)
+
+=item * C</exit>, C</quit> (obvious)
+
+=item * ...
+
+=back
+
+=back
 
 =cut
 
@@ -58,12 +95,14 @@ use Irssi::TextUI;
 
 use Data::Dumper;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 our %IRSSI = (
               authors     => 'shabble',
               contact     => 'shabble+irssi@metavore.org',
-              name        => 'foreach-guard',
-              description => '',
+              name        => 'molly_guard',
+              description => 'A script to protect users from accidentally invoking'
+              . ' commands which may perform undesired actions. See '
+              . 'http://catb.org/jargon/html/M/molly-guard.html',
               license     => 'MIT',
               updated     => '$DATE'
              );
@@ -76,14 +115,14 @@ my $cmd_confirm_list;
 my $txt_confirm_list;
 
 sub init {
-    Irssi::settings_add_bool('foreach_guard',
-                             'foreach_guard_debug',
+    Irssi::settings_add_bool('molly_guard',
+                             'molly_guard_debug',
                              0);
-    Irssi::settings_add_str ('foreach_guard',
-                             'foreach_guard_confirm_commands',
+    Irssi::settings_add_str ('molly_guard',
+                             'molly_guard_confirm_commands',
                              '');
-    Irssi::settings_add_str ('foreach_guard',
-                             'foreach_guard_confirm_text',
+    Irssi::settings_add_str ('molly_guard',
+                             'molly_guard_confirm_text',
                              '');
 
     Irssi::theme_register([
@@ -109,7 +148,7 @@ sub init {
 }
 
 sub sig_setup_changed {
-    $DEBUG = Irssi::settings_get_bool('foreach_guard_debug');
+    $DEBUG = Irssi::settings_get_bool('molly_guard_debug');
     _debug("settings changed");
     $cmdchars = Irssi::settings_get_str('cmdchars');
     my $tmp = join('|', map { quotemeta } split('', $cmdchars));
@@ -118,10 +157,10 @@ sub sig_setup_changed {
     _debug("Match cmdchars set to: %s", $match_cmdchars);
 
     $cmd_confirm_check = { map { $_ => 1 } split /\s+/,
-      Irssi::settings_get_str('foreach_guard_confirm_commands') };
+      Irssi::settings_get_str('molly_guard_confirm_commands') };
 
     $txt_confirm_check = { map { $_ => 1 } split /\s+/,
-      Irssi::settings_get_str('foreach_guard_confirm_text') };
+      Irssi::settings_get_str('molly_guard_confirm_text') };
 
 }
 
