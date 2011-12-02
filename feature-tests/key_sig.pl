@@ -25,11 +25,21 @@ Irssi::signal_add('key created', \&sig_key_created);
 Irssi::signal_register({'key command' => [qw/string/]});
 Irssi::signal_add_first('key command' => \&sig_key_cmd);
 
+Irssi::signal_register({'key key' => [qw/string/]});
+Irssi::signal_add_first('key key' => \&sig_key_key);
+
 Irssi::signal_register({'key nothing' => [qw/string/]});
-Irssi::signal_add_first('key nothing' => \&sig_key_cmd);
+Irssi::signal_add_first('key nothing' => \&sig_key_nothing);
 
 Irssi::signal_register({'keyboard created' => [qw/Irssi::UI::Keyboard/]});
 Irssi::signal_add_first('keyboard created' => \&sig_keyboard);
+
+Irssi::signal_register({'key bacon' => [qw/string int int/]});
+Irssi::signal_add_first('key bacon' => \&sig_key_bacon);
+
+sub sig_key_bacon {
+    print "baconkey: " . Dumper(\@_);
+}
 
 sub sig_keyboard {
     my ($data) = @_;
@@ -42,10 +52,22 @@ sub sig_key_cmd {
 
 }
 
+sub sig_key_nothing {
+    my ($data) = @_;
+    print "key nothing: " . Dumper($data);
+
+}
+
+sub sig_key_key {
+    my ($data) = @_;
+    print "key key: " . Dumper($data);
+
+}
+
 sub sig_key_created {
     my @args = @_;
 
     print "Key Created, Args: " . Dumper(\@args);
 }
 
-Irssi::command("bind meta-q /echo moo");
+Irssi::command("bind meta-q key bacon");

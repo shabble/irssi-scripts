@@ -50,12 +50,28 @@ THE SOFTWARE.
 
 =item *
 
-
+Stuff.
 
 =back
 
-
 =cut
+
+# Plan
+#  Notes
+#  * Main target is remote screen+irssi, accessed via ssh on local OSX/iTerm2
+#    (Because that's what I use :p)
+#  * Might work on windows (growl has windows port afaik)
+#  * iterm active feature: "[iterm2-discuss] iTerm2 1.0.0.20111020 canary released"
+#     "Add support for reporting focus lost/gained. esc[?1004h turns it on;
+#     then the terminal sends esc[I when focusing, esc[O when de-focusing.
+#     Send esc[?1004l to disable."
+
+# Main features are:
+# * detect activity from irssi similarly to existing activity (crap, text, hilight)
+# * configurable white/blacklists for nicks, masks, activities?
+# * use the Growl remote protocol (GNTP) via optional ssh backchannel?
+# * easy to configure other parts (ssh tunnel, etc?)
+
 
 use strict;
 use warnings;

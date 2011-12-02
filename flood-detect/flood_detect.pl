@@ -72,6 +72,8 @@ our %IRSSI = (
 my $NAME  = $IRSSI{name};
 my $DEBUG = 0;
 
+my $activity;
+
 sub DEBUG () { $DEBUG }
 
 sub setup_changed {
@@ -111,6 +113,12 @@ sub init {
 
 init();
 
+sub update_activity {
+    my ($nick, $channel, $server) = @_;
+}
+
+sub prune_activity_list {
+}
 
 sub apply_flood_action {
 

@@ -104,7 +104,13 @@ my $pending_msg_params = {};
 my $lookup_in_progress;
 my $flushing_message;
 my $domains;
+my $DEBUG;
 
+sub _debug_print($) {
+    return unless $DEBUG;
+    my ($msg) = @_;
+    Irssi::active_win->print($msg, MSGLEVEL_CLIENTCRAP);
+}
 
 sub sig_public_message {
     _handle_messages(@_);
@@ -116,7 +122,7 @@ sub sig_private_message {
 
 sub _handle_messages {
 
-    my $msg = $_[1];
+    my ($server, $msg) = @_;
 
     if ($flushing_message) { # don't interrupt it a second time.
         delete $pending_msg_params->{$flushing_message};
@@ -139,10 +145,12 @@ sub _handle_messages {
 
     $pending_msg_params->{$url} = [@_];
     $lookup_in_progress = 1;
+
     expand_url($url);
 
-    Irssi::signal_stop;
+    Irssi::signal_stop if $server;
 }
+
 
 sub expand_url {
     my ($url) = @_;
@@ -158,16 +166,28 @@ sub expand_url_request {
     $user_agent->timeout(2); # TODO: make this a setting.
     $user_agent->max_size(0);
     my $request = HTTP::Request->new(GET => $url);
-    my $result = $user_agent->request($request);
+    my $result = $user_agent->simple_request($request);
 
-    print "$url\n";
-
-    if ($result->is_error) {
+    if ($result->is_redirect) {
+        my $location = $result->header('Location');
+        if ($location) {
+            print "$location\n";
+        } else {
+            print "ERROR: no Location header\n";
+        }
+    } elsif ($result->is_error) {
         print "ERROR: " . $result->as_string . "\n";
-        return;
+    } elsif ($result->is_success) {
+        print "$url\n";
     }
 
+#elsif ($result->is_success) {
+ #       print "
+#        return;
+#    }
+
     my @redirects = $result->redirects;
+    #_debug_print(join (" => ", map { $_->header('Location') } @redirects));
     if (@redirects) {
         print $redirects[-1]->header('Location') . "\n";
     }
@@ -177,26 +197,40 @@ sub expand_url_callback {
     my ($result) = @_;
 
     chomp $result;
+
     my ($orig_url, $long_url) = split /\n/, $result;
     $long_url = '' unless $long_url;
+
+    # l/rtrim to clean up whitespace
     $long_url =~ s/\s*(\S*)\s*/$1/;
 
 
     my $pending_message_data = $pending_msg_params->{$orig_url};
     my @new_signal = @$pending_message_data;
 
-    #Irssi::print("Result: orignal: $orig_url, new: $long_url");
+    _debug_print("Result: orignal: $orig_url, new: $long_url");
 
-    if ($long_url && $long_url !~ /^ERROR/ && $long_url ne $orig_url) {
-        $new_signal[1] =~ s/\Q$orig_url\E/$long_url [was: $orig_url]/;
-        #print "Printing with: " . Dumper(@new_signal[1..$#new_signal]);
-    } elsif ($long_url && $long_url =~ /^ERROR/) {
-        $new_signal[1] =~ s/\Q$orig_url\E/$long_url while expanding "$orig_url"/;
+    if ($long_url) {
+        if ($long_url !~ /^ERROR/ && $long_url ne $orig_url) {
+            $new_signal[1]
+              =~ s/\Q$orig_url\E/$long_url [was: $orig_url]/;
+            _debug_print("Printing with: " 
+                         . Dumper(@new_signal[1..$#new_signal]));
+        } elsif ($long_url =~ /^ERROR/) {
+            $new_signal[1]
+              =~ s/\Q$orig_url\E/$long_url while expanding "$orig_url"/;
+        }
     }
 
-    $flushing_message = $orig_url;
-    Irssi::signal_emit 'message public', @new_signal;
+    if (defined $new_signal[0]) {
+        $flushing_message = $orig_url;
+        Irssi::signal_emit 'message public', @new_signal;
+    } else {
+        delete $pending_msg_params->{$orig_url};
+        Irssi::print("URL: $orig_url expands to $new_signal[1]");
+    }
 
+    $lookup_in_progress = 0;
 }
 
 sub match_uri {
@@ -244,7 +278,7 @@ sub match_uri {
 }
 
 sub cmd_reload {
-    my $filename = shift 
+    my $filename = shift
       || File::Spec->catfile(Irssi::get_irssi_dir, 'longify-urls.list');
     $domains = {};
     open my $fh, '<', $filename
@@ -257,16 +291,31 @@ sub cmd_reload {
     Irssi::active_win->print('%_Longify:%_ List of domains has been reloaded.');
 }
 
+sub cmd_longify {
+    my ($args, $server, $witem) = @_;
+
+    # _handle_messages expects $_[1] to contain message content.
+    _handle_messages(undef, $args);
+}
+
 sub init {
+    Irssi::settings_add_bool 'longify', 'longify-debug', 0;
+
     Irssi::signal_add_first 'message public',  \&sig_public_message;
     Irssi::signal_add_first 'message private', \&sig_private_message;
     Irssi::signal_add       'setup changed',   \&sig_setup_changed;
     Irssi::command_bind     'longify-reload',  \&cmd_reload;
+    Irssi::command_bind     'longify',         \&cmd_longify;
 
     cmd_reload();
+    sig_setup_changed();
 }
 
 sub sig_setup_changed {
+
+    $DEBUG = Irssi::settings_get_bool 'longify-debug';
+    $DEBUG = 0 unless defined $DEBUG;
+
     # TODO: settings updating stuff goes here.
 }
 

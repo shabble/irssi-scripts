@@ -9,7 +9,7 @@
 ## Other hand if you dont use irssi-proxy you still have a good reason to
 ## use this if you want to forward messages that come to you while
 ## you are away to email box.
-## This is usefull for forwarding messages to an SMS-gateway ;)
+## This is useful for forwarding messages to an SMS-gateway ;)
 ##
 ## btw.. if you find any bugs or have any ideas for development of this
 ## script dont hesitate to send msg to BCOW@IrcNET
@@ -311,7 +311,19 @@ sub msg_pri {
 	}
 }
 
-Irssi::signal_add_last('proxy client connected',    \&client_connect);
-Irssi::signal_add_last('proxy client disconnected', \&client_disconnect);
-Irssi::signal_add_last('message public',            \&msg_pub);
-Irssi::signal_add_last('message private',           \&msg_pri);
+sub init {
+
+    Irssi::settings_add_string('awayproxy', 'awayproxy_send_mode', MODE_EMAIL);
+
+    Irssi::signal_add_last('proxy client connected',    \&sig_client_connect);
+    Irssi::signal_add_last('proxy client disconnected', \&sig_client_disconnect);
+    Irssi::signal_add_last('message public',            \&sig_msg_public);
+    Irssi::signal_add_last('message private',           \&sig_msg_private);
+    Irssi::signal_add('setup changed',                  \&sig_setup_changed);
+
+    sig_setup_changed();
+}
+
+sub sig_setup_changed {
+     # load values from settings.
+}
