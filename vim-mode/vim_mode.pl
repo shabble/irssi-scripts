@@ -641,6 +641,7 @@ sub C_NOP        () { 7 }
 sub S_BOOL () { 0 }
 sub S_INT  () { 1 }
 sub S_STR  () { 2 }
+sub S_TIME () { 3 }
 
 # word and non-word regex, keep in sync with setup_changed()!
 my $word     = qr/[\w_]/o;
@@ -894,7 +895,7 @@ my $settings
      # <Leader> value for prepending to commands.
      map_leader     => { type => S_STR,  value => '\\' },
      # timeout for keys following esc. In milliseconds.
-     esc_buf_timeout => { type => S_INT, value =>  10 },
+     esc_buf_timeout => { type => S_TIME, value =>  '10ms' },
 
     };
 
@@ -3611,6 +3612,8 @@ sub _setting_get {
         $ret = Irssi::settings_get_int($name);
     } elsif ($type == S_STR) {
         $ret = Irssi::settings_get_str($name);
+    } elsif ($type == S_TIME) {
+        $ret = Irssi::settings_get_time($name);
     } else {
         _warn("Unknown setting type '$type', please report.");
     }
@@ -3630,6 +3633,8 @@ sub _setting_set {
         Irssi::settings_set_int($name, $value);
     } elsif ($type == S_STR) {
         Irssi::settings_set_str($name, $value);
+    } elsif ($type == S_TIME) {
+        Irssi::settings_set_time($name, $value);
     } else {
         _warn("Unknown setting type '$type', please report.");
     }
@@ -3647,6 +3652,8 @@ sub _setting_register {
         Irssi::settings_add_int('vim_mode', $name, $value);
     } elsif ($type == S_STR) {
         Irssi::settings_add_str('vim_mode', $name, $value);
+    } elsif ($type == S_TIME) {
+        Irssi::settings_add_time('vim_mode', $name, $value);
     } else {
         _warn("Unknown setting type '$type', please report.");
     }
