@@ -597,7 +597,7 @@ use Irssi::Irc;                 # necessary for 0.8.14
 
 
 
-our $VERSION = "1.0.2";
+our $VERSION = "1.1.0";
 our %IRSSI   =
   (
    authors         => "Tom Feist (shabble), Simon Ruderich (rudi_s)",
@@ -607,7 +607,7 @@ our %IRSSI   =
    name            => "vim_mode",
    description     => "Give Irssi Vim-like commands for editing the inputline",
    license         => "MIT",
-   changed         => "28/9/2010"
+   changed         => "3/2/2012"
   );
 
 
