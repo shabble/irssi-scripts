@@ -5,16 +5,21 @@
 #
 # the primary command used is /join+ #channelname
 #
-# Mappings for channels and servers are retrieved from irssi's internal
-# /channel list
+# Mappings for channels to servers is accomplished with the
+# joinplus_server_maps setting.
+#
+# Within this setting, space separated pairs denote channel, server pairs.
+# Spaces also separate individual pairs, for example:
+#
+# /set joinplus_server_maps #foo Freenode #bar irc.somewhere.tld #meep DALNet
 #
 # Then use /join+ #foo, and if you are not already connected to freenode, it
 # will connect you, and then join that channel.
 
 # TODO:
+# Autocompletion for channel names
 # address conflict resolution
 # fix that disgusting race condition
-# Fix incredibly slow shutdown time after a few days
 
 use strict;
 use warnings;
@@ -38,7 +43,7 @@ sub _debug_print {
     $win->print($str, Irssi::MSGLEVEL_CLIENTCRAP);
 }
 
-our $VERSION = '0.1';
+our $VERSION = '0.0.' . (split(/ /, '$Rev: 362 $'))[1];
 
 our %IRSSI = (
               authors     => 'shabble, richo',
@@ -89,7 +94,7 @@ sub haxy_print_hook {
     my $data = $_[1];
     # Hose control characters
     $data =~ s/\x04.//g;
-    if ($data =~ m/^[#&!]/) {
+    if ($data =~ m/^#/) {
         my @items = split /\s+/, $data;
         push(@hack_channels, $items[0]);
         push(@hack_channels, $items[1]);
@@ -108,10 +113,11 @@ sub parse_channel_map {
         Irssi::active_win->print("Could not process channel => server mappings");
         $channel_map = {};
     }
-    #_debug_print Dumper($channel_map);
+    _debug_print Dumper($channel_map);
     bind_completion();
 }
 
+# Bind a stack of commands so that irssi knows to complete them.
 sub bind_completion {
     foreach(%$channel_map) {
         Irssi::command_bind("join+ $_", \&join_plus);
@@ -123,6 +129,7 @@ sub unbind_completion {
         Irssi::command_unbind("join+ $_", \&join_plus);
     }
 }
+   
 
 sub join_plus {
     my ($args, $cmd_server, $witem) = @_;
@@ -130,7 +137,7 @@ sub join_plus {
 
     # parse out channel name from args:
     my $channel;
-    if ($args =~ m/^([#&!]?[^ ]*)/) {
+    if ($args =~ m/^(#?[#a-zA-Z0-9]+)/) {
         $channel = $1;
         _debug_print ("Channel is: $channel");
     }
@@ -150,8 +157,6 @@ sub join_plus {
             return;
     }
     # TODO: search values() and give a 'did you mean' for closest channel
-    # TODO: Fuzzy match for ## channels (Would be nice to hax at teh tab
-    # completion too)
 
     # check if we're connected to that server
     my $server = Irssi::server_find_tag($server_id);
@@ -179,8 +184,6 @@ sub join_plus {
         # check if we're already on the required channel
         my $on_channel = $server->channel_find($channel);
 
-        # FIXME
-        # Should this be $on_channel? Need docs..
         if (defined $channel && ref($channel) eq 'Irssi::Irc::Channel') {
             Irssi::active_win()->print("You are already connected to "
                                        . " $channel on " . $server->{tag});
@@ -197,28 +200,24 @@ sub join_plus {
         _debug_print ("awaiting connection for join");
 
         $pending_joins->{$server_id} = $channel;
-        # This comes tumbling down if the server doesn't have a MOTD.
-        # is that RFC required?
         Irssi::signal_add_last("event 376", 'do_channel_join');
     }
 }
 
 sub do_channel_join {
-    Irssi::signal_remove("event 376", 'do_channel_join');
     my ($serv) = @_;
     #_debug_print("server is " . Dumper($serv));
     _debug_print(sprintf("server is %s (%s)", $serv->{address}, $serv->{tag}));
 
     my $channel = $pending_joins->{$serv->{address}};
     $channel = $pending_joins->{$serv->{tag}} unless $channel;
-    if ($channel) {
-        _debug_print ("attempting to join $channel");
 
-        Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
+    _debug_print ("attempting to join $channel");
 
-        delete $pending_joins->{$serv->{address}};
-        delete $pending_joins->{$serv->{tag}};
-    }
+    Irssi::server_find_tag($serv->{tag})->command("JOIN $channel");
+
+    delete $pending_joins->{$serv->{address}};
+    delete $pending_joins->{$serv->{tag}};
 
 }
 
