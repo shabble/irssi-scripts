@@ -52,7 +52,11 @@ sub sig_grep_text {
 
         if (not $options->{'-v'}) {
             $match_count++;
-            return;
+            # $text = "\x{03}5" . $text . "\x{0f}";
+            # $stripped_text = "\x{03}5" . $stripped_text . "\x{0f}";
+            $text = $text . "bacon";
+            $stripped_text = $stripped_text . "moo";
+            irssi::signal_continue($dest, $text, $stripped_text);
         }
     }
 

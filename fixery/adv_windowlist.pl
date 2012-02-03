@@ -282,6 +282,8 @@ my $needRemake;       # "normal" changes
 sub GLOB_QUEUE_TIMER () { 100 }
 my $globTime = undef; # timer to limit remake() calls
 
+my $EXTRA_HILIGHTS_STR = '';
+my $EXTRA_HILIGHTS = {};
 
 my $SCREEN_MODE;
 my $DISABLE_SCREEN_TEMP;
@@ -332,8 +334,9 @@ my $terminfo = bless { # xterm here, make this modular
 
 
 sub setc () {
-	$IRSSI{'name'}
+	$IRSSI{name}
 }
+
 sub set ($) {
 	setc . '_' . shift
 }
@@ -452,17 +455,32 @@ sub killOldStatus {
 my %keymap;
 
 sub get_keymap {
-	my ($textDest, undef, $cont_stripped) = @_;
-	if ($textDest->{'level'} == 524288 and $textDest->{'target'} eq ''
-			and !defined($textDest->{'server'})
-	) {
-		if ($cont_stripped =~ m/((?:meta-)+)(.)\s+change_window (\d+)/) {
-			my ($level, $key, $window) = ($1, $2, $3);
-			my $numlevel = ($level =~ y/-//) - 1;
-			$keymap{$window} = ('-' x $numlevel) . "$key";
-		}
-		Irssi::signal_stop();
-	}
+	my ($textDest, undef, $stripped_text) = @_;
+	#if ($textDest->{'level'} == 524288 and $textDest->{'target'} eq '') {
+	if ($textDest->{level} == Irssi::MSGLEVEL_CLIENTCRAP and
+        $textDest->{target} eq '') {
+        if (not defined($textDest->{server})) {
+
+            my $bind = $stripped_text;
+            if ($bind =~ m/((?:meta-)+)(.)\s+change_window (\d+)/) {
+
+                my ($level, $key, $window) = ($1, $2, $3);
+                my $numlevel = ($level =~ y/-//) - 1;
+
+                $keymap{$window} = ('-' x $numlevel) . "$key";
+
+            } elsif ($bind =~ m/((?:meta-)+)(.)\s+window goto (\d+|(?:#\w+))/) {
+                # TODO: make this work moar better
+                my ($level, $key, $window) = ($1, $2, $3);
+                my $numlevel = ($level =~ y/-//) - 1;
+
+                $keymap{$window} = ('-' x $numlevel) . "$key";
+            }
+
+            Irssi::signal_stop();
+        }
+
+    }
 }
 
 sub update_keymap {
@@ -719,8 +737,71 @@ my %banned_channels = map { lc1459($_) => undef }
 split ' ', Irssi::settings_get_str('banned_channels');
 Irssi::settings_add_str(setc, 'fancy_abbrev', 'fancy');
 
+sub _error {
+    my $msg = join '', @_;
+    Irssi::print(setc . ':', Irssi::MSGLEVEL_CLIENTERROR);
+}
+
 # }}}
 
+# {{{ extra channel hilights
+
+sub rereadChanHilights {
+    my $hilight_str = Irssi::settings_get_str(set 'extra_hilights');
+
+    # only update if changed.
+    return if $hilight_str eq $EXTRA_HILIGHTS_STR;
+
+    $EXTRA_HILIGHTS_STR = $hilight_str
+
+    return unless length $hilight_str;
+
+    # kill all existing entries
+    $EXTRA_HILIGHTS = {};
+
+    my @entries = split /\s+/, $hilight_str;
+
+    my $pattern = qr|^ (?:([^/]*)/)  # $1: optional '$tag/' capturing $tag
+                       ([^:]+):      # $2: required '$target:', capturing $target
+                       (%.+)         # $3: required '%$colour'
+                     $|xo;
+
+    foreach my $entry (@entries) {
+
+        if ($entry =~ $pattern) {
+            my ($tag, $target, $colour) = ($1, $2, $3);
+            my $components = ;
+
+            my $target_match_str = $target;
+            if (length $tag) {
+                $target_match_str = $tag . '/' . $target_match_str;
+            }
+
+            $EXTRA_HILIGHTS->{$target_match_str}
+              = { tag => $tag, target => $target, colour => $colour };
+
+        } else {
+            _error("malformed hilight entry: '$entry'");
+        }
+    }
+}
+
+sub matchExtraHilight {
+    my ($target, $tag) = @_;
+    my $match = $target;
+    if (length $tag) {
+        $match = $tag . '/' . $tag;
+    }
+    if (exists $EXTRA_HILIGHTS->{$match}) {
+        return $EXTRA_HILIGHTS->{$match}->{colour};
+    } else {
+        return '';
+    }
+}
+
+# }}}
+
+# {{{
 # {{{ main
 
 sub remake () {
@@ -957,6 +1038,9 @@ sub remake () {
 
 sub awlHasChanged () {
 	$globTime = undef;
+
+    rereadChanHilights();
+
 	my $temp = ($SCREEN_MODE ?
 		"\\\n" . Irssi::settings_get_int(set 'block').
 		Irssi::settings_get_int(set 'height_adjust')
@@ -1098,6 +1182,9 @@ Irssi::settings_add_str(setc, set 'placement', 'bottom');
 Irssi::settings_add_int(setc, set 'position', 0);
 Irssi::settings_add_bool(setc, set 'all_disable', 0);
 Irssi::settings_add_str(setc, set 'automode', 'sbar');
+
+# format is '[$tag/]#channel:%colour1 [$tag/]#channel:%colour2 ...' list.
+Irssi::settings_add_str(setc, set 'extra_hilights', '');
 
 # }}}
 
