@@ -457,6 +457,21 @@ Examples:
    :set debug=on    # enable debug
    :set debug=off   # disable debug
 
+=head1 KNOWN ISSUES
+
+If you use tmux and want to use <esc> to exit insert mode you might want to
+reduce the escape-time for a better experience (500 is the default value):
+
+    set -s escape-time 100
+
+A similar problem exist in GNU screen, the following settings in ~/.screenrc
+fix it (thanks to jsbronder for reporting the screen issue and fix):
+
+    maptimeout 0
+    defc1 off
+
+defc1 might not be necessary.
+
 =head1 SUPPORT
 
 Any behavior different from Vim (unless explicitly documented) should be
