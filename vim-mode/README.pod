@@ -143,34 +143,36 @@ a command such as:
 
 =head3 Quick Window Switching
 
-If you are in the habit of using C<Esc,N> for switching windows, you might
-want to consider switching to using C<Alt+N>. This is faster, anyway, but it
-will be even faster for you while you're using F<vim_mode.pl>. Also, if you
-don't already know, you can use C<Alt+[qwertyuio]> to access windows 11-19
-(the letter corresponds to the number northwest of it on the keyboard).
+As an alternative to using C<Esc,N> for switching windows, you may wish to
+consider switching to using C<Alt+N>. This is typically faster, and
+significantly easier when using F<vim_mode.pl>. Additionally, you can use
+C<Alt+[qwertyuio]> to access windows 11-19 (the letter corresponds to the number
+northwest of it on the keyboard).
 
-Also, for xterm users, the default binding is to emit a skimpy set of
+For C<xterm> users, the default configuration is to emit a only a small set of
 non-ASCII chars, such as superscript-2 when you hit C<Alt+2>. There are more
 modern ways to input such characters, and they get in the way of the above
-trick. Doing:
+bindings. The commands:
 
     echo '*VT100*metaSendsEscape: true' >> ~/.Xresources
     xrdb -merge ~/.Xresources
     
-...then restart xterm. The C<xrdb> command should only be necessary for the
-current X session, as that file is read by default in most X startup scripts.
+can be used to change the behaviour of xterm to allow the C<Alt-I<x>> bindings
+The C<xrdb> command is only be necessary for the existing X session, 
+as the F<.Xresources> file is read by default in most X startup scripts.
+
 If it is not, you can add that line to your C<~/.xsession> or C<~/.xinitrc>,
 whichever is in use. Furthermore, if you want to change this setting on a
 running xterm (for example, because you're running C<irssi> directly, not from
-within C<screen> even though you should!), you can use C<editres>. It is one
-of those crufty old X11 applications that is not very well understood, today,
-but to use it you go to C<Commands E<gt> Get Tree>, then click on the xterm,
-then click on the C<vt100> box, then go to C<Commands E<gt> Show Resource
-Box>. From there the C<metaSendsEscape> resource should be visible so you can
-click on it (if it isn't, fiddle with the odd scrollbar on the left of the
-window). Finally, enter C<true> in the "Enter Resource Value" box and hit
-C<Apply>.  Not terribly simple, but at least it will save you the noob move of
-C</quit BRB.>
+within L<GNU Screen|https://www.gnu.org/software/screen/> or
+L<tmux|http://tmux.sourceforge.net/> (although you probably should be), you can
+use C<editres>. It is one of those crufty old X11 applications that is not very
+well known or used in recent times. To use it, go to C<Commands E<gt> Get
+Tree>, then click on the xterm, then click on the C<vt100> box, then go to
+C<Commands E<gt> Show Resource Box>. From there the C<metaSendsEscape> resource
+should be visible so you can click on it (if it isn't, fiddle with the odd
+scrollbar on the left of the window). Finally, enter C<true> in the "Enter
+Resource Value" box and hit C<Apply>.
 
 =head3 FILE-BASED CONFIGURATION
 
