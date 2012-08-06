@@ -388,9 +388,11 @@ sub deinit {
     Irssi::expando_destroy('lbrace');
     Irssi::expando_destroy('rbrace');
 
-    # remove uberprompt and return the original ones.
-    print "Removing uberprompt and restoring original";
-    restore_prompt_items();
+    if (Irssi::settings_get_bool('uberprompt_restore_on_exit')) {
+        # remove uberprompt and return the original ones.
+        print "Removing uberprompt and restoring original";
+        restore_prompt_items();
+    }
 }
 
 sub init {
@@ -407,6 +409,8 @@ sub init {
 
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
+    Irssi::settings_add_bool ('uberprompt', 'uberprompt_restore_on_exit', 1);
+
     Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
 
 
