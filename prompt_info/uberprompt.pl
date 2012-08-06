@@ -373,7 +373,7 @@ sub _print_help {
            "                                \"replaces\" setting. Especially",
            "                                noticeable on brackets \"[ ]\" ",
            "/SET uberprompt_trim_data    -- defaults to off. Removes whitespace from",
-           "                                both sides of the $uber result.",
+           "                                both sides of the \$uber result.",
            "",
           );
 
