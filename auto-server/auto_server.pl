@@ -150,7 +150,7 @@ sub join_plus {
             return;
     }
     # TODO: search values() and give a 'did you mean' for closest channel
-    # TODO: Fuzzy match for ## channels (Would be nice to hax at teh tab
+    # TODO: Fuzzy match for ## channels (Would be nice to hax at the tab
     # completion too)
 
     # check if we're connected to that server
