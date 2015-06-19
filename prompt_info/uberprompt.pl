@@ -316,7 +316,7 @@ my $init_callbacks = {load => '', unload => ''};
 pre_init();
 
 sub pre_init {
-    Irssi::command('statusbar prompt reset');
+    `stty -ixon`;
     init();
 }
 
@@ -393,11 +393,9 @@ sub deinit {
     Irssi::expando_destroy('lbrace');
     Irssi::expando_destroy('rbrace');
 
-    if (Irssi::settings_get_bool('uberprompt_restore_on_exit')) {
-        # remove uberprompt and return the original ones.
-        print "Removing uberprompt and restoring original";
-        restore_prompt_items();
-    }
+    # remove uberprompt and return the original ones.
+    #print "Removing uberprompt and restoring original";
+    restore_prompt_items();
 }
 
 sub init {
@@ -415,7 +413,6 @@ sub init {
 
     Irssi::settings_add_bool('uberprompt', 'uberprompt_debug', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_autostart', 1);
-    Irssi::settings_add_bool ('uberprompt', 'uberprompt_restore_on_exit', 1);
 
     Irssi::settings_add_bool('uberprompt', 'uberprompt_use_replaces', 0);
     Irssi::settings_add_bool('uberprompt', 'uberprompt_trim_data', 0);
@@ -705,18 +702,15 @@ sub uberprompt_refresh {
 }
 
 sub replace_prompt_items {
+    # add the new one.
+    _sbar_command('prompt', 'add', 'uberprompt',
+                  qw/-alignment left -after prompt_empty -priority '-1'/);
+
     # remove existing ones.
     _debug_print("Removing original prompt");
 
     _sbar_command('prompt', 'remove', 'prompt');
     _sbar_command('prompt', 'remove', 'prompt_empty');
-
-    # add the new one.
-
-    _sbar_command('prompt', 'add', 'uberprompt',
-                  qw/-alignment left -before input -priority '-1'/);
-
-    _sbar_command('prompt', 'position', '100');
 
     my $load_hook = $init_callbacks->{load};
     if (defined $load_hook and length $load_hook) {
@@ -732,11 +726,14 @@ sub replace_prompt_items {
 
 sub restore_prompt_items {
 
-    _sbar_command('prompt', 'remove', 'uberprompt');
-
     _debug_print("Restoring original prompt");
 
-    _sbar_command('prompt', 'reset');
+    _sbar_command('prompt', 'add', 'prompt',
+                  qw/-alignment left -after uberprompt -priority '-1'/);
+    _sbar_command('prompt', 'add', 'prompt_empty',
+                  qw/-alignment left -after prompt -priority '-1'/);
+
+    _sbar_command('prompt', 'remove', 'uberprompt');
 
     my $unload_hook = $init_callbacks->{unload};
 
