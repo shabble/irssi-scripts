@@ -398,6 +398,10 @@ sub deinit {
     restore_prompt_items();
 }
 
+sub gui_exit {
+    die; # unload script
+}
+
 sub init {
     Irssi::statusbar_item_register('uberprompt', 0, 'uberprompt_draw');
 
@@ -431,6 +435,7 @@ sub init {
 
     Irssi::command_bind('help', \&_print_help);
 
+    Irssi::signal_add_first('gui exit', \&gui_exit);
     Irssi::signal_add('setup changed', \&reload_settings);
 
     # intialise the prompt format.
