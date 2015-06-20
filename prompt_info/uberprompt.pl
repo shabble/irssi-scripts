@@ -399,7 +399,7 @@ sub deinit {
 }
 
 sub gui_exit {
-    die; # unload script
+    restore_prompt_items();
 }
 
 sub init {
@@ -706,7 +706,12 @@ sub uberprompt_refresh {
     Irssi::statusbar_items_redraw('uberprompt');
 }
 
+my $prompt_items_replaced;
+
 sub replace_prompt_items {
+    unless ($prompt_items_replaced) {
+    $prompt_items_replaced = 1;
+
     # add the new one.
     _sbar_command('prompt', 'add', 'uberprompt',
                   qw/-alignment left -after prompt_empty -priority '-1'/);
@@ -716,6 +721,8 @@ sub replace_prompt_items {
 
     _sbar_command('prompt', 'remove', 'prompt');
     _sbar_command('prompt', 'remove', 'prompt_empty');
+
+    }
 
     my $load_hook = $init_callbacks->{load};
     if (defined $load_hook and length $load_hook) {
@@ -730,6 +737,8 @@ sub replace_prompt_items {
 }
 
 sub restore_prompt_items {
+    if ($prompt_items_replaced) {
+    $prompt_items_replaced = undef;
 
     _debug_print("Restoring original prompt");
 
@@ -739,6 +748,8 @@ sub restore_prompt_items {
                   qw/-alignment left -after prompt -priority '-1'/);
 
     _sbar_command('prompt', 'remove', 'uberprompt');
+
+    }
 
     my $unload_hook = $init_callbacks->{unload};
 
