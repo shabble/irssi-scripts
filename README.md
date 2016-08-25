@@ -3,6 +3,13 @@
 This repository contains a collection of scripts and things I have written or
 adapted from others to improve my (and maybe your!) Irssi using experience.
 
+**Important Note:** Some of these scripts might be outdated, and newer & better versions available
+elsewhere on the interwebs. I suggest checking [https://scripts.irssi.org/](https://scripts.irssi.org/) first
+to ensure they haven't already superceded some of these (pretty old) scripts.
+
+Please `/msg shabble` on Freenode if there's something here that you maintain that you'd prefer I didn't keep
+hosted here.
+
 ## What's In Here
 
 I never thought I'd end up writing so many scripts, so rather than give them
