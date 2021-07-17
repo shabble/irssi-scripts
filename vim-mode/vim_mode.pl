@@ -2740,7 +2740,7 @@ sub got_key {
             _stop();
             return;
 
-        } elsif ($key == 10) { # enter.
+        } elsif ($key == 10  || $key == 13) { # enter.
             _commit_line();
 
         } elsif ($input_buf_enabled and $imap) {
@@ -3051,7 +3051,7 @@ sub handle_command_cmd {
         }
 
     # Enter key sends the current input line in command mode as well.
-    } elsif ($key == 10) {
+    } elsif ($key == 10 || $key == 13) {
         _commit_line();
         return 0; # don't call _stop()
 
@@ -3194,7 +3194,7 @@ sub handle_command_ex {
         }
 
     # Return key - execute command
-    } elsif ($key == 10) {
+    } elsif ($key == 10 || $key == 13) {
         print "Run ex-mode command" if DEBUG;
         cmd_ex_command();
         _update_mode(M_CMD);
